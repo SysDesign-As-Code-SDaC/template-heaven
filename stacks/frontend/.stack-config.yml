@@ -1,0 +1,19 @@
+stack_name: "Frontend Frameworks"
+category: "frontend"
+description: "Modern frontend framework templates including React, Vue, Svelte, and more"
+maintainers: ["@frontend-team"]
+upstream_sources:
+  - github.com/vitejs/vite
+  - github.com/sveltejs/kit
+  - github.com/solidjs/templates
+trend_keywords:
+  - "frontend"
+  - "react"
+  - "vue"
+  - "svelte"
+  - "vite"
+  - "typescript"
+  - "javascript"
+auto_sync: true
+created_at: "2024-01-15 10:00:00 UTC"
+last_updated: "2024-01-15 10:00:00 UTC"

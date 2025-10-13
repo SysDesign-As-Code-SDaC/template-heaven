@@ -1,0 +1,53 @@
+# Trend Detection Configuration for frontend Stack
+
+stack_name: "frontend"
+enabled: true
+
+# Keywords to search for in repository names and descriptions
+keywords:
+  - "frontend"
+  - "react"
+  - "vue"
+  - "svelte"
+  - "vite"
+  - "typescript"
+  - "javascript"
+  - "template"
+  - "boilerplate"
+  - "starter"
+
+# Repository characteristics to look for
+characteristics:
+  - has_readme: true
+  - has_license: true
+  - has_ci: true
+  - language_specific: true
+
+# Thresholds for trend detection
+thresholds:
+  stars:
+    minimum: 100
+    trending: 1000
+    critical: 5000
+  forks:
+    minimum: 10
+    trending: 100
+    critical: 500
+  growth_rate:
+    minimum: 0.1
+    trending: 0.5
+    critical: 1.0
+
+# Auto-sync settings
+auto_sync:
+  enabled: true
+  high_priority_only: true
+  require_approval: true
+
+# Notification settings
+notifications:
+  enabled: true
+  channels:
+    - "slack"
+    - "email"
+  priority_threshold: 0.7
