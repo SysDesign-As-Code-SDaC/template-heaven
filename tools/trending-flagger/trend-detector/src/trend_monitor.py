@@ -2,15 +2,7 @@
 import asyncio
 import logging
 from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
-from enum import Enum
-import aiohttp
-import redis
-import psycopg2
 from datetime import datetime, timedelta
-import numpy as np
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
 import json
 
 from .star_monitor import StarMonitor
@@ -23,51 +15,7 @@ from .historical_tracker import HistoricalTracker
 from .utils.database import Database
 from .utils.cache import Cache
 from .utils.notifications import Notifications
-
-class TrendLevel(Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-class TemplateType(Enum):
-    FRAMEWORK = "framework"
-    LIBRARY = "library"
-    TOOL = "tool"
-    TEMPLATE = "template"
-    TUTORIAL = "tutorial"
-    DOCUMENTATION = "documentation"
-
-@dataclass
-class RepositoryMetrics:
-    """Repository metrics for trend analysis."""
-    stars: int
-    forks: int
-    watchers: int
-    issues: int
-    pull_requests: int
-    commits: int
-    contributors: int
-    created_at: datetime
-    updated_at: datetime
-    language: str
-    topics: List[str]
-    size: int
-    license: str
-
-@dataclass
-class TrendAlert:
-    """Trend alert for human review."""
-    repository_url: str
-    repository_name: str
-    trend_level: TrendLevel
-    trend_score: float
-    metrics: RepositoryMetrics
-    trend_reasons: List[str]
-    priority_score: float
-    created_at: datetime
-    template_type: TemplateType
-    human_review_required: bool
+from .models import TrendLevel, TemplateType, RepositoryMetrics, TrendAlert
 
 class TrendingFlagger:
     """Main trending template flagger system."""
@@ -173,15 +121,13 @@ class TrendingFlagger:
                 recent_repos = await self.github_integration.get_recent_repositories()
                 self.logger.info(f"Found {len(recent_repos)} recently created repositories.")
 
-                for repo in recent_repos:
-                    # Calculate growth rate
-                    growth_rate = await self._calculate_growth_rate(repo)
+                early_trending_repos = await self.early_detector.detect_early_trends(recent_repos)
+                self.logger.info(f"Found {len(early_trending_repos)} early trending repositories.")
 
-                    if growth_rate >= self.growth_rate_threshold:
-                        self.logger.info(f"Repository {repo['full_name']} has a growth rate of {growth_rate}, which is above the threshold of {self.growth_rate_threshold}.")
-                        # Create trend alert
-                        alert = await self._create_trend_alert(repo, 'early_trend')
-                        await self._queue_for_review(alert)
+                for repo in early_trending_repos:
+                    # Create trend alert
+                    alert = await self._create_trend_alert(repo, 'early_trend')
+                    await self._queue_for_review(alert)
 
                 # Wait before next check
                 await asyncio.sleep(self.config.get('early_detection_interval', 600))  # 10 minutes
@@ -195,15 +141,16 @@ class TrendingFlagger:
         self.logger.info(f"Creating trend alert for {repo['full_name']} due to {trend_type}.")
         # Get repository metrics
         metrics = await self._get_repository_metrics(repo)
+        await self.historical_tracker.store_historical_data(repo['html_url'], metrics)
 
         # Calculate trend score
-        trend_score = await self.trend_analyzer.calculate_trend_score(metrics)
+        trend_score = await self.trend_analyzer.calculate_trend_score(metrics, repo['html_url'])
 
         # Determine trend level
         trend_level = self._determine_trend_level(trend_score, metrics)
 
         # Calculate priority score
-        priority_score = await self.priority_scorer.calculate_priority_score(metrics, trend_type)
+        priority_score = await self.priority_scorer.calculate_priority_score(metrics, trend_score, trend_type)
 
         # Determine template type
         template_type = self._determine_template_type(repo)
@@ -274,24 +221,6 @@ class TrendingFlagger:
             return TemplateType.DOCUMENTATION
         else:
             return TemplateType.LIBRARY
-
-    async def _calculate_growth_rate(self, repo: Dict) -> float:
-        """Calculate growth rate for a repository."""
-        # Get historical data
-        historical_data = await self.historical_tracker.get_historical_data(repo['full_name'])
-
-        if len(historical_data) < 2:
-            return 0.0
-
-        # Calculate growth rate
-        recent_stars = historical_data[-1]['stars']
-        previous_stars = historical_data[-2]['stars']
-
-        if previous_stars == 0:
-            return 1.0 if recent_stars > 0 else 0.0
-
-        growth_rate = (recent_stars - previous_stars) / previous_stars
-        return max(0.0, growth_rate)
 
     async def _queue_for_review(self, alert: TrendAlert):
         """Queue alert for human review."""
