@@ -14,11 +14,8 @@ This project is currently in the initial development phase. The core architectur
     - Review queue system using Redis.
     - PostgreSQL database integration for storing alerts.
 - **Partially Implemented:**
-    - Historical tracking (placeholder).
-    - Early trend detection (placeholder).
+    - Historical tracking.
 - **To Be Implemented:**
-    - More sophisticated trend analysis models.
-    - More robust error handling and logging.
     - Comprehensive test suite.
     - User interface for interacting with the system.
 
@@ -119,8 +116,9 @@ The main entry point for the application is `src/trend_monitor.py`. This script 
 - **`GitHubIntegration`**: Handles all communication with the GitHub API.
 - **`PriorityScorer`**: Calculates a priority score for each repository.
 - **`TrendAnalyzer`**: Calculates a trend score for each repository.
-- **`HistoricalTracker`**: Tracks historical data for repositories (placeholder).
-- **`StarMonitor`**, **`ForkMonitor`**, **`EarlyDetector`**: These are placeholder classes for more specific monitoring tasks.
+- **`HistoricalTracker`**: Tracks historical data for repositories.
+- **`StarMonitor`**, **`ForkMonitor`**: These modules now use a linear regression model to analyze historical data and determine the trend of star and fork counts over time. This provides a more accurate and stable measure of a repository's growth.
+- **`EarlyDetector`**: This module uses the trend data from the `StarMonitor` and `ForkMonitor` to identify repositories that are showing early signs of trending.
 
 The system uses Redis for queuing review tasks and PostgreSQL for storing trend alerts.
 
