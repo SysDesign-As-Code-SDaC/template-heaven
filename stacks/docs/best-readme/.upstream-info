@@ -1,0 +1,25 @@
+# Upstream Template Information
+# This file tracks the source of this template
+
+Upstream URL: https://github.com/othneildrew/Best-README-Template
+Branch: master
+Subdirectory: /
+Last Sync: 2025-01-13 01:26:00 UTC
+Sync Script: scripts/sync_template.sh
+Sync Command: ./scripts/sync_template.sh best-readme https://github.com/othneildrew/Best-README-Template
+
+# License Information
+# Please check the upstream repository for license details
+# and ensure compliance with the original license terms.
+# Original License: MIT
+
+# Attribution
+# This template is based on work from Othneil Drew and contributors.
+# Please maintain proper attribution when using this template.
+# 
+# Original Authors:
+# - Othneil Drew (@othneildrew)
+# - Best README Template Contributors
+# 
+# Repository: https://github.com/othneildrew/Best-README-Template
+# Documentation: https://github.com/othneildrew/Best-README-Template

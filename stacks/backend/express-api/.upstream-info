@@ -1,0 +1,25 @@
+# Upstream Template Information
+# This file tracks the source of this template
+
+Upstream URL: https://github.com/sahat/hackathon-starter
+Branch: master
+Subdirectory: /
+Last Sync: 2025-01-13 01:24:00 UTC
+Sync Script: scripts/sync_template.sh
+Sync Command: ./scripts/sync_template.sh express-api https://github.com/sahat/hackathon-starter
+
+# License Information
+# Please check the upstream repository for license details
+# and ensure compliance with the original license terms.
+# Original License: MIT
+
+# Attribution
+# This template is based on work from Sahat Yalkabov and contributors.
+# Please maintain proper attribution when using this template.
+# 
+# Original Authors:
+# - Sahat Yalkabov (@sahat)
+# - Hackathon Starter Contributors
+# 
+# Repository: https://github.com/sahat/hackathon-starter
+# Documentation: https://hackathon-starter.herokuapp.com/

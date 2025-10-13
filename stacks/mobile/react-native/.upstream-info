@@ -1,0 +1,25 @@
+# Upstream Template Information
+# This file tracks the source of this template
+
+Upstream URL: https://github.com/react-native-community/react-native-template-typescript
+Branch: main
+Subdirectory: /
+Last Sync: 2025-01-13 01:26:00 UTC
+Sync Script: scripts/sync_template.sh
+Sync Command: ./scripts/sync_template.sh react-native https://github.com/react-native-community/react-native-template-typescript
+
+# License Information
+# Please check the upstream repository for license details
+# and ensure compliance with the original license terms.
+# Original License: MIT
+
+# Attribution
+# This template is based on work from the React Native Community and contributors.
+# Please maintain proper attribution when using this template.
+# 
+# Original Authors:
+# - React Native Community
+# - React Native Contributors
+# 
+# Repository: https://github.com/react-native-community/react-native-template-typescript
+# Documentation: https://reactnative.dev/

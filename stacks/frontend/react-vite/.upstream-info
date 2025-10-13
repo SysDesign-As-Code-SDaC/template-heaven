@@ -1,0 +1,25 @@
+# Upstream Template Information
+# This file tracks the source of this template
+
+Upstream URL: https://github.com/vitejs/vite
+Branch: main
+Subdirectory: packages/create-vite/template-react
+Last Sync: 2025-01-13 01:24:00 UTC
+Sync Script: scripts/sync_template.sh
+Sync Command: ./scripts/sync_template.sh react-vite https://github.com/vitejs/vite --subdir packages/create-vite/template-react
+
+# License Information
+# Please check the upstream repository for license details
+# and ensure compliance with the original license terms.
+# Original License: MIT
+
+# Attribution
+# This template is based on work from the Vite team and contributors.
+# Please maintain proper attribution when using this template.
+# 
+# Original Authors:
+# - Vite Team
+# - Vite Contributors
+# 
+# Repository: https://github.com/vitejs/vite
+# Documentation: https://vitejs.dev/

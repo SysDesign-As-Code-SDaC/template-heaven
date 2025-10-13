@@ -1,0 +1,25 @@
+# Upstream Template Information
+# This file tracks the source of this template
+
+Upstream URL: https://github.com/vercel/next.js
+Branch: canary
+Subdirectory: examples/hello-world
+Last Sync: 2025-01-13 01:23:00 UTC
+Sync Script: scripts/sync_template.sh
+Sync Command: ./scripts/sync_template.sh nextjs-app https://github.com/vercel/next.js --subdir examples/hello-world
+
+# License Information
+# Please check the upstream repository for license details
+# and ensure compliance with the original license terms.
+# Original License: MIT
+
+# Attribution
+# This template is based on work from the Vercel team and Next.js contributors.
+# Please maintain proper attribution when using this template.
+# 
+# Original Authors:
+# - Vercel Team
+# - Next.js Contributors
+# 
+# Repository: https://github.com/vercel/next.js
+# Documentation: https://nextjs.org/
