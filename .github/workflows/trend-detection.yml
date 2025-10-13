@@ -51,57 +51,159 @@ jobs:
           cd tools/trending-flagger/trend-detector
           PGPASSWORD=templatepass psql -h localhost -U templateuser -d templateheaven -f data/schema.sql
 
-      - name: Configure trend detector
+      - name: Configure branch-aware trend detector
         run: |
           cd tools/trending-flagger/trend-detector
           
-          # Create GitHub config
+          # Create branch-aware config
           mkdir -p config
-          cat > config/github_config.yaml << EOF
-          github:
-            token: ${{ secrets.GITHUB_TOKEN }}
-            base_url: https://api.github.com
-            timeout: 30
-            rate_limit: 5000
-          
-          monitoring:
-            interval: 300
-            early_detection_interval: 600
-            review_interval: 1800
-            alert_interval: 3600
-          
-          thresholds:
+          cat > config/branch_aware_config.yaml << EOF
+          global:
+            github:
+              api_token: ${{ secrets.GITHUB_TOKEN }}
+              base_repo: ${{ github.repository }}
+              main_branch: dev
+            
+            redis:
+              host: localhost
+              port: 6379
+            
+            postgresql:
+              host: localhost
+              port: 5432
+              user: templateuser
+              password: templatepass
+              database: templateheaven
+            
             star_threshold: 1000
             fork_threshold: 100
             growth_rate_threshold: 0.1
             trend_score_threshold: 0.7
+            
+            monitor_interval: 300
+            early_detection_interval: 600
+            review_interval: 1800
+            alert_interval: 3600
           
-          database:
-            host: localhost
-            port: 5432
-            name: templateheaven
-            user: templateuser
-            password: templatepass
+          stacks:
+            fullstack:
+              branch: "stack/fullstack"
+              keywords: ["fullstack", "full-stack", "nextjs", "t3-stack", "remix", "nuxt", "sveltekit"]
+              exclude_keywords: ["tutorial", "example"]
+              min_stars: 500
+              min_forks: 50
+              growth_rate_threshold: 0.05
+              auto_create_pr: true
+              maintainers: ["@fullstack-team"]
+            
+            frontend:
+              branch: "stack/frontend"
+              keywords: ["react", "vue", "svelte", "frontend", "vite", "webpack", "rollup"]
+              exclude_keywords: ["tutorial", "boilerplate"]
+              min_stars: 300
+              min_forks: 30
+              growth_rate_threshold: 0.08
+              auto_create_pr: true
+              maintainers: ["@frontend-team"]
+            
+            backend:
+              branch: "stack/backend"
+              keywords: ["api", "backend", "server", "express", "fastapi", "django", "flask", "gin", "actix"]
+              exclude_keywords: ["tutorial", "example"]
+              min_stars: 400
+              min_forks: 40
+              growth_rate_threshold: 0.06
+              auto_create_pr: true
+              maintainers: ["@backend-team"]
+            
+            ai-ml:
+              branch: "stack/ai-ml"
+              keywords: ["machine-learning", "ml", "ai", "data-science", "pytorch", "tensorflow", "scikit-learn"]
+              exclude_keywords: ["tutorial", "notebook"]
+              min_stars: 800
+              min_forks: 80
+              growth_rate_threshold: 0.04
+              auto_create_pr: true
+              maintainers: ["@ai-ml-team"]
+            
+            advanced-ai:
+              branch: "stack/advanced-ai"
+              keywords: ["llm", "rag", "vector-database", "langchain", "llamaindex", "chromadb", "openai"]
+              exclude_keywords: ["tutorial", "demo"]
+              min_stars: 1000
+              min_forks: 100
+              growth_rate_threshold: 0.03
+              auto_create_pr: true
+              maintainers: ["@advanced-ai-team"]
+            
+            agentic-ai:
+              branch: "stack/agentic-ai"
+              keywords: ["agent", "autonomous", "langgraph", "crewai", "autogen", "multi-agent", "workflow"]
+              exclude_keywords: ["tutorial", "example"]
+              min_stars: 1200
+              min_forks: 120
+              growth_rate_threshold: 0.02
+              auto_create_pr: true
+              maintainers: ["@agentic-ai-team"]
+            
+            mobile:
+              branch: "stack/mobile"
+              keywords: ["mobile", "react-native", "flutter", "electron", "ionic", "cordova", "xamarin"]
+              exclude_keywords: ["tutorial", "example"]
+              min_stars: 600
+              min_forks: 60
+              growth_rate_threshold: 0.05
+              auto_create_pr: true
+              maintainers: ["@mobile-team"]
+            
+            devops:
+              branch: "stack/devops"
+              keywords: ["devops", "ci-cd", "docker", "kubernetes", "terraform", "ansible", "github-actions"]
+              exclude_keywords: ["tutorial", "example"]
+              min_stars: 400
+              min_forks: 40
+              growth_rate_threshold: 0.06
+              auto_create_pr: true
+              maintainers: ["@devops-team"]
+            
+            web3:
+              branch: "stack/web3"
+              keywords: ["web3", "blockchain", "ethereum", "solidity", "hardhat", "foundry", "defi", "nft"]
+              exclude_keywords: ["tutorial", "example"]
+              min_stars: 800
+              min_forks: 80
+              growth_rate_threshold: 0.04
+              auto_create_pr: true
+              maintainers: ["@web3-team"]
+            
+            workflows:
+              branch: "stack/workflows"
+              keywords: ["workflow", "github-actions", "gitlab-ci", "template", "boilerplate", "starter"]
+              exclude_keywords: ["tutorial", "example"]
+              min_stars: 200
+              min_forks: 20
+              growth_rate_threshold: 0.1
+              auto_create_pr: true
+              maintainers: ["@workflows-team"]
           
-          redis:
-            host: localhost
-            port: 6379
-            db: 0
+          branch_management:
+            auto_create_branches: true
+            sync_core_tools: true
+            create_stack_prs: true
+            merge_strategy: "squash"
+            required_reviewers: 1
           
           notifications:
-            enabled: true
             slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
-            email_smtp: ${{ secrets.EMAIL_SMTP }}
-            email_from: ${{ secrets.EMAIL_FROM }}
-            email_to: ${{ secrets.EMAIL_TO }}
+            github:
+              create_issues: true
+              create_prs: true
+              mention_maintainers: true
           EOF
 
-  run-trend-detection:
+  run-branch-aware-trend-detection:
     needs: setup-trend-detector
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        stack: [fullstack, frontend, backend, ai-ml, advanced-ai, agentic-ai, mobile, devops, web3, microservices, monorepo, quantum-computing, computational-biology, scientific-computing, space-technologies, 6g-wireless, structural-batteries, polyfunctional-robots, generative-ai, modern-languages, serverless, vscode-extensions, docs, workflows]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -119,96 +221,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run trend detection for stack
+      - name: Run branch-aware trend detection
         run: |
           cd tools/trending-flagger/trend-detector
           
-          # Run trend detection for specific stack
-          python << 'EOF'
-          import asyncio
-          import yaml
-          import json
-          import os
-          from src.trend_monitor import TrendingFlagger
-          
-          async def run_trend_detection(stack_name):
-              """Run trend detection for a specific stack."""
-              print(f"Running trend detection for stack: {stack_name}")
-              
-              # Load configuration
-              with open('config/github_config.yaml', 'r') as f:
-                  config = yaml.safe_load(f)
-              
-              # Load stack-specific configuration
-              stack_config_file = f"../../stacks/{stack_name}/.trend-detection-config.yml"
-              if os.path.exists(stack_config_file):
-                  with open(stack_config_file, 'r') as f:
-                      stack_config = yaml.safe_load(f)
-                  config.update(stack_config)
-              
-              # Initialize trend flagger
-              flagger = TrendingFlagger(config)
-              
-              # Run a single detection cycle
-              try:
-                  # Get trending repositories
-                  trending_repos = await flagger.github_integration.get_trending_repositories()
-                  print(f"Found {len(trending_repos)} trending repositories")
-                  
-                  # Filter by stack keywords
-                  stack_keywords = config.get('keywords', [])
-                  filtered_repos = []
-                  
-                  for repo in trending_repos:
-                      repo_text = f"{repo.get('name', '')} {repo.get('description', '')}".lower()
-                      if any(keyword.lower() in repo_text for keyword in stack_keywords):
-                          filtered_repos.append(repo)
-                  
-                  print(f"Found {len(filtered_repos)} repositories matching stack keywords")
-                  
-                  # Process each repository
-                  alerts_created = 0
-                  for repo in filtered_repos:
-                      try:
-                          # Check if repository meets thresholds
-                          stars = repo.get('stargazers_count', 0)
-                          forks = repo.get('forks_count', 0)
-                          
-                          star_threshold = config.get('thresholds', {}).get('stars', {}).get('trending', 1000)
-                          fork_threshold = config.get('thresholds', {}).get('forks', {}).get('trending', 100)
-                          
-                          if stars >= star_threshold or forks >= fork_threshold:
-                              # Create trend alert
-                              alert = await flagger._create_trend_alert(repo, 'trending')
-                              await flagger._queue_for_review(alert)
-                              alerts_created += 1
-                              print(f"Created alert for {repo['full_name']} (stars: {stars}, forks: {forks})")
-                      except Exception as e:
-                          print(f"Error processing {repo.get('full_name', 'unknown')}: {e}")
-                  
-                  print(f"Created {alerts_created} trend alerts for {stack_name}")
-                  
-              except Exception as e:
-                  print(f"Error in trend detection for {stack_name}: {e}")
-                  raise
-          
-          # Run trend detection
-          stack_name = os.getenv('STACK_NAME', '${{ matrix.stack }}')
-          asyncio.run(run_trend_detection(stack_name))
-          EOF
+          # Run branch-aware trend detection
+          python run_branch_aware_monitor.py \
+            --config config/branch_aware_config.yaml \
+            --once \
+            --verbose
         env:
-          STACK_NAME: ${{ matrix.stack }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create trend detection summary
         if: always()
         run: |
-          echo "## Trend Detection Summary for ${{ matrix.stack }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Stack: ${{ matrix.stack }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Branch-Aware Trend Detection Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- All stacks analyzed" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY
 
   create-trend-issues:
-    needs: run-trend-detection
+    needs: run-branch-aware-trend-detection
     if: always()
     runs-on: ubuntu-latest
     steps:
