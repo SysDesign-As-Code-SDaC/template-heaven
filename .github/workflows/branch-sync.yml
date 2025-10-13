@@ -1,0 +1,270 @@
+name: Branch Sync
+
+on:
+  schedule:
+    # Run weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      sync_type:
+        description: 'Type of sync to perform'
+        required: true
+        type: choice
+        options:
+          - 'all'
+          - 'documentation'
+          - 'scripts'
+          - 'configs'
+        default: 'all'
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  get-stack-branches:
+    runs-on: ubuntu-latest
+    outputs:
+      stack-branches: ${{ steps.branches.outputs.branches }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get stack branches
+        id: branches
+        run: |
+          # Get all stack branches
+          branches=$(git branch -r --format='%(refname:short)' | grep 'origin/stack/' | sed 's/origin\///')
+          echo "branches=$branches" >> $GITHUB_OUTPUT
+          echo "Found stack branches: $branches"
+
+  sync-documentation:
+    needs: get-stack-branches
+    if: github.event.inputs.sync_type == 'all' || github.event.inputs.sync_type == 'documentation'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ${{ fromJson(format('["{0}"]', needs.get-stack-branches.outputs.stack-branches)) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync documentation to stack branch
+        run: |
+          # Checkout the stack branch
+          git checkout ${{ matrix.branch }}
+          
+          # Update documentation files from dev branch
+          git checkout dev -- CONTRIBUTING.md
+          git checkout dev -- README.md
+          git checkout dev -- docs/
+          
+          # Check if there are changes
+          if git diff --quiet; then
+            echo "No documentation changes to sync"
+          else
+            # Commit the changes
+            git add CONTRIBUTING.md README.md docs/
+            git commit -m "docs: sync documentation from dev branch
+
+          - Update CONTRIBUTING.md
+          - Update README.md  
+          - Update docs/ directory
+          
+          Synced from dev branch on $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            
+            # Push the changes
+            git push origin ${{ matrix.branch }}
+            echo "Documentation synced to ${{ matrix.branch}"
+          fi
+
+  sync-scripts:
+    needs: get-stack-branches
+    if: github.event.inputs.sync_type == 'all' || github.event.inputs.sync_type == 'scripts'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ${{ fromJson(format('["{0}"]', needs.get-stack-branches.outputs.stack-branches)) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync scripts to stack branch
+        run: |
+          # Checkout the stack branch
+          git checkout ${{ matrix.branch }}
+          
+          # Update scripts from dev branch
+          git checkout dev -- scripts/
+          
+          # Check if there are changes
+          if git diff --quiet; then
+            echo "No script changes to sync"
+          else
+            # Commit the changes
+            git add scripts/
+            git commit -m "feat: sync scripts from dev branch
+
+          - Update sync scripts
+          - Update branch management scripts
+          - Update utility scripts
+          
+          Synced from dev branch on $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            
+            # Push the changes
+            git push origin ${{ matrix.branch }}
+            echo "Scripts synced to ${{ matrix.branch}"
+          fi
+
+  sync-configs:
+    needs: get-stack-branches
+    if: github.event.inputs.sync_type == 'all' || github.event.inputs.sync_type == 'configs'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ${{ fromJson(format('["{0}"]', needs.get-stack-branches.outputs.stack-branches)) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync configuration files to stack branch
+        run: |
+          # Checkout the stack branch
+          git checkout ${{ matrix.branch }}
+          
+          # Update configuration files from dev branch
+          git checkout dev -- .github/
+          git checkout dev -- .gitignore
+          git checkout dev -- .editorconfig
+          
+          # Check if there are changes
+          if git diff --quiet; then
+            echo "No configuration changes to sync"
+          else
+            # Commit the changes
+            git add .github/ .gitignore .editorconfig
+            git commit -m "config: sync configuration files from dev branch
+
+          - Update GitHub workflows
+          - Update .gitignore
+          - Update .editorconfig
+          
+          Synced from dev branch on $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            
+            # Push the changes
+            git push origin ${{ matrix.branch }}
+            echo "Configuration files synced to ${{ matrix.branch}"
+          fi
+
+  update-stack-configs:
+    needs: get-stack-branches
+    if: github.event.inputs.sync_type == 'all' || github.event.inputs.sync_type == 'configs'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ${{ fromJson(format('["{0}"]', needs.get-stack-branches.outputs.stack-branches)) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Update stack configuration
+        run: |
+          python << 'EOF'
+          import os
+          import yaml
+          from datetime import datetime
+          
+          def update_stack_config(branch_name):
+              """Update stack configuration with latest metadata."""
+              stack_name = branch_name.replace('stack/', '')
+              config_file = f"stacks/{stack_name}/.stack-config.yml"
+              
+              if not os.path.exists(config_file):
+                  print(f"Config file not found: {config_file}")
+                  return False
+              
+              try:
+                  # Load existing config
+                  with open(config_file, 'r') as f:
+                      config = yaml.safe_load(f)
+                  
+                  # Update metadata
+                  config['last_updated'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                  
+                  # Save updated config
+                  with open(config_file, 'w') as f:
+                      yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+                  
+                  print(f"Updated config for {stack_name}")
+                  return True
+                  
+              except Exception as e:
+                  print(f"Error updating config for {stack_name}: {e}")
+                  return False
+          
+          # Update the specified stack config
+          branch_name = os.getenv('BRANCH_NAME', '${{ matrix.branch }}')
+          success = update_stack_config(branch_name)
+          
+          if not success:
+              exit(1)
+          EOF
+        env:
+          BRANCH_NAME: ${{ matrix.branch }}
+
+      - name: Commit config updates
+        run: |
+          # Checkout the stack branch
+          git checkout ${{ matrix.branch }}
+          
+          # Check if there are changes
+          if git diff --quiet; then
+            echo "No configuration changes to commit"
+          else
+            # Commit the changes
+            git add stacks/*/.stack-config.yml
+            git commit -m "config: update stack configuration metadata
+
+          - Update last_updated timestamp
+          - Refresh configuration metadata
+          
+          Updated on $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            
+            # Push the changes
+            git push origin ${{ matrix.branch }}
+            echo "Configuration metadata updated for ${{ matrix.branch}"
+          fi
+
+  create-sync-summary:
+    needs: [sync-documentation, sync-scripts, sync-configs, update-stack-configs]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create sync summary
+        run: |
+          echo "## Branch Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Sync Type: ${{ github.event.inputs.sync_type || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Documentation Sync: ${{ needs.sync-documentation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Scripts Sync: ${{ needs.sync-scripts.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Configs Sync: ${{ needs.sync-configs.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Config Updates: ${{ needs.update-stack-configs.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY

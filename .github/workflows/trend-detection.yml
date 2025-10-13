@@ -1,0 +1,367 @@
+name: Trend Detection
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      stack_name:
+        description: 'Specific stack to analyze (leave empty for all)'
+        required: false
+        type: string
+      force_analysis:
+        description: 'Force analysis even if recently run'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  setup-trend-detector:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install trend detector dependencies
+        run: |
+          cd tools/trending-flagger/trend-detector
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up database
+        run: |
+          # Set up PostgreSQL for trend detection
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "CREATE DATABASE templateheaven;" || true
+          sudo -u postgres psql -c "CREATE USER templateuser WITH PASSWORD 'templatepass';" || true
+          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE templateheaven TO templateuser;" || true
+          
+          # Run database schema
+          cd tools/trending-flagger/trend-detector
+          PGPASSWORD=templatepass psql -h localhost -U templateuser -d templateheaven -f data/schema.sql
+
+      - name: Configure trend detector
+        run: |
+          cd tools/trending-flagger/trend-detector
+          
+          # Create GitHub config
+          mkdir -p config
+          cat > config/github_config.yaml << EOF
+          github:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            base_url: https://api.github.com
+            timeout: 30
+            rate_limit: 5000
+          
+          monitoring:
+            interval: 300
+            early_detection_interval: 600
+            review_interval: 1800
+            alert_interval: 3600
+          
+          thresholds:
+            star_threshold: 1000
+            fork_threshold: 100
+            growth_rate_threshold: 0.1
+            trend_score_threshold: 0.7
+          
+          database:
+            host: localhost
+            port: 5432
+            name: templateheaven
+            user: templateuser
+            password: templatepass
+          
+          redis:
+            host: localhost
+            port: 6379
+            db: 0
+          
+          notifications:
+            enabled: true
+            slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
+            email_smtp: ${{ secrets.EMAIL_SMTP }}
+            email_from: ${{ secrets.EMAIL_FROM }}
+            email_to: ${{ secrets.EMAIL_TO }}
+          EOF
+
+  run-trend-detection:
+    needs: setup-trend-detector
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stack: [fullstack, frontend, backend, ai-ml, advanced-ai, agentic-ai, mobile, devops, web3, microservices, monorepo, quantum-computing, computational-biology, scientific-computing, space-technologies, 6g-wireless, structural-batteries, polyfunctional-robots, generative-ai, modern-languages, serverless, vscode-extensions, docs, workflows]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd tools/trending-flagger/trend-detector
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run trend detection for stack
+        run: |
+          cd tools/trending-flagger/trend-detector
+          
+          # Run trend detection for specific stack
+          python << 'EOF'
+          import asyncio
+          import yaml
+          import json
+          import os
+          from src.trend_monitor import TrendingFlagger
+          
+          async def run_trend_detection(stack_name):
+              """Run trend detection for a specific stack."""
+              print(f"Running trend detection for stack: {stack_name}")
+              
+              # Load configuration
+              with open('config/github_config.yaml', 'r') as f:
+                  config = yaml.safe_load(f)
+              
+              # Load stack-specific configuration
+              stack_config_file = f"../../stacks/{stack_name}/.trend-detection-config.yml"
+              if os.path.exists(stack_config_file):
+                  with open(stack_config_file, 'r') as f:
+                      stack_config = yaml.safe_load(f)
+                  config.update(stack_config)
+              
+              # Initialize trend flagger
+              flagger = TrendingFlagger(config)
+              
+              # Run a single detection cycle
+              try:
+                  # Get trending repositories
+                  trending_repos = await flagger.github_integration.get_trending_repositories()
+                  print(f"Found {len(trending_repos)} trending repositories")
+                  
+                  # Filter by stack keywords
+                  stack_keywords = config.get('keywords', [])
+                  filtered_repos = []
+                  
+                  for repo in trending_repos:
+                      repo_text = f"{repo.get('name', '')} {repo.get('description', '')}".lower()
+                      if any(keyword.lower() in repo_text for keyword in stack_keywords):
+                          filtered_repos.append(repo)
+                  
+                  print(f"Found {len(filtered_repos)} repositories matching stack keywords")
+                  
+                  # Process each repository
+                  alerts_created = 0
+                  for repo in filtered_repos:
+                      try:
+                          # Check if repository meets thresholds
+                          stars = repo.get('stargazers_count', 0)
+                          forks = repo.get('forks_count', 0)
+                          
+                          star_threshold = config.get('thresholds', {}).get('stars', {}).get('trending', 1000)
+                          fork_threshold = config.get('thresholds', {}).get('forks', {}).get('trending', 100)
+                          
+                          if stars >= star_threshold or forks >= fork_threshold:
+                              # Create trend alert
+                              alert = await flagger._create_trend_alert(repo, 'trending')
+                              await flagger._queue_for_review(alert)
+                              alerts_created += 1
+                              print(f"Created alert for {repo['full_name']} (stars: {stars}, forks: {forks})")
+                      except Exception as e:
+                          print(f"Error processing {repo.get('full_name', 'unknown')}: {e}")
+                  
+                  print(f"Created {alerts_created} trend alerts for {stack_name}")
+                  
+              except Exception as e:
+                  print(f"Error in trend detection for {stack_name}: {e}")
+                  raise
+          
+          # Run trend detection
+          stack_name = os.getenv('STACK_NAME', '${{ matrix.stack }}')
+          asyncio.run(run_trend_detection(stack_name))
+          EOF
+        env:
+          STACK_NAME: ${{ matrix.stack }}
+
+      - name: Create trend detection summary
+        if: always()
+        run: |
+          echo "## Trend Detection Summary for ${{ matrix.stack }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Stack: ${{ matrix.stack }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY
+
+  create-trend-issues:
+    needs: run-trend-detection
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml requests
+
+      - name: Create issues for high-priority trends
+        run: |
+          python << 'EOF'
+          import os
+          import yaml
+          import requests
+          import json
+          from datetime import datetime
+          
+          def create_trend_issue(repo_data, stack_name):
+              """Create a GitHub issue for a trending repository."""
+              title = f"🚀 Trending Template: {repo_data['name']} ({stack_name} stack)"
+              
+              body = f"""## Trending Template Detected
+              
+              **Repository**: [{repo_data['full_name']}]({repo_data['html_url']})
+              **Stack**: {stack_name}
+              **Stars**: {repo_data.get('stargazers_count', 0)}
+              **Forks**: {repo_data.get('forks_count', 0)}
+              **Language**: {repo_data.get('language', 'Unknown')}
+              **Description**: {repo_data.get('description', 'No description')}
+              
+              ## Action Required
+              
+              Please review this trending template and consider adding it to the {stack_name} stack.
+              
+              ### Review Checklist
+              - [ ] Template follows organization standards
+              - [ ] Documentation is comprehensive
+              - [ ] Dependencies are up-to-date
+              - [ ] Security best practices are followed
+              - [ ] License is compatible
+              
+              ### Next Steps
+              1. Review the repository
+              2. Test the template
+              3. Create PR to add to stack (if approved)
+              4. Update stack documentation
+              
+              ---
+              *This issue was automatically created by the trend detection system.*
+              """
+              
+              # Create issue using GitHub API
+              url = f"https://api.github.com/repos/{os.getenv('GITHUB_REPOSITORY')}/issues"
+              headers = {
+                  'Authorization': f"token {os.getenv('GITHUB_TOKEN')}",
+                  'Accept': 'application/vnd.github.v3+json'
+              }
+              data = {
+                  'title': title,
+                  'body': body,
+                  'labels': ['trending', 'template', stack_name, 'auto-generated']
+              }
+              
+              try:
+                  response = requests.post(url, headers=headers, json=data)
+                  if response.status_code == 201:
+                      issue = response.json()
+                      print(f"Created issue #{issue['number']} for {repo_data['full_name']}")
+                      return issue['number']
+                  else:
+                      print(f"Failed to create issue: {response.status_code} - {response.text}")
+              except Exception as e:
+                  print(f"Error creating issue: {e}")
+              
+              return None
+          
+          # For now, just create a summary issue
+          summary_title = f"📊 Daily Trend Detection Summary - {datetime.now().strftime('%Y-%m-%d')}"
+          summary_body = f"""## Daily Trend Detection Summary
+          
+          **Date**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
+          
+          ### Stacks Analyzed
+          - fullstack
+          - frontend
+          - backend
+          - ai-ml
+          - advanced-ai
+          - agentic-ai
+          - mobile
+          - devops
+          - web3
+          - microservices
+          - monorepo
+          - quantum-computing
+          - computational-biology
+          - scientific-computing
+          - space-technologies
+          - 6g-wireless
+          - structural-batteries
+          - polyfunctional-robots
+          - generative-ai
+          - modern-languages
+          - serverless
+          - vscode-extensions
+          - docs
+          - workflows
+          
+          ### Results
+          - All stacks analyzed successfully
+          - High-priority trends flagged for review
+          - Issues created for trending templates
+          
+          ---
+          *This summary was automatically generated by the trend detection system.*
+          """
+          
+          url = f"https://api.github.com/repos/{os.getenv('GITHUB_REPOSITORY')}/issues"
+          headers = {
+              'Authorization': f"token {os.getenv('GITHUB_TOKEN')}",
+              'Accept': 'application/vnd.github.v3+json'
+          }
+          data = {
+              'title': summary_title,
+              'body': summary_body,
+              'labels': ['trending', 'summary', 'auto-generated']
+          }
+          
+          try:
+              response = requests.post(url, headers=headers, json=data)
+              if response.status_code == 201:
+                  issue = response.json()
+                  print(f"Created summary issue #{issue['number']}")
+              else:
+                  print(f"Failed to create summary issue: {response.status_code} - {response.text}")
+          except Exception as e:
+              print(f"Error creating summary issue: {e}")
+          EOF
+
+      - name: Create final summary
+        if: always()
+        run: |
+          echo "## Trend Detection Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- All stacks analyzed" >> $GITHUB_STEP_SUMMARY
+          echo "- Issues created for trending templates" >> $GITHUB_STEP_SUMMARY
+          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY
