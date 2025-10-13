@@ -1,53 +1,241 @@
-# Trend Detection Configuration for frontend Stack
+# Trend Detection Configuration for Frontend Stack
+# This file configures how the trend detection system monitors for new frontend templates
 
+# Stack identification
 stack_name: "frontend"
-enabled: true
+branch: "stack/frontend"
 
-# Keywords to search for in repository names and descriptions
+# Keywords for detecting relevant repositories
 keywords:
-  - "frontend"
   - "react"
   - "vue"
   - "svelte"
+  - "frontend"
   - "vite"
-  - "typescript"
-  - "javascript"
-  - "template"
+  - "webpack"
+  - "rollup"
+  - "esbuild"
+  - "swc"
+  - "angular"
+  - "preact"
+  - "solid"
+  - "lit"
+  - "stencil"
+  - "frontend-framework"
+  - "ui-library"
+  - "component-library"
+
+# Keywords to exclude from detection
+exclude_keywords:
+  - "tutorial"
+  - "example"
   - "boilerplate"
   - "starter"
+  - "demo"
+  - "sample"
+  - "learning"
+  - "course"
+  - "guide"
+  - "backend"
+  - "api"
+  - "server"
 
-# Repository characteristics to look for
-characteristics:
-  - has_readme: true
-  - has_license: true
-  - has_ci: true
-  - language_specific: true
+# Minimum thresholds for trending detection
+min_stars: 300
+min_forks: 30
+growth_rate_threshold: 0.08
 
-# Thresholds for trend detection
-thresholds:
-  stars:
-    minimum: 100
-    trending: 1000
-    critical: 5000
-  forks:
-    minimum: 10
-    trending: 100
-    critical: 500
-  growth_rate:
-    minimum: 0.1
-    trending: 0.5
-    critical: 1.0
+# Advanced filtering
+advanced_filters:
+  # Language preferences
+  preferred_languages:
+    - "TypeScript"
+    - "JavaScript"
+    - "Vue"
+    - "Svelte"
+    - "CSS"
+    - "SCSS"
+  
+  # Repository age (days)
+  min_age_days: 30
+  max_age_days: 3650  # 10 years
+  
+  # Activity requirements
+  min_commits_last_month: 5
+  min_issues_closed_last_month: 2
+  
+  # License requirements
+  required_licenses:
+    - "MIT"
+    - "Apache-2.0"
+    - "BSD-3-Clause"
+    - "ISC"
+  
+  # Exclude licenses
+  exclude_licenses:
+    - "GPL-3.0"
+    - "AGPL-3.0"
 
-# Auto-sync settings
-auto_sync:
-  enabled: true
-  high_priority_only: true
-  require_approval: true
+# Trend scoring weights
+trend_scoring:
+  star_growth_weight: 0.4
+  fork_growth_weight: 0.3
+  commit_activity_weight: 0.2
+  issue_activity_weight: 0.1
 
 # Notification settings
 notifications:
-  enabled: true
-  channels:
-    - "slack"
-    - "email"
-  priority_threshold: 0.7
+  # Auto-create PRs for high-priority templates
+  auto_create_pr: true
+  
+  # Minimum trend score to create PR
+  min_trend_score_for_pr: 0.8
+  
+  # Notify maintainers
+  notify_maintainers: true
+  
+  # Create GitHub issues for review
+  create_issues: true
+  
+  # Minimum trend score to create issue
+  min_trend_score_for_issue: 0.6
+
+# Review process
+review_process:
+  # Required reviewers
+  required_reviewers: 2
+  
+  # Auto-merge settings
+  auto_merge: false
+  
+  # Merge strategy
+  merge_strategy: "squash"
+  
+  # Review checklist
+  review_checklist:
+    - "Template follows frontend best practices"
+    - "TypeScript support is included"
+    - "Testing setup is comprehensive"
+    - "Documentation is complete"
+    - "Performance optimizations are in place"
+    - "Accessibility standards are met"
+    - "Responsive design is implemented"
+    - "SEO best practices are followed"
+
+# Quality gates
+quality_gates:
+  # Minimum documentation score (1-10)
+  min_documentation_score: 8
+  
+  # Minimum performance score (1-10)
+  min_performance_score: 7
+  
+  # Minimum accessibility score (1-10)
+  min_accessibility_score: 8
+  
+  # Required files
+  required_files:
+    - "README.md"
+    - "package.json"
+    - ".gitignore"
+    - "tsconfig.json"
+  
+  # Recommended files
+  recommended_files:
+    - "LICENSE"
+    - "CONTRIBUTING.md"
+    - "CHANGELOG.md"
+    - "docs/"
+    - "examples/"
+    - "tests/"
+    - "storybook/"
+
+# Monitoring settings
+monitoring:
+  # Check interval (seconds)
+  check_interval: 3600  # 1 hour
+  
+  # Early detection interval (seconds)
+  early_detection_interval: 1800  # 30 minutes
+  
+  # Review interval (seconds)
+  review_interval: 86400  # 24 hours
+  
+  # Alert interval (seconds)
+  alert_interval: 43200  # 12 hours
+
+# Integration settings
+integrations:
+  # Build tools
+  build_tools:
+    supported:
+      - "vite"
+      - "webpack"
+      - "rollup"
+      - "esbuild"
+      - "parcel"
+    required: true
+  
+  # Testing frameworks
+  testing:
+    supported:
+      - "jest"
+      - "vitest"
+      - "cypress"
+      - "playwright"
+      - "testing-library"
+    required: true
+  
+  # Styling solutions
+  styling:
+    supported:
+      - "tailwind"
+      - "styled-components"
+      - "emotion"
+      - "css-modules"
+      - "sass"
+      - "less"
+    required: false
+  
+  # State management
+  state_management:
+    supported:
+      - "redux"
+      - "zustand"
+      - "jotai"
+      - "recoil"
+      - "vuex"
+      - "pinia"
+    required: false
+
+# Template categories to prioritize
+priority_categories:
+  - name: "Modern Frameworks"
+    keywords: ["react", "vue", "svelte", "angular"]
+    priority: "high"
+  - name: "Build Tools"
+    keywords: ["vite", "webpack", "rollup", "esbuild"]
+    priority: "high"
+  - name: "UI Libraries"
+    keywords: ["components", "ui", "design-system"]
+    priority: "medium"
+  - name: "Performance"
+    keywords: ["performance", "optimization", "speed"]
+    priority: "medium"
+  - name: "Accessibility"
+    keywords: ["accessibility", "a11y", "wcag"]
+    priority: "medium"
+
+# Maintenance settings
+maintenance:
+  # Update check frequency
+  update_check_frequency: "weekly"
+  
+  # Security audit frequency
+  security_audit_frequency: "weekly"
+  
+  # Dependency update frequency
+  dependency_update_frequency: "weekly"
+  
+  # Template review frequency
+  template_review_frequency: "monthly"
