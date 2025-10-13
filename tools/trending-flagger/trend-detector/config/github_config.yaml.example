@@ -1,0 +1,22 @@
+github:
+  api_token: YOUR_GITHUB_API_TOKEN
+
+redis:
+  host: localhost
+  port: 6379
+
+postgresql:
+  host: localhost
+  port: 5432
+  user: user
+  password: password
+  database: templateheaven
+
+star_threshold: 1000
+fork_threshold: 100
+growth_rate_threshold: 0.1
+trend_score_threshold: 0.7
+monitor_interval: 300
+early_detection_interval: 600
+review_interval: 1800
+alert_interval: 3600
