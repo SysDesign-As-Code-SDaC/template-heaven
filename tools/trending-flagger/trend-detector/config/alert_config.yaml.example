@@ -1,0 +1,11 @@
+postgresql:
+  host: localhost
+  port: 5432
+  user: user
+  password: password
+  database: templateheaven
+
+# Notification settings would go here
+# For example, for Slack:
+# slack:
+#   webhook_url: YOUR_SLACK_WEBHOOK_URL

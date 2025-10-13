@@ -1,0 +1,6 @@
+aiohttp
+psycopg2-binary
+redis
+numpy
+scikit-learn
+pyyaml
