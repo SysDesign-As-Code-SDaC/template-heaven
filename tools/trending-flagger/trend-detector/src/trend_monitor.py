@@ -100,27 +100,35 @@ class TrendingFlagger:
         """Start the trending monitoring system."""
         self.logger.info("Starting trending template flagger system")
 
-        # Start monitoring tasks
-        tasks = [
-            self._monitor_stars(),
-            self._monitor_forks(),
-            self._detect_early_trends(),
-            self._process_review_queue(),
-            self._send_alerts()
-        ]
+        while True:
+            try:
+                # Start monitoring tasks
+                tasks = [
+                    self._monitor_stars(),
+                    self._monitor_forks(),
+                    self._detect_early_trends(),
+                    self._process_review_queue(),
+                    self._send_alerts()
+                ]
 
-        await asyncio.gather(*tasks)
+                await asyncio.gather(*tasks)
+            except Exception as e:
+                self.logger.error(f"An unexpected error occurred in the main monitoring loop: {e}")
+                await asyncio.sleep(60)
 
     async def _monitor_stars(self):
         """Monitor repository star counts."""
+        self.logger.info("Starting star monitoring task.")
         while True:
             try:
                 # Get trending repositories
                 trending_repos = await self.github_integration.get_trending_repositories()
+                self.logger.info(f"Found {len(trending_repos)} trending repositories.")
 
                 for repo in trending_repos:
                     # Check if repository meets star threshold
                     if repo['stargazers_count'] >= self.star_threshold:
+                        self.logger.info(f"Repository {repo['full_name']} has {repo['stargazers_count']} stars, which is above the threshold of {self.star_threshold}.")
                         # Create trend alert
                         alert = await self._create_trend_alert(repo, 'high_stars')
                         await self._queue_for_review(alert)
@@ -134,14 +142,17 @@ class TrendingFlagger:
 
     async def _monitor_forks(self):
         """Monitor repository fork activity."""
+        self.logger.info("Starting fork monitoring task.")
         while True:
             try:
                 # Get repositories with high fork activity
                 high_fork_repos = await self.github_integration.get_high_fork_repositories()
+                self.logger.info(f"Found {len(high_fork_repos)} repositories with high fork activity.")
 
                 for repo in high_fork_repos:
                     # Check if repository meets fork threshold
                     if repo['forks_count'] >= self.fork_threshold:
+                        self.logger.info(f"Repository {repo['full_name']} has {repo['forks_count']} forks, which is above the threshold of {self.fork_threshold}.")
                         # Create trend alert
                         alert = await self._create_trend_alert(repo, 'high_forks')
                         await self._queue_for_review(alert)
@@ -155,16 +166,19 @@ class TrendingFlagger:
 
     async def _detect_early_trends(self):
         """Detect early trending repositories."""
+        self.logger.info("Starting early trend detection task.")
         while True:
             try:
                 # Get recently created repositories
                 recent_repos = await self.github_integration.get_recent_repositories()
+                self.logger.info(f"Found {len(recent_repos)} recently created repositories.")
 
                 for repo in recent_repos:
                     # Calculate growth rate
                     growth_rate = await self._calculate_growth_rate(repo)
 
                     if growth_rate >= self.growth_rate_threshold:
+                        self.logger.info(f"Repository {repo['full_name']} has a growth rate of {growth_rate}, which is above the threshold of {self.growth_rate_threshold}.")
                         # Create trend alert
                         alert = await self._create_trend_alert(repo, 'early_trend')
                         await self._queue_for_review(alert)
@@ -178,6 +192,7 @@ class TrendingFlagger:
 
     async def _create_trend_alert(self, repo: Dict, trend_type: str) -> TrendAlert:
         """Create a trend alert for a repository."""
+        self.logger.info(f"Creating trend alert for {repo['full_name']} due to {trend_type}.")
         # Get repository metrics
         metrics = await self._get_repository_metrics(repo)
 
@@ -281,23 +296,15 @@ class TrendingFlagger:
     async def _queue_for_review(self, alert: TrendAlert):
         """Queue alert for human review."""
         # Store in database
-        await self._store_alert(alert)
+        self.db.store_alert(alert)
 
         # Add to Redis queue
-        await self._add_to_review_queue(alert)
+        self.cache.add_to_review_queue(alert)
 
         # Send notification
         await self._send_notification(alert)
 
         self.logger.info(f"Queued {alert.repository_name} for human review (Priority: {alert.priority_score:.2f})")
-
-    async def _store_alert(self, alert: TrendAlert):
-        """Store alert in database."""
-        self.db.store_alert(alert)
-
-    async def _add_to_review_queue(self, alert: TrendAlert):
-        """Add alert to Redis review queue."""
-        self.cache.add_to_review_queue(alert)
 
     async def _send_notification(self, alert: TrendAlert):
         """Send notification for high-priority alerts."""
@@ -333,10 +340,12 @@ class TrendingFlagger:
 
     async def _process_review_queue(self):
         """Process human review queue."""
+        self.logger.info("Starting review queue processing task.")
         while True:
             try:
                 # Get alerts from review queue
                 alerts = await self._get_review_queue_alerts()
+                self.logger.info(f"Found {len(alerts)} alerts in the review queue.")
 
                 for alert in alerts:
                     # Check if alert needs human review
@@ -385,10 +394,12 @@ class TrendingFlagger:
 
     async def _send_alerts(self):
         """Send alerts for trending repositories."""
+        self.logger.info("Starting alert sending task.")
         while True:
             try:
                 # Get high-priority alerts
                 high_priority_alerts = await self._get_high_priority_alerts()
+                self.logger.info(f"Found {len(high_priority_alerts)} high-priority alerts to send.")
 
                 for alert in high_priority_alerts:
                     await self._send_notification(alert)
@@ -447,7 +458,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
 
     # Setup logging
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 
     # Start trending flagger
     flagger = TrendingFlagger(config)

@@ -30,9 +30,8 @@ Instead, use the instructions below to pull in, update, and manage the latest be
    - Customize as needed and keep your project private
 
 4. **Trending Template Detection**
-   - Monitor trending templates with high stars/forks using the trending flagger system
-   - Get human review queue for trending templates: `python tools/trending-flagger/trend-detector/src/review_queue.py`
-   - Monitor GitHub repositories for early trend detection: `python tools/trending-flagger/trend-detector/src/trend_monitor.py`
+   - The `trending-flagger` tool is available for automatically detecting trending templates.
+   - For detailed instructions on how to set up and run the tool, please refer to the `README.md` file in the `tools/trending-flagger/trend-detector` directory.
 
 5. **Template Provenance**
    - Each template’s README notes its original upstream source.

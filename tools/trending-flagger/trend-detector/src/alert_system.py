@@ -65,5 +65,15 @@ class AlertSystem:
 
     async def _convert_result_to_alert(self, result: tuple) -> TrendAlert:
         """Convert database result to TrendAlert object."""
-        # Implementation would convert database row to TrendAlert
-        pass
+        return TrendAlert(
+            repository_url=result[1],
+            repository_name=result[2],
+            trend_level=TrendLevel(result[3]),
+            trend_score=result[4],
+            priority_score=result[5],
+            metrics=None, # In a real implementation, you'd reconstruct this
+            trend_reasons=result[19],
+            created_at=result[13],
+            template_type=TemplateType(result[20]),
+            human_review_required=result[21]
+        )

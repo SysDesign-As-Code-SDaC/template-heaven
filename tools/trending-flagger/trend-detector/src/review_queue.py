@@ -34,9 +34,20 @@ class ReviewQueue:
 
     async def _reconstruct_alert(self, alert_data: Dict) -> TrendAlert:
         """Reconstruct alert from stored data."""
-        # This would reconstruct the alert from database/Redis data
-        # Implementation depends on data storage format
-        pass
+        # This is a simplified reconstruction. A real implementation would
+        # need to query the database to get the full alert details.
+        return TrendAlert(
+            repository_url=alert_data['repository_url'],
+            repository_name=alert_data['repository_name'],
+            trend_level=None,
+            trend_score=alert_data['trend_score'],
+            metrics=None,
+            trend_reasons=[],
+            priority_score=alert_data['priority_score'],
+            created_at=alert_data['created_at'],
+            template_type=None,
+            human_review_required=True
+        )
 
     async def process_human_review(self, alert: TrendAlert):
         """Process human review for alert."""
