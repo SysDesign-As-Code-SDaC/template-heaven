@@ -1,6 +1,6 @@
 import logging
 from typing import Dict
-from .trend_monitor import RepositoryMetrics
+from .models import RepositoryMetrics
 from datetime import datetime, timedelta
 
 class PriorityScorer:
@@ -10,16 +10,17 @@ class PriorityScorer:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-    async def calculate_priority_score(self, metrics: RepositoryMetrics, trend_type: str) -> float:
+    async def calculate_priority_score(self, metrics: RepositoryMetrics, trend_score: float, trend_type: str) -> float:
         """Calculate priority score for a repository."""
         # Weighted scoring based on multiple factors
-        star_score = min(metrics.stars / 10000, 1.0) * 0.3
-        fork_score = min(metrics.forks / 1000, 1.0) * 0.2
-        growth_score = await self._calculate_growth_score(metrics) * 0.2
-        activity_score = await self._calculate_activity_score(metrics) * 0.2
+        star_score = min(metrics.stars / 10000, 1.0) * 0.2
+        fork_score = min(metrics.forks / 1000, 1.0) * 0.1
+        growth_score = await self._calculate_growth_score(metrics) * 0.1
+        activity_score = await self._calculate_activity_score(metrics) * 0.1
         quality_score = await self._calculate_quality_score(metrics) * 0.1
+        trend_score_component = trend_score * 0.4
 
-        total_score = star_score + fork_score + growth_score + activity_score + quality_score
+        total_score = star_score + fork_score + growth_score + activity_score + quality_score + trend_score_component
         return min(total_score, 1.0)
 
     async def _calculate_growth_score(self, metrics: RepositoryMetrics) -> float:

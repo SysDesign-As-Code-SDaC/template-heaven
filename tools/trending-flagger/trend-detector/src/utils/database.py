@@ -77,3 +77,38 @@ class Database:
         except psycopg2.Error as e:
             self.logger.error(f"Error fetching alert by URL from database: {e}")
             return None
+
+    def store_historical_data(self, repository_url: str, metrics):
+        try:
+            with self.connection.cursor() as cursor:
+                query = """
+                INSERT INTO repository_history
+                (repository_url, timestamp, stars, forks, watchers, issues, pull_requests, commits, contributors)
+                VALUES (%s, NOW(), %s, %s, %s, %s, %s, %s, %s)
+                """
+
+                values = (
+                    repository_url,
+                    metrics.stars,
+                    metrics.forks,
+                    metrics.watchers,
+                    metrics.issues,
+                    metrics.pull_requests,
+                    metrics.commits,
+                    metrics.contributors
+                )
+
+                cursor.execute(query, values)
+                self.connection.commit()
+        except psycopg2.Error as e:
+            self.logger.error(f"Error storing historical data in database: {e}")
+
+    def get_historical_data(self, repository_url: str) -> List[Tuple]:
+        try:
+            with self.connection.cursor() as cursor:
+                query = "SELECT * FROM repository_history WHERE repository_url = %s ORDER BY timestamp"
+                cursor.execute(query, (repository_url,))
+                return cursor.fetchall()
+        except psycopg2.Error as e:
+            self.logger.error(f"Error fetching historical data from database: {e}")
+            return []
