@@ -4,24 +4,84 @@ Thank you for your interest in contributing to our template repository! This doc
 
 ## 🎯 Purpose
 
-This repository serves as a centralized, private collection of production-ready templates for all major software development stacks. It enables our organization to:
+This repository uses a **multi-branch stack architecture** to organize templates by technology stack. It enables our organization to:
 
 - Maintain consistent project structures across teams
 - Bootstrap new projects quickly with best practices
 - Keep templates updated with latest upstream improvements
 - Avoid exposing internal work through public forks
+- Organize templates by technology stack for better discoverability
+- Enable parallel development across different technology stacks
+
+## 🌿 Multi-Branch Architecture
+
+This repository uses a hybrid multi-branch architecture:
+
+- **`dev` branch**: Core infrastructure, documentation, scripts, and tools
+- **Stack branches**: Dedicated branches for each technology stack (e.g., `stack/frontend`, `stack/backend`)
+- **Automated workflows**: Daily trend detection and upstream syncing
+
+### Available Stack Branches
+
+| Stack | Branch | Description |
+|-------|--------|-------------|
+| **Fullstack** | [`stack/fullstack`](../../tree/stack/fullstack) | Full-stack applications (Next.js, T3 Stack, Remix) |
+| **Frontend** | [`stack/frontend`](../../tree/stack/frontend) | Frontend frameworks (React, Vue, Svelte) |
+| **Backend** | [`stack/backend`](../../tree/stack/backend) | Backend services (Express, FastAPI, Django) |
+| **AI/ML** | [`stack/ai-ml`](../../tree/stack/ai-ml) | Traditional ML and data science |
+| **Advanced AI** | [`stack/advanced-ai`](../../tree/stack/advanced-ai) | LLMs, RAG, vector databases |
+| **Agentic AI** | [`stack/agentic-ai`](../../tree/stack/agentic-ai) | Autonomous systems and agents |
+| **Mobile** | [`stack/mobile`](../../tree/stack/mobile) | Mobile and desktop applications |
+| **DevOps** | [`stack/devops`](../../tree/stack/devops) | CI/CD, infrastructure, Docker, K8s |
+| **Web3** | [`stack/web3`](../../tree/stack/web3) | Blockchain and smart contracts |
+| **Microservices** | [`stack/microservices`](../../tree/stack/microservices) | Microservices architecture |
+| **Monorepo** | [`stack/monorepo`](../../tree/stack/monorepo) | Monorepo build systems |
+| **Quantum Computing** | [`stack/quantum-computing`](../../tree/stack/quantum-computing) | Quantum frameworks |
+| **Computational Biology** | [`stack/computational-biology`](../../tree/stack/computational-biology) | Bioinformatics pipelines |
+| **Scientific Computing** | [`stack/scientific-computing`](../../tree/stack/scientific-computing) | HPC, CUDA, molecular dynamics |
+| **Space Technologies** | [`stack/space-technologies`](../../tree/stack/space-technologies) | Satellite systems, orbital computing |
+| **6G Wireless** | [`stack/6g-wireless`](../../tree/stack/6g-wireless) | Next-gen communication |
+| **Structural Batteries** | [`stack/structural-batteries`](../../tree/stack/structural-batteries) | Energy storage integration |
+| **Polyfunctional Robots** | [`stack/polyfunctional-robots`](../../tree/stack/polyfunctional-robots) | Multi-task robotic systems |
+| **Generative AI** | [`stack/generative-ai`](../../tree/stack/generative-ai) | Content creation and generation |
+| **Modern Languages** | [`stack/modern-languages`](../../tree/stack/modern-languages) | Rust, Zig, Mojo, Julia |
+| **Serverless** | [`stack/serverless`](../../tree/stack/serverless) | Serverless and edge computing |
+| **VSCode Extensions** | [`stack/vscode-extensions`](../../tree/stack/vscode-extensions) | VSCode extension development |
+| **Documentation** | [`stack/docs`](../../tree/stack/docs) | Documentation templates |
+| **Workflows** | [`stack/workflows`](../../tree/stack/workflows) | General workflows, software engineering best practices |
+
+### 📖 Architecture Documentation
+
+- **[Branch Strategy](./docs/BRANCH_STRATEGY.md)** - Complete architecture overview
+- **[Stack Branch Guide](./docs/STACK_BRANCH_GUIDE.md)** - How to work with stack branches
+- **[Trend Detection Integration](./docs/TREND_DETECTION_INTEGRATION.md)** - Automated template discovery
+- **[Contributing to Stacks](./docs/CONTRIBUTING_TO_STACKS.md)** - Detailed contribution guidelines
 
 ## 📋 Contribution Guidelines
 
 ### Adding New Templates
 
-1. **Research and Validate**
+1. **Identify the Target Stack**
+   - Determine which stack branch the template belongs to
+   - Check the stack's configuration and requirements
+   - Review the stack's trend detection keywords
+
+2. **Research and Validate**
    - Identify the most popular and well-maintained upstream template
    - Verify the template follows current best practices
    - Check for active maintenance and community support
    - Ensure compatibility with our organization's standards
 
-2. **Template Structure**
+3. **Switch to the Target Stack Branch**
+   ```bash
+   # Switch to the appropriate stack branch
+   git checkout stack/frontend  # or stack/backend, etc.
+   
+   # Or use the sync script which auto-detects and switches
+   ./scripts/sync_template.sh template-name upstream-url
+   ```
+
+4. **Template Structure**
    ```
    stacks/[category]/[template-name]/
    ├── README.md              # Template-specific documentation
@@ -29,7 +89,7 @@ This repository serves as a centralized, private collection of production-ready 
    └── .upstream-info         # Upstream source information
    ```
 
-3. **Required Documentation**
+5. **Required Documentation**
    - **README.md**: Must include:
      - Template description and use cases
      - Prerequisites and dependencies

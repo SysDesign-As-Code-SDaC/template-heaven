@@ -1,22 +1,32 @@
 # Scripts Directory
 
-This directory contains utility scripts for managing the Organization Universal Template Repository.
+This directory contains utility scripts for managing the Organization Universal Template Repository's multi-branch stack architecture.
+
+## 🌿 Multi-Branch Architecture
+
+This repository uses a hybrid multi-branch architecture where each technology stack has its own dedicated branch. The scripts automatically handle branch detection and switching.
 
 ## Available Scripts
 
 ### Template Synchronization
 
 #### `sync_template.sh` (Bash/Linux/macOS)
-Bash script for syncing templates from upstream repositories.
+Enhanced Bash script for syncing templates from upstream repositories with automatic branch detection and switching.
 
 **Usage:**
 ```bash
 ./scripts/sync_template.sh [OPTIONS] TEMPLATE_NAME UPSTREAM_URL [TARGET_CATEGORY]
 ```
 
+**Features:**
+- **Automatic branch detection**: Detects the target stack branch based on template category
+- **Auto-checkout**: Automatically switches to the correct stack branch
+- **Branch creation**: Creates local branches from remote if needed
+- **Enhanced error handling**: Better error messages and recovery
+
 **Examples:**
 ```bash
-# Sync T3 Stack template
+# Sync T3 Stack template (auto-detects fullstack branch)
 ./scripts/sync_template.sh t3-stack https://github.com/t3-oss/create-t3-app
 
 # Sync specific subdirectory
@@ -27,16 +37,22 @@ Bash script for syncing templates from upstream repositories.
 ```
 
 #### `sync_template.ps1` (PowerShell/Windows)
-PowerShell script for syncing templates from upstream repositories.
+Enhanced PowerShell script for syncing templates from upstream repositories with automatic branch detection and switching.
 
 **Usage:**
 ```powershell
 .\scripts\sync_template.ps1 [OPTIONS] TEMPLATE_NAME UPSTREAM_URL [TARGET_CATEGORY]
 ```
 
+**Features:**
+- **Automatic branch detection**: Detects the target stack branch based on template category
+- **Auto-checkout**: Automatically switches to the correct stack branch
+- **Branch creation**: Creates local branches from remote if needed
+- **Enhanced error handling**: Better error messages and recovery
+
 **Examples:**
 ```powershell
-# Sync T3 Stack template
+# Sync T3 Stack template (auto-detects fullstack branch)
 .\scripts\sync_template.ps1 t3-stack https://github.com/t3-oss/create-t3-app
 
 # Sync specific subdirectory
@@ -44,6 +60,71 @@ PowerShell script for syncing templates from upstream repositories.
 
 # Force overwrite existing template
 .\scripts\sync_template.ps1 express-api https://github.com/sahat/hackathon-starter backend -Force
+```
+
+### Branch Management
+
+#### `create_stack_branch.sh` (Bash/Linux/macOS)
+Script for creating new stack branches with proper structure and configuration.
+
+**Usage:**
+```bash
+./scripts/create_stack_branch.sh <stack-name>
+```
+
+**Examples:**
+```bash
+# Create a new backend stack branch
+./scripts/create_stack_branch.sh backend
+
+# Create a new ai-ml stack branch
+./scripts/create_stack_branch.sh ai-ml
+```
+
+#### `create_stack_branch.ps1` (PowerShell/Windows)
+PowerShell script for creating new stack branches with proper structure and configuration.
+
+**Usage:**
+```powershell
+.\scripts\create_stack_branch.ps1 <stack-name>
+```
+
+**Examples:**
+```powershell
+# Create a new backend stack branch
+.\scripts\create_stack_branch.ps1 backend
+
+# Create a new ai-ml stack branch
+.\scripts\create_stack_branch.ps1 ai-ml
+```
+
+#### `branch_manager.py` (Python)
+Advanced Python script for managing stack branches with comprehensive functionality.
+
+**Usage:**
+```bash
+python scripts/branch_manager.py [COMMAND] [OPTIONS]
+```
+
+**Commands:**
+- `list`: List all available stack branches
+- `create <name>`: Create a new stack branch
+- `validate <name>`: Validate a stack branch structure
+- `sync <name>`: Sync core tools to a stack branch
+
+**Examples:**
+```bash
+# List all stack branches
+python scripts/branch_manager.py list
+
+# Create a new stack branch
+python scripts/branch_manager.py create backend
+
+# Validate stack branch structure
+python scripts/branch_manager.py validate frontend
+
+# Sync core tools to stack branch
+python scripts/branch_manager.py sync fullstack
 ```
 
 ## Script Options
@@ -70,28 +151,69 @@ PowerShell script for syncing templates from upstream repositories.
 | `-Verbose` | Enable verbose output |
 | `-Help` | Show help message |
 
-## Template Categories
+## Stack Categories
 
-The scripts automatically detect the appropriate category based on the upstream URL or template name. Available categories:
+The scripts automatically detect the appropriate stack branch based on the upstream URL or template name. Available stack branches:
 
-- **fullstack**: Complete application stacks (frontend + backend)
-- **frontend**: Frontend-only frameworks and libraries
-- **backend**: Backend services, APIs, and server applications
-- **ai-ml**: Machine learning, data science, and AI frameworks
-- **mobile**: Mobile and desktop application frameworks
-- **devops**: CI/CD, infrastructure, and deployment tools
-- **vscode-extensions**: VSCode extension development templates
-- **docs**: Documentation and community templates
-- **other**: Specialized templates (monorepo, microservices, etc.)
+### Core Development Stacks
+- **fullstack**: Complete application stacks (Next.js, T3 Stack, Remix)
+- **frontend**: Frontend-only frameworks and libraries (React, Vue, Svelte)
+- **backend**: Backend services, APIs, and server applications (Express, FastAPI, Django)
+- **mobile**: Mobile and desktop application frameworks (React Native, Flutter, Electron)
+
+### AI/ML Stacks
+- **ai-ml**: Traditional machine learning and data science (PyTorch, TensorFlow, Scikit-learn)
+- **advanced-ai**: LLMs, RAG, and vector databases (LangChain, LlamaIndex, ChromaDB)
+- **agentic-ai**: Autonomous systems and agents (LangGraph, CrewAI, AutoGen)
+- **generative-ai**: Content creation and generation (DALL-E, GPT, Stable Diffusion)
+
+### Infrastructure Stacks
+- **devops**: CI/CD, infrastructure, and deployment tools (Docker, Kubernetes, Terraform)
+- **microservices**: Microservices architecture (Kubernetes, Istio, Event-driven)
+- **monorepo**: Monorepo build systems (Turborepo, Nx, pnpm workspaces)
+- **serverless**: Serverless and edge computing (Vercel, Cloudflare Workers, AWS Lambda)
+
+### Specialized Stacks
+- **web3**: Blockchain and smart contracts (Hardhat, Foundry, Solidity)
+- **quantum-computing**: Quantum frameworks (Qiskit, Cirq, PennyLane)
+- **computational-biology**: Bioinformatics pipelines (BWA, GATK, Biopython)
+- **scientific-computing**: HPC, CUDA, and molecular dynamics (LAMMPS, GROMACS, OpenFOAM)
+
+### Emerging Technology Stacks
+- **space-technologies**: Satellite systems and orbital computing
+- **6g-wireless**: Next-generation communication systems
+- **structural-batteries**: Energy storage integration
+- **polyfunctional-robots**: Multi-task robotic systems
+
+### Development Tools
+- **modern-languages**: Rust, Zig, Mojo, Julia
+- **vscode-extensions**: VSCode extension development
+- **docs**: Documentation templates
+- **workflows**: General workflows and software engineering best practices
 
 ## How It Works
 
+### Template Synchronization Process
+
 1. **Validation**: The script validates the template name and upstream URL
-2. **Category Detection**: Automatically detects the appropriate category or uses the provided one
-3. **Repository Cloning**: Clones the upstream repository to a temporary directory
-4. **File Copying**: Copies the relevant files to the target template directory
-5. **Metadata Creation**: Creates a `.upstream-info` file with sync metadata
-6. **Cleanup**: Removes temporary files and directories
+2. **Stack Detection**: Automatically detects the appropriate stack branch based on keywords
+3. **Branch Management**: 
+   - Checks if target stack branch exists locally
+   - Creates local branch from remote if needed
+   - Automatically switches to the target stack branch
+4. **Repository Cloning**: Clones the upstream repository to a temporary directory
+5. **File Copying**: Copies the relevant files to the target template directory
+6. **Metadata Creation**: Creates a `.upstream-info` file with sync metadata
+7. **Cleanup**: Removes temporary files and directories
+
+### Branch Management Process
+
+1. **Validation**: Validates the stack name and checks for conflicts
+2. **Branch Creation**: Creates a new stack branch from the current dev branch
+3. **Structure Setup**: Creates the necessary directory structure
+4. **Configuration**: Adds stack-specific configuration files
+5. **Documentation**: Creates initial documentation and templates
+6. **Commit**: Commits the initial stack structure
 
 ## Generated Files
 
