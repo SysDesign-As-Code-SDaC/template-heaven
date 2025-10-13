@@ -100,6 +100,9 @@ detect_category() {
         *"docs"*|*"documentation"*|*"readme"*)
             echo "docs"
             ;;
+        *"workflow"*|*"github"*|*"action"*|*"template"*)
+            echo "workflows"
+            ;;
         *)
             # Fallback: detect from template name
             case "$template_name" in
@@ -127,12 +130,56 @@ detect_category() {
                 *"docs"*|*"documentation"*)
                     echo "docs"
                     ;;
+                *"workflow"*|*"github"*|*"action"*)
+                    echo "workflows"
+                    ;;
                 *)
                     echo "other"
                     ;;
             esac
             ;;
     esac
+}
+
+# Function to get target stack branch name
+get_stack_branch() {
+    local category="$1"
+    echo "stack/$category"
+}
+
+# Function to check if we're on the correct branch
+check_branch() {
+    local target_branch="$1"
+    local current_branch
+    current_branch=$(git branch --show-current)
+    
+    if [[ "$current_branch" != "$target_branch" ]]; then
+        print_info "Current branch: $current_branch"
+        print_info "Target branch: $target_branch"
+        print_warning "Not on target branch. Auto-checking out to $target_branch..."
+        
+        # Check if target branch exists locally
+        if git show-ref --verify --quiet "refs/heads/$target_branch"; then
+            git checkout "$target_branch"
+        else
+            # Check if target branch exists remotely
+            if git show-ref --verify --quiet "refs/remotes/origin/$target_branch"; then
+                print_info "Creating local branch from remote $target_branch..."
+                git checkout -b "$target_branch" "origin/$target_branch"
+            else
+                print_error "Target branch '$target_branch' does not exist locally or remotely."
+                print_info "Available branches:"
+                git branch -a | grep -E "(stack/|dev)" | sed 's/^/  /'
+                print_info "Please create the stack branch first using:"
+                print_info "  ./scripts/create_stack_branch.sh $category"
+                exit 1
+            fi
+        fi
+        
+        print_success "Switched to branch: $target_branch"
+    else
+        print_info "Already on target branch: $target_branch"
+    fi
 }
 
 # Function to validate template name
@@ -359,10 +406,26 @@ main() {
         print_info "Auto-detected category: $category"
     fi
     
-    # Validate category
+    # Get target stack branch
+    local target_branch
+    target_branch=$(get_stack_branch "$category")
+    print_info "Target stack branch: $target_branch"
+    
+    # Check and switch to target branch
+    check_branch "$target_branch"
+    
+    # Update STACKS_DIR to point to the current branch's stacks directory
+    STACKS_DIR="$REPO_ROOT/stacks"
+    
+    # Validate category directory exists in current branch
     if [[ ! -d "$STACKS_DIR/$category" ]]; then
-        print_error "Invalid category: '$category'. Available categories:"
-        ls -1 "$STACKS_DIR" | sed 's/^/  - /'
+        print_error "Invalid category: '$category'. Available categories in current branch:"
+        if [[ -d "$STACKS_DIR" ]]; then
+            ls -1 "$STACKS_DIR" | sed 's/^/  - /'
+        else
+            print_error "No stacks directory found in current branch."
+            print_info "This might be the main/dev branch. Please switch to a stack branch first."
+        fi
         exit 1
     fi
     

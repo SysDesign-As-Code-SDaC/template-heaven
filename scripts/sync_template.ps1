@@ -117,6 +117,9 @@ function Get-Category {
     elseif ($urlLower -match "docs|documentation|readme") {
         return "docs"
     }
+    elseif ($urlLower -match "workflow|github|action|template") {
+        return "workflows"
+    }
     else {
         # Fallback: detect from template name
         if ($nameLower -match "fullstack|full-stack") { return "fullstack" }
@@ -127,7 +130,54 @@ function Get-Category {
         elseif ($nameLower -match "devops|ci|infra") { return "devops" }
         elseif ($nameLower -match "vscode|extension") { return "vscode-extensions" }
         elseif ($nameLower -match "docs|documentation") { return "docs" }
+        elseif ($nameLower -match "workflow|github|action") { return "workflows" }
         else { return "other" }
+    }
+}
+
+# Function to get target stack branch name
+function Get-StackBranch {
+    param([string]$Category)
+    return "stack/$Category"
+}
+
+# Function to check if we're on the correct branch
+function Test-Branch {
+    param([string]$TargetBranch)
+    
+    $currentBranch = git branch --show-current
+    
+    if ($currentBranch -ne $TargetBranch) {
+        Write-Info "Current branch: $currentBranch"
+        Write-Info "Target branch: $TargetBranch"
+        Write-Warning "Not on target branch. Auto-checking out to $TargetBranch..."
+        
+        # Check if target branch exists locally
+        $localBranchExists = git show-ref --verify --quiet "refs/heads/$TargetBranch"
+        if ($LASTEXITCODE -eq 0) {
+            git checkout $TargetBranch
+        }
+        else {
+            # Check if target branch exists remotely
+            $remoteBranchExists = git show-ref --verify --quiet "refs/remotes/origin/$TargetBranch"
+            if ($LASTEXITCODE -eq 0) {
+                Write-Info "Creating local branch from remote $TargetBranch..."
+                git checkout -b $TargetBranch "origin/$TargetBranch"
+            }
+            else {
+                Write-Error "Target branch '$TargetBranch' does not exist locally or remotely."
+                Write-Info "Available branches:"
+                git branch -a | Select-String -Pattern "(stack/|dev)" | ForEach-Object { Write-Host "  $($_.Line)" }
+                Write-Info "Please create the stack branch first using:"
+                Write-Info "  .\scripts\create_stack_branch.ps1 $Category"
+                exit 1
+            }
+        }
+        
+        Write-Success "Switched to branch: $TargetBranch"
+    }
+    else {
+        Write-Info "Already on target branch: $TargetBranch"
     }
 }
 
@@ -322,12 +372,29 @@ if (-not $TargetCategory) {
     Write-Info "Auto-detected category: $TargetCategory"
 }
 
-# Validate category
-$StacksDir = Join-Path (Split-Path -Parent (Split-Path -Parent $MyInvocation.PSCommandPath)) "stacks"
+# Get target stack branch
+$TargetBranch = Get-StackBranch $TargetCategory
+Write-Info "Target stack branch: $TargetBranch"
+
+# Check and switch to target branch
+Test-Branch $TargetBranch
+
+# Update StacksDir to point to the current branch's stacks directory
+$ScriptDir = Split-Path -Parent $MyInvocation.PSCommandPath
+$RepoRoot = Split-Path -Parent $ScriptDir
+$StacksDir = Join-Path $RepoRoot "stacks"
+
+# Validate category directory exists in current branch
 $CategoryPath = Join-Path $StacksDir $TargetCategory
 if (-not (Test-Path $CategoryPath)) {
-    Write-Error "Invalid category: '$TargetCategory'. Available categories:"
-    Get-ChildItem $StacksDir -Directory | ForEach-Object { Write-Host "  - $($_.Name)" }
+    Write-Error "Invalid category: '$TargetCategory'. Available categories in current branch:"
+    if (Test-Path $StacksDir) {
+        Get-ChildItem $StacksDir -Directory | ForEach-Object { Write-Host "  - $($_.Name)" }
+    }
+    else {
+        Write-Error "No stacks directory found in current branch."
+        Write-Info "This might be the main/dev branch. Please switch to a stack branch first."
+    }
     exit 1
 }
 
