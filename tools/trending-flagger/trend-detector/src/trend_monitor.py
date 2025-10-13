@@ -62,7 +62,9 @@ class TrendingFlagger:
                 await asyncio.gather(*tasks)
             except Exception as e:
                 self.logger.error(f"An unexpected error occurred in the main monitoring loop: {e}")
-                await asyncio.sleep(60)
+
+            self.logger.info("Monitoring cycle complete. Waiting for next cycle.")
+            await asyncio.sleep(60)
 
     async def _monitor_stars(self):
         """Monitor repository star counts."""
@@ -168,6 +170,8 @@ class TrendingFlagger:
             template_type=template_type,
             human_review_required=True
         )
+
+        self.logger.info(f"Created trend alert for {repo['full_name']} with trend_score={trend_score:.2f} and priority_score={priority_score:.2f}")
 
         return alert
 

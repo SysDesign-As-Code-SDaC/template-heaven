@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 from typing import Dict, List
 from .historical_tracker import HistoricalTracker
 
@@ -11,18 +12,27 @@ class ForkMonitor:
         self.historical_tracker = HistoricalTracker(config)
 
     async def monitor_fork_activity(self, repository: str) -> float:
-        """Monitor fork activity for a repository."""
+        """
+        Monitor fork activity for a repository using linear regression.
+        Returns the slope of the linear regression line, which represents the trend.
+        """
         historical_data = await self.historical_tracker.get_historical_data(repository)
 
         if len(historical_data) < 2:
+            self.logger.info(f"Not enough historical data for {repository} to calculate fork growth.")
             return 0.0
 
-        # Calculate growth rate
-        recent_forks = historical_data[-1]['forks']
-        previous_forks = historical_data[-2]['forks']
+        timestamps = np.array([d['timestamp'].timestamp() for d in historical_data])
+        forks = np.array([d['forks'] for d in historical_data])
 
-        if previous_forks == 0:
-            return 1.0 if recent_forks > 0 else 0.0
+        # Normalize timestamps to days from the first data point
+        timestamps = (timestamps - timestamps[0]) / (24 * 3600)
 
-        growth_rate = (recent_forks - previous_forks) / previous_forks
-        return max(0.0, growth_rate)
+        try:
+            # Perform linear regression
+            slope, _ = np.polyfit(timestamps, forks, 1)
+            self.logger.info(f"Calculated fork growth trend for {repository}: {slope}")
+            return slope
+        except np.linalg.LinAlgError:
+            self.logger.error(f"Failed to calculate fork growth for {repository} due to a singular matrix.")
+            return 0.0

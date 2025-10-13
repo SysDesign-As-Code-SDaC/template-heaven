@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 from typing import Dict, List
 from .historical_tracker import HistoricalTracker
 
@@ -11,18 +12,27 @@ class StarMonitor:
         self.historical_tracker = HistoricalTracker(config)
 
     async def monitor_star_growth(self, repository: str) -> float:
-        """Monitor star growth for a repository."""
+        """
+        Monitor star growth for a repository using linear regression.
+        Returns the slope of the linear regression line, which represents the trend.
+        """
         historical_data = await self.historical_tracker.get_historical_data(repository)
 
         if len(historical_data) < 2:
+            self.logger.info(f"Not enough historical data for {repository} to calculate star growth.")
             return 0.0
 
-        # Calculate growth rate
-        recent_stars = historical_data[-1]['stars']
-        previous_stars = historical_data[-2]['stars']
+        timestamps = np.array([d['timestamp'].timestamp() for d in historical_data])
+        stars = np.array([d['stars'] for d in historical_data])
 
-        if previous_stars == 0:
-            return 1.0 if recent_stars > 0 else 0.0
+        # Normalize timestamps to days from the first data point
+        timestamps = (timestamps - timestamps[0]) / (24 * 3600)
 
-        growth_rate = (recent_stars - previous_stars) / previous_stars
-        return max(0.0, growth_rate)
+        try:
+            # Perform linear regression
+            slope, _ = np.polyfit(timestamps, stars, 1)
+            self.logger.info(f"Calculated star growth trend for {repository}: {slope}")
+            return slope
+        except np.linalg.LinAlgError:
+            self.logger.error(f"Failed to calculate star growth for {repository} due to a singular matrix.")
+            return 0.0
