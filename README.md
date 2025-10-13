@@ -2,6 +2,50 @@
 
 Welcome! This is your all-in-one **private** repository for production-ready, best-practice templates across all major modern software development stacks and workflows. Use this as a starting point for any project within your organization—whether web, backend, DevOps, AI/ML, data, mobile, or VSCode extension development.
 
+## 🌿 Multi-Branch Architecture
+
+This repository uses a **hybrid multi-branch architecture** to organize templates by technology stack:
+
+- **`dev` branch**: Core infrastructure, documentation, scripts, and tools (you are here)
+- **Stack branches**: Dedicated branches for each technology stack (e.g., `stack/frontend`, `stack/backend`)
+- **Automated workflows**: Daily trend detection and upstream syncing
+
+### 📂 Browse Stack Branches
+
+| Stack | Branch | Description |
+|-------|--------|-------------|
+| **Fullstack** | [`stack/fullstack`](../../tree/stack/fullstack) | Full-stack applications (Next.js, T3 Stack, Remix) |
+| **Frontend** | [`stack/frontend`](../../tree/stack/frontend) | Frontend frameworks (React, Vue, Svelte) |
+| **Backend** | [`stack/backend`](../../tree/stack/backend) | Backend services (Express, FastAPI, Django) |
+| **AI/ML** | [`stack/ai-ml`](../../tree/stack/ai-ml) | Traditional ML and data science |
+| **Advanced AI** | [`stack/advanced-ai`](../../tree/stack/advanced-ai) | LLMs, RAG, vector databases |
+| **Agentic AI** | [`stack/agentic-ai`](../../tree/stack/agentic-ai) | Autonomous systems and agents |
+| **Mobile** | [`stack/mobile`](../../tree/stack/mobile) | Mobile and desktop applications |
+| **DevOps** | [`stack/devops`](../../tree/stack/devops) | CI/CD, infrastructure, Docker, K8s |
+| **Web3** | [`stack/web3`](../../tree/stack/web3) | Blockchain and smart contracts |
+| **Microservices** | [`stack/microservices`](../../tree/stack/microservices) | Microservices architecture |
+| **Monorepo** | [`stack/monorepo`](../../tree/stack/monorepo) | Monorepo build systems |
+| **Quantum Computing** | [`stack/quantum-computing`](../../tree/stack/quantum-computing) | Quantum frameworks |
+| **Computational Biology** | [`stack/computational-biology`](../../tree/stack/computational-biology) | Bioinformatics pipelines |
+| **Scientific Computing** | [`stack/scientific-computing`](../../tree/stack/scientific-computing) | HPC, CUDA, molecular dynamics |
+| **Space Technologies** | [`stack/space-technologies`](../../tree/stack/space-technologies) | Satellite systems, orbital computing |
+| **6G Wireless** | [`stack/6g-wireless`](../../tree/stack/6g-wireless) | Next-gen communication |
+| **Structural Batteries** | [`stack/structural-batteries`](../../tree/stack/structural-batteries) | Energy storage integration |
+| **Polyfunctional Robots** | [`stack/polyfunctional-robots`](../../tree/stack/polyfunctional-robots) | Multi-task robotic systems |
+| **Generative AI** | [`stack/generative-ai`](../../tree/stack/generative-ai) | Content creation and generation |
+| **Modern Languages** | [`stack/modern-languages`](../../tree/stack/modern-languages) | Rust, Zig, Mojo, Julia |
+| **Serverless** | [`stack/serverless`](../../tree/stack/serverless) | Serverless and edge computing |
+| **VSCode Extensions** | [`stack/vscode-extensions`](../../tree/stack/vscode-extensions) | VSCode extension development |
+| **Documentation** | [`stack/docs`](../../tree/stack/docs) | Documentation templates |
+| **Workflows** | [`stack/workflows`](../../tree/stack/workflows) | General workflows, software engineering best practices |
+
+### 📖 Architecture Documentation
+
+- **[Branch Strategy](./docs/BRANCH_STRATEGY.md)** - Complete architecture overview
+- **[Stack Branch Guide](./docs/STACK_BRANCH_GUIDE.md)** - How to work with stack branches
+- **[Trend Detection Integration](./docs/TREND_DETECTION_INTEGRATION.md)** - Automated template discovery
+- **[Contributing to Stacks](./docs/CONTRIBUTING_TO_STACKS.md)** - Contribution guidelines
+
 ---
 
 ## 🛡️ Privacy and Bootstrapping Instructions
@@ -214,10 +258,58 @@ Instead, use the instructions below to pull in, update, and manage the latest be
 
 ## 🚀 Quickstart
 
-1. **Browse** the `stacks/` directory for your desired tech or workflow.
-2. **Read** each template's local `README.md` for setup and usage notes.
-3. **Clone or scaffold** using the provided CLI/script in `scripts/` to start a new project.
-4. **Contribute** improvements: see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+### For Template Users
+
+1. **Browse Stack Branches**: Navigate to the relevant stack branch (e.g., `stack/frontend`)
+   ```bash
+   # Switch to a stack branch
+   git checkout stack/frontend
+   
+   # Or view online
+   # Visit https://github.com/your-org/template-heaven/tree/stack/frontend
+   ```
+
+2. **Explore Templates**: Browse available templates in the stack
+   ```bash
+   # List templates in the current stack
+   ls stacks/frontend/
+   
+   # Read template documentation
+   cat stacks/frontend/react-vite/README.md
+   ```
+
+3. **Use a Template**: Copy the template to your new project
+   ```bash
+   # Copy template to new project
+   cp -r stacks/frontend/react-vite ../my-new-project
+   cd ../my-new-project
+   
+   # Follow template setup instructions
+   npm install
+   npm run dev
+   ```
+
+### For Contributors
+
+1. **Choose Your Stack**: Identify which stack you're contributing to
+2. **Switch to Stack Branch**: `git checkout stack/your-stack`
+3. **Make Changes**: Add or update templates
+4. **Create PR**: Submit changes for review
+5. **Read Guidelines**: See [Contributing to Stacks](./docs/CONTRIBUTING_TO_STACKS.md)
+
+### For Maintainers
+
+1. **Monitor Trends**: Review daily trend detection reports (automated)
+2. **Sync Upstream**: Automated workflows keep templates up-to-date
+3. **Review PRs**: Approve template additions and updates
+4. **Manage Stacks**: Use provided scripts for stack management
+
+### Automated Features
+
+- **Daily Trend Detection**: Automatically discovers trending templates
+- **Upstream Syncing**: Keeps templates updated with upstream changes
+- **Branch Synchronization**: Propagates core tools to all stack branches
+- **Automated PRs**: Creates pull requests for high-priority templates
 
 ---
 
