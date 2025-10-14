@@ -80,11 +80,11 @@ def run(stack: Optional[str], force_refresh: bool, dry_run: bool, output: Option
         # Save to file if requested
         if output:
             Path(output).write_text(json.dumps(result, indent=2))
-            click.echo(f"\n💾 Results saved to: {output}")
+            click.echo(f"\nResults saved to: {output}")
 
     except Exception as e:
         logger.error(f"Population failed: {e}")
-        click.echo(f"❌ Error: {e}", err=True)
+        click.echo(f"Error: {e}", err=True)
         raise click.Abort()
 
 
@@ -95,7 +95,7 @@ def status():
         populator = TemplatePopulator()
         status = asyncio.run(populator.get_population_status())
 
-        click.echo("📊 Template Population Status")
+        click.echo("Template Population Status")
         click.echo("=" * 40)
 
         total_templates = 0
@@ -104,23 +104,23 @@ def status():
             total_templates += count
 
             if count == 0:
-                click.echo(f"❌ {stack_name}: No templates")
+                click.echo(f"[X] {stack_name}: No templates")
             elif count == 1:
-                click.echo(f"✅ {stack_name}: {count} template")
+                click.echo(f"[OK] {stack_name}: {count} template")
             else:
-                click.echo(f"✅ {stack_name}: {count} templates")
+                click.echo(f"[OK] {stack_name}: {count} templates")
 
         click.echo("-" * 40)
-        click.echo(f"📈 Total: {total_templates} templates across {len(status['stacks'])} stacks")
+        click.echo(f"Total: {total_templates} templates across {len(status['stacks'])} stacks")
 
         # Show recommendations
         empty_stacks = [name for name, info in status["stacks"].items() if info["templates_count"] == 0]
         if empty_stacks:
-            click.echo(f"\n💡 Recommendation: Run 'templateheaven populate run' to populate {len(empty_stacks)} empty stacks")
+            click.echo(f"\nRecommendation: Run 'templateheaven populate run' to populate {len(empty_stacks)} empty stacks")
 
     except Exception as e:
         logger.error(f"Status check failed: {e}")
-        click.echo(f"❌ Error: {e}", err=True)
+        click.echo(f"Error: {e}", err=True)
         raise click.Abort()
 
 
@@ -137,15 +137,15 @@ def discover(stack_name: str, limit: int):
     try:
         populator = TemplatePopulator()
 
-        click.echo(f"🔍 Discovering templates for stack: {stack_name}")
+        click.echo(f"Discovering templates for stack: {stack_name}")
 
         candidates = asyncio.run(populator.github_search.discover_templates_for_stack(stack_name, limit))
 
         if not candidates:
-            click.echo("❌ No template candidates found")
+            click.echo("No template candidates found")
             return
 
-        click.echo(f"\n📋 Found {len(candidates)} potential templates:")
+        click.echo(f"\nFound {len(candidates)} potential templates:")
         click.echo("-" * 80)
 
         for i, candidate in enumerate(candidates, 1):
@@ -153,27 +153,27 @@ def discover(stack_name: str, limit: int):
             analysis = candidate
 
             valid = candidate.get("stack_validation", {}).get("valid", False)
-            status_icon = "✅" if valid else "❌"
+            status_icon = "[OK]" if valid else "[X]"
 
             click.echo(f"{i}. {status_icon} {repo['name']}")
-            click.echo(f"   📦 {repo.get('full_name', '')}")
-            click.echo(f"   ⭐ {repo.get('stargazers_count', 0)} stars")
-            click.echo(f"   🍴 {repo.get('forks_count', 0)} forks")
-            click.echo(f"   🎯 Potential: {analysis.get('template_potential', 0.0):.2f}")
-            click.echo(f"   ✨ Quality: {analysis.get('quality_score', 0.0):.2f}")
+            click.echo(f"   Repo: {repo.get('full_name', '')}")
+            click.echo(f"   Stars: {repo.get('stargazers_count', 0)}")
+            click.echo(f"   Forks: {repo.get('forks_count', 0)}")
+            click.echo(f"   Potential: {analysis.get('template_potential', 0.0):.2f}")
+            click.echo(f"   Quality: {analysis.get('quality_score', 0.0):.2f}")
 
             if valid:
-                click.echo("   ✅ Valid for stack")
+                click.echo("   Valid for stack")
             else:
                 issues = candidate.get("stack_validation", {}).get("issues", [])
                 if issues:
-                    click.echo(f"   ❌ Issues: {issues[0]}")
+                    click.echo(f"   Issues: {issues[0]}")
 
             click.echo()
 
     except Exception as e:
         logger.error(f"Discovery failed: {e}")
-        click.echo(f"❌ Error: {e}", err=True)
+        click.echo(f"Error: {e}", err=True)
         raise click.Abort()
 
 
@@ -185,28 +185,29 @@ def _display_results(result: dict):
         total = result.get("total_stacks", 0)
         added = result.get("templates_added", 0)
 
-        click.echo("\n🎉 Population Complete!"        click.echo(f"✅ {successful}/{total} stacks populated successfully")
-        click.echo(f"📦 {added} templates added total")
+        click.echo("\nPopulation Complete!")
+        click.echo(f"[OK] {successful}/{total} stacks populated successfully")
+        click.echo(f"Added: {added} templates total")
 
         if result.get("errors"):
-            click.echo(f"⚠️  {len(result['errors'])} errors encountered")
+            click.echo(f"Warning: {len(result['errors'])} errors encountered")
 
         # Show per-stack results
-        click.echo("\n📊 Per-Stack Results:")
+        click.echo("\nPer-Stack Results:")
         for stack_name, stack_result in result.get("stack_results", {}).items():
             if stack_result.get("success"):
                 added_count = stack_result.get("templates_added", 0)
-                click.echo(f"  ✅ {stack_name}: +{added_count} templates")
+                click.echo(f"  [OK] {stack_name}: +{added_count} templates")
             else:
-                click.echo(f"  ❌ {stack_name}: Failed")
+                click.echo(f"  [FAIL] {stack_name}: Failed")
 
         # Show errors if any
         if result.get("errors"):
-            click.echo("\n❌ Errors:")
+            click.echo("\nErrors:")
             for error in result["errors"][:5]:  # Show first 5 errors
-                click.echo(f"  • {error}")
+                click.echo(f"  - {error}")
             if len(result["errors"]) > 5:
-                click.echo(f"  • ... and {len(result['errors']) - 5} more")
+                click.echo(f"  - ... and {len(result['errors']) - 5} more")
 
     else:
         # Single stack results
@@ -214,17 +215,18 @@ def _display_results(result: dict):
             added = result.get("templates_added", 0)
             skipped = result.get("templates_skipped", 0)
 
-            click.echo("\n✅ Stack populated successfully!"            click.echo(f"📦 Added: {added} templates")
-            click.echo(f"⏭️  Skipped: {skipped} templates")
+            click.echo("\n[OK] Stack populated successfully!")
+            click.echo(f"Added: {added} templates")
+            click.echo(f"Skipped: {skipped} templates")
 
             if result.get("templates"):
-                click.echo("\n📋 Added templates:")
+                click.echo("\nAdded templates:")
                 for template in result["templates"]:
-                    click.echo(f"  • {template['name']} (quality: {template['quality_score']:.2f})")
+                    click.echo(f"  - {template['name']} (quality: {template['quality_score']:.2f})")
 
         else:
-            click.echo("\n❌ Stack population failed!")
+            click.echo("\n[FAIL] Stack population failed!")
             if result.get("errors"):
                 click.echo("Errors:")
                 for error in result["errors"]:
-                    click.echo(f"  • {error}")
+                    click.echo(f"  - {error}")

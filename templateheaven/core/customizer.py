@@ -35,8 +35,14 @@ class Customizer:
         jinja_env: Jinja2 environment for templating
     """
     
-    def __init__(self):
-        """Initialize the customizer."""
+    def __init__(self, config=None):
+        """
+        Initialize the customizer.
+
+        Args:
+            config: Configuration instance (optional)
+        """
+        self.config = config
         self.file_ops = FileOperations()
         self.jinja_env = Environment(
             loader=FileSystemLoader('.'),

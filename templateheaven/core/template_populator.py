@@ -857,7 +857,7 @@ services:
         # Get all stacks
         all_stacks = self.stack_config.get_all_stacks()
 
-        for stack_name in all_stacks.keys():
+        for stack_name in all_stacks:
             stack_status = {
                 "templates_count": 0,
                 "last_updated": None,
