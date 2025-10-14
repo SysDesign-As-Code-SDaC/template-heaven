@@ -1,0 +1,98 @@
+---
+alwaysApply: true
+description: Template Heaven project structure and architecture guide
+---
+
+# Template Heaven Project Structure
+
+This is a **multi-branch template repository system** that organizes technology stack templates across 24 different categories using a hybrid multi-branch architecture.
+
+## 🌿 Core Architecture
+
+### Branch Structure
+- **`dev` branch**: Core infrastructure, documentation, scripts, and tools (current branch)
+- **Stack branches**: Dedicated branches for each technology stack (e.g., `stack/frontend`, `stack/backend`)
+- **Automated workflows**: Daily trend detection and upstream syncing
+
+### Key Directories
+- **`stacks/`**: Template storage organized by technology stack
+- **`scripts/`**: Branch management and template synchronization tools
+- **`tools/trending-flagger/`**: Automated trend detection system
+- **`docs/`**: Comprehensive project documentation
+- **`.github/workflows/`**: GitHub Actions for automation
+
+## 📂 Stack Categories
+
+### Core Development Stacks
+- **Fullstack**: Next.js, T3 Stack, Remix, Django+Vue, FastAPI+React
+- **Frontend**: React, Vue, Svelte, Angular, Astro, Qwik, SolidJS
+- **Backend**: Express, FastAPI, Django, Go, Rust, Java Spring Boot
+- **Mobile**: React Native, Flutter, Electron, Tauri
+
+### AI/ML Stacks
+- **AI/ML**: Traditional ML, PyTorch, TensorFlow, MLOps
+- **Advanced AI**: LLMs, RAG, vector databases, LangChain
+- **Agentic AI**: Autonomous systems, LangGraph, CrewAI
+- **Generative AI**: Content creation, DALL-E, Stable Diffusion
+
+### Infrastructure Stacks
+- **DevOps**: CI/CD, Docker, Kubernetes, Terraform
+- **Microservices**: Event-driven architecture, service mesh
+- **Monorepo**: Turborepo, Nx, pnpm workspaces
+- **Serverless**: AWS Lambda, Vercel, Cloudflare Workers
+
+### Specialized Stacks
+- **Web3**: Blockchain, smart contracts, DeFi
+- **Quantum Computing**: Qiskit, Cirq, PennyLane
+- **Scientific Computing**: HPC, CUDA, molecular dynamics
+- **Computational Biology**: Bioinformatics, genomics
+
+## 🛠️ Key Tools
+
+### Branch Manager
+- **File**: [scripts/branch_manager.py](mdc:scripts/branch_manager.py)
+- **Purpose**: Advanced Python script for managing stack branches
+- **Features**: Create, validate, sync, and report on stack branches
+
+### Trend Detection System
+- **Location**: [tools/trending-flagger/trend-detector/](mdc:tools/trending-flagger/trend-detector/)
+- **Purpose**: Automated monitoring of trending templates
+- **Components**: Star monitoring, fork tracking, early detection, priority scoring
+
+### GitHub Actions
+- **Trend Detection**: Daily automated trend monitoring
+- **Template Sync**: Weekly upstream synchronization
+- **Branch Sync**: Core tools synchronization across branches
+
+## 📋 Working with Templates
+
+### For Template Users
+1. Navigate to relevant stack branch: `git checkout stack/frontend`
+2. Browse templates: `ls stacks/frontend/`
+3. Copy template: `cp -r stacks/frontend/react-vite ../my-project`
+
+### For Contributors
+1. Choose stack: `git checkout stack/your-stack`
+2. Add templates using sync scripts
+3. Create PR for review
+
+### For Maintainers
+1. Monitor daily trend detection reports
+2. Review and approve template additions
+3. Manage stack branches using branch manager
+
+## 🔗 Key Files
+
+- **Main README**: [README.md](mdc:README.md) - Complete project overview
+- **Stack Catalog**: [STACK_CATALOG.md](mdc:STACK_CATALOG.md) - Available stacks
+- **Project Status**: [PROJECT_STATUS.md](mdc:PROJECT_STATUS.md) - Current progress
+- **Branch Strategy**: [docs/BRANCH_STRATEGY.md](mdc:docs/BRANCH_STRATEGY.md) - Architecture details
+- **Contributing Guide**: [CONTRIBUTING.md](mdc:CONTRIBUTING.md) - Contribution guidelines
+
+## 🚨 Important Notes
+
+- This is a **private repository** for internal use only
+- **Do not fork public upstream templates directly**
+- Use sync scripts to pull in templates without exposing organization work
+- Each template maintains its original upstream source attribution
+- Respect upstream licenses and attributions in template subfolders

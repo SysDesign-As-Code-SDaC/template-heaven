@@ -1,0 +1,397 @@
+# Template Heaven Stack Catalog
+# This file contains metadata for bundled templates across all technology stacks
+
+stacks:
+  frontend:
+    name: "Frontend Frameworks"
+    description: "Frontend frameworks and UI libraries for web development"
+    templates:
+      - name: "react-vite"
+        description: "React + Vite + TypeScript starter template"
+        tags: ["react", "vite", "typescript", "frontend", "spa"]
+        dependencies:
+          react: "^18.2.0"
+          typescript: "^5.0.0"
+          vite: "^4.4.0"
+        upstream_url: "https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts"
+        version: "1.0.0"
+        author: "Vite Team"
+        license: "MIT"
+        features: ["TypeScript", "Hot Reload", "ESLint", "Prettier"]
+        min_node_version: "16.0.0"
+        
+      - name: "vue-vite"
+        description: "Vue 3 + Vite + TypeScript starter template"
+        tags: ["vue", "vite", "typescript", "frontend", "spa"]
+        dependencies:
+          vue: "^3.3.0"
+          typescript: "^5.0.0"
+          vite: "^4.4.0"
+        upstream_url: "https://github.com/vitejs/vite/tree/main/packages/create-vite/template-vue-ts"
+        version: "1.0.0"
+        author: "Vue Team"
+        license: "MIT"
+        features: ["TypeScript", "Composition API", "Hot Reload", "ESLint"]
+        min_node_version: "16.0.0"
+        
+      - name: "svelte-kit"
+        description: "SvelteKit full-stack application template"
+        tags: ["svelte", "sveltekit", "typescript", "fullstack", "ssr"]
+        dependencies:
+          "@sveltejs/kit": "^1.20.0"
+          svelte: "^4.0.0"
+          typescript: "^5.0.0"
+        upstream_url: "https://github.com/sveltejs/kit"
+        version: "1.0.0"
+        author: "Svelte Team"
+        license: "MIT"
+        features: ["TypeScript", "SSR", "File-based Routing", "Hot Reload"]
+        min_node_version: "16.0.0"
+
+  backend:
+    name: "Backend Services"
+    description: "Backend services, APIs, and server applications"
+    templates:
+      - name: "fastapi"
+        description: "FastAPI + PostgreSQL + Docker starter template"
+        tags: ["python", "fastapi", "postgresql", "docker", "api"]
+        dependencies:
+          fastapi: "^0.100.0"
+          uvicorn: "^0.23.0"
+          sqlalchemy: "^2.0.0"
+          psycopg2-binary: "^2.9.0"
+        upstream_url: "https://github.com/tiangolo/full-stack-fastapi-postgresql"
+        version: "1.0.0"
+        author: "Sebastian Ramirez"
+        license: "MIT"
+        features: ["Auto Documentation", "Type Hints", "Docker", "PostgreSQL"]
+        min_python_version: "3.8"
+        
+      - name: "express-typescript"
+        description: "Express.js + TypeScript + MongoDB starter template"
+        tags: ["nodejs", "express", "typescript", "mongodb", "api"]
+        dependencies:
+          express: "^4.18.0"
+          typescript: "^5.0.0"
+          mongoose: "^7.4.0"
+          cors: "^2.8.5"
+        upstream_url: "https://github.com/expressjs/express"
+        version: "1.0.0"
+        author: "Express Team"
+        license: "MIT"
+        features: ["TypeScript", "MongoDB", "CORS", "Middleware"]
+        min_node_version: "16.0.0"
+        
+      - name: "django-rest"
+        description: "Django REST Framework + PostgreSQL template"
+        tags: ["python", "django", "django-rest", "postgresql", "api"]
+        dependencies:
+          django: "^4.2.0"
+          djangorestframework: "^3.14.0"
+          psycopg2-binary: "^2.9.0"
+        upstream_url: "https://github.com/encode/django-rest-framework"
+        version: "1.0.0"
+        author: "Django REST Framework Team"
+        license: "BSD"
+        features: ["Admin Interface", "Authentication", "Serializers", "ViewSets"]
+        min_python_version: "3.8"
+
+  fullstack:
+    name: "Fullstack Applications"
+    description: "Full-stack applications with frontend and backend"
+    templates:
+      - name: "nextjs-fullstack"
+        description: "Next.js 14 + TypeScript + Prisma + PostgreSQL"
+        tags: ["nextjs", "typescript", "prisma", "postgresql", "fullstack"]
+        dependencies:
+          next: "^14.0.0"
+          react: "^18.2.0"
+          typescript: "^5.0.0"
+          prisma: "^5.0.0"
+          "@prisma/client": "^5.0.0"
+        upstream_url: "https://github.com/vercel/next.js"
+        version: "1.0.0"
+        author: "Vercel Team"
+        license: "MIT"
+        features: ["App Router", "TypeScript", "Prisma ORM", "PostgreSQL"]
+        min_node_version: "18.0.0"
+        
+      - name: "t3-stack"
+        description: "T3 Stack - Next.js + tRPC + Prisma + NextAuth"
+        tags: ["nextjs", "trpc", "prisma", "nextauth", "typescript"]
+        dependencies:
+          next: "^14.0.0"
+          "@trpc/server": "^10.0.0"
+          "@trpc/client": "^10.0.0"
+          prisma: "^5.0.0"
+          next-auth: "^4.22.0"
+        upstream_url: "https://github.com/t3-oss/create-t3-app"
+        version: "1.0.0"
+        author: "T3 Team"
+        license: "MIT"
+        features: ["Type Safety", "Authentication", "Database", "API Routes"]
+        min_node_version: "18.0.0"
+
+  ai-ml:
+    name: "AI/ML & Data Science"
+    description: "Machine learning and data science templates"
+    templates:
+      - name: "pytorch-lightning"
+        description: "PyTorch Lightning + Hydra configuration template"
+        tags: ["python", "pytorch", "lightning", "hydra", "ml"]
+        dependencies:
+          pytorch-lightning: "^2.0.0"
+          hydra-core: "^1.3.0"
+          torch: "^2.0.0"
+          torchvision: "^0.15.0"
+        upstream_url: "https://github.com/ashleve/lightning-hydra-template"
+        version: "1.0.0"
+        author: "Ashley V"
+        license: "MIT"
+        features: ["Hydra Config", "W&B Integration", "Docker", "Testing"]
+        min_python_version: "3.8"
+        
+      - name: "cookiecutter-datascience"
+        description: "Cookiecutter Data Science project template"
+        tags: ["python", "data-science", "cookiecutter", "jupyter"]
+        dependencies:
+          jupyter: "^1.0.0"
+          pandas: "^2.0.0"
+          numpy: "^1.24.0"
+          matplotlib: "^3.7.0"
+        upstream_url: "https://github.com/drivendata/cookiecutter-data-science"
+        version: "1.0.0"
+        author: "DrivenData"
+        license: "MIT"
+        features: ["Jupyter Notebooks", "Data Pipeline", "Documentation"]
+        min_python_version: "3.8"
+
+  devops:
+    name: "DevOps & Infrastructure"
+    description: "CI/CD, infrastructure, Docker, and Kubernetes templates"
+    templates:
+      - name: "github-actions-python"
+        description: "GitHub Actions workflow for Python projects"
+        tags: ["github-actions", "python", "ci-cd", "testing"]
+        dependencies: {}
+        upstream_url: "https://github.com/actions/starter-workflows"
+        version: "1.0.0"
+        author: "GitHub"
+        license: "MIT"
+        features: ["Testing", "Linting", "Security Scanning", "Publishing"]
+        
+      - name: "docker-compose-stack"
+        description: "Docker Compose multi-service stack template"
+        tags: ["docker", "docker-compose", "microservices", "infrastructure"]
+        dependencies: {}
+        upstream_url: "https://github.com/docker/awesome-compose"
+        version: "1.0.0"
+        author: "Docker Team"
+        license: "MIT"
+        features: ["Multi-service", "Networking", "Volumes", "Environment"]
+
+  mobile:
+    name: "Mobile Development"
+    description: "Mobile and desktop application templates"
+    templates:
+      - name: "react-native-expo"
+        description: "React Native + Expo + TypeScript starter"
+        tags: ["react-native", "expo", "typescript", "mobile"]
+        dependencies:
+          expo: "^49.0.0"
+          react-native: "^0.72.0"
+          typescript: "^5.0.0"
+        upstream_url: "https://github.com/expo/examples"
+        version: "1.0.0"
+        author: "Expo Team"
+        license: "MIT"
+        features: ["TypeScript", "Hot Reload", "Cross-platform", "Expo SDK"]
+        min_node_version: "16.0.0"
+        
+      - name: "flutter-clean"
+        description: "Flutter clean architecture template"
+        tags: ["flutter", "dart", "clean-architecture", "mobile"]
+        dependencies: {}
+        upstream_url: "https://github.com/flutter/samples"
+        version: "1.0.0"
+        author: "Flutter Team"
+        license: "BSD"
+        features: ["Clean Architecture", "State Management", "Testing"]
+        min_python_version: "3.7"
+
+  workflows:
+    name: "Workflows & Best Practices"
+    description: "Software engineering best practices and workflow templates"
+    templates:
+      - name: "python-package"
+        description: "Python package with modern tooling (poetry, pytest, mypy)"
+        tags: ["python", "package", "poetry", "pytest", "mypy"]
+        dependencies:
+          poetry: "^1.5.0"
+          pytest: "^7.4.0"
+          mypy: "^1.5.0"
+          black: "^23.0.0"
+        upstream_url: "https://github.com/python-poetry/poetry"
+        version: "1.0.0"
+        author: "Poetry Team"
+        license: "MIT"
+        features: ["Poetry", "Testing", "Type Checking", "Code Formatting"]
+        min_python_version: "3.8"
+        
+      - name: "typescript-library"
+        description: "TypeScript library with modern tooling (rollup, jest, eslint)"
+        tags: ["typescript", "library", "rollup", "jest", "eslint"]
+        dependencies:
+          typescript: "^5.0.0"
+          rollup: "^3.25.0"
+          jest: "^29.6.0"
+          eslint: "^8.45.0"
+        upstream_url: "https://github.com/rollup/rollup"
+        version: "1.0.0"
+        author: "Rollup Team"
+        license: "MIT"
+        features: ["TypeScript", "Bundling", "Testing", "Linting"]
+        min_node_version: "16.0.0"
+
+  gold-standard:
+    name: "Gold Standard Templates"
+    description: "Production-ready templates with comprehensive software engineering best practices, AI coding agent support, and enterprise-grade standards"
+    templates:
+      - name: "gold-standard-python-service"
+        description: "Production-ready Python service with FastAPI, comprehensive testing, CI/CD, security, monitoring, documentation, and AI coding agent scaffolding"
+        tags: ["python", "fastapi", "microservice", "best-practices", "ci-cd", "docs", "testing", "security", "monitoring", "ai-agents", "enterprise"]
+        dependencies:
+          fastapi: "^0.104.0"
+          uvicorn: "^0.24.0"
+          sqlalchemy: "^2.0.0"
+          alembic: "^1.12.0"
+          pytest: "^7.4.0"
+          mypy: "^1.7.0"
+          black: "^23.11.0"
+          sphinx: "^7.1.0"
+          bandit: "^1.7.5"
+          prometheus-client: "^0.19.0"
+        upstream_url: "https://github.com/template-heaven/templateheaven"
+        version: "2.0.0"
+        author: "Template Heaven Team"
+        license: "MIT"
+        features: [
+          "Type Safety", 
+          "Comprehensive Testing (90%+ coverage)", 
+          "Security Scanning", 
+          "Monitoring & Observability", 
+          "Complete Documentation", 
+          "CI/CD Pipeline", 
+          "AI Coding Agent Support",
+          "Docker & Kubernetes",
+          "Performance Optimization",
+          "Enterprise Standards"
+        ]
+        min_python_version: "3.9"
+        ai_features: [
+          "Cursor AI Rules",
+          "GitHub Copilot Integration", 
+          "Claude Integration",
+          "Auto Code Generation",
+          "Test Generation",
+          "Documentation Generation",
+          "Security Analysis",
+          "Performance Optimization"
+        ]
+        
+      - name: "modern-react-app"
+        description: "Modern React app with TypeScript, Tailwind CSS, testing, PWA support, and production-ready features"
+        tags: ["react", "typescript", "tailwind", "vite", "pwa", "testing", "accessibility"]
+        dependencies:
+          react: "^18.2.0"
+          typescript: "^5.2.2"
+          vite: "^5.0.0"
+          tailwindcss: "^3.3.5"
+          vitest: "^0.34.6"
+          playwright: "^1.40.0"
+        upstream_url: "https://github.com/template-heaven/templateheaven"
+        version: "1.0.0"
+        author: "Template Heaven Team"
+        license: "MIT"
+        features: ["TypeScript", "Tailwind CSS", "PWA", "Testing", "Accessibility", "Performance"]
+        min_node_version: "18.0.0"
+        
+      - name: "fastapi-microservice"
+        description: "Scalable FastAPI microservice with async support, PostgreSQL, JWT auth, and comprehensive monitoring"
+        tags: ["fastapi", "python", "microservice", "async", "postgresql", "jwt", "monitoring"]
+        dependencies:
+          fastapi: "^0.104.0"
+          uvicorn: "^0.24.0"
+          sqlalchemy: "^2.0.0"
+          asyncpg: "^0.29.0"
+          python-jose: "^3.3.0"
+          prometheus-client: "^0.19.0"
+        upstream_url: "https://github.com/template-heaven/templateheaven"
+        version: "1.0.0"
+        author: "Template Heaven Team"
+        license: "MIT"
+        features: ["Async Support", "JWT Authentication", "Monitoring", "Database", "Security"]
+        min_python_version: "3.9"
+        
+      - name: "nextjs-fullstack-app"
+        description: "Complete Next.js 14 fullstack app with App Router, Prisma, NextAuth.js, tRPC, and TypeScript"
+        tags: ["nextjs", "react", "typescript", "prisma", "nextauth", "trpc", "fullstack"]
+        dependencies:
+          next: "^14.0.0"
+          react: "^18.2.0"
+          typescript: "^5.2.2"
+          prisma: "^5.0.0"
+          next-auth: "^4.22.0"
+          "@trpc/server": "^10.0.0"
+        upstream_url: "https://github.com/template-heaven/templateheaven"
+        version: "1.0.0"
+        author: "Template Heaven Team"
+        license: "MIT"
+        features: ["App Router", "Type Safety", "Authentication", "Database", "API Routes"]
+        min_node_version: "18.0.0"
+        
+      - name: "ml-pipeline-template"
+        description: "Production-ready ML pipeline with MLOps, experiment tracking, model monitoring, and deployment"
+        tags: ["machine-learning", "mlops", "pytorch", "tensorflow", "mlflow", "dvc", "monitoring"]
+        dependencies:
+          scikit-learn: "^1.3.0"
+          pandas: "^2.1.0"
+          numpy: "^1.24.0"
+          mlflow: "^2.7.0"
+          dvc: "^3.27.0"
+          pytest: "^7.4.0"
+        upstream_url: "https://github.com/template-heaven/templateheaven"
+        version: "1.0.0"
+        author: "Template Heaven Team"
+        license: "MIT"
+        features: ["MLOps", "Experiment Tracking", "Model Monitoring", "Data Versioning", "Deployment"]
+        min_python_version: "3.9"
+
+# Configuration for template discovery and management
+config:
+  # Default settings for new projects
+  defaults:
+    author: "Template Heaven User"
+    license: "MIT"
+    package_manager:
+      python: "pip"
+      node: "npm"
+      rust: "cargo"
+      go: "go"
+    
+  # Template validation rules
+  validation:
+    required_fields: ["name", "description", "tags"]
+    max_name_length: 50
+    max_description_length: 200
+    max_tags: 10
+    
+  # Cache settings
+  cache:
+    ttl_hours: 24
+    max_size_mb: 100
+    
+  # Search settings
+  search:
+    max_results: 50
+    min_score: 0.1

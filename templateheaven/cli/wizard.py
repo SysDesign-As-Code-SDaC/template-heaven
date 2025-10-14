@@ -1,0 +1,577 @@
+"""
+Interactive Wizard for Template Heaven.
+
+This module provides an interactive wizard for project initialization
+with beautiful terminal output using Rich and Questionary.
+"""
+
+from pathlib import Path
+from typing import Optional, List, Dict, Any
+
+import questionary
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.table import Table
+from rich.prompt import Prompt, Confirm
+
+from ..core.template_manager import TemplateManager
+from ..core.models import Template, ProjectConfig, StackCategory
+from ..core.customizer import Customizer
+from ..config.settings import Config
+from ..utils.logger import get_logger
+from ..utils.helpers import validate_project_name, sanitize_project_name
+
+logger = get_logger(__name__)
+
+
+class Wizard:
+    """
+    Interactive wizard for project initialization.
+    
+    Guides users through:
+    1. Stack category selection
+    2. Template selection
+    3. Project configuration
+    4. Basic customization
+    5. Project creation
+    
+    Uses Rich for beautiful terminal output and Questionary for interactive prompts.
+    """
+    
+    def __init__(self, template_manager: TemplateManager, config: Config):
+        """
+        Initialize the wizard.
+        
+        Args:
+            template_manager: Template manager instance
+            config: Configuration instance
+        """
+        self.template_manager = template_manager
+        self.config = config
+        self.console = Console()
+        self.customizer = Customizer()
+        
+        logger.debug("Wizard initialized")
+    
+    def run(self, output_dir: Path = Path('.')) -> None:
+        """
+        Run the complete wizard flow.
+        
+        Args:
+            output_dir: Output directory for the project
+        """
+        try:
+            # Display welcome message
+            self._display_welcome()
+            
+            # Step 1: Select stack category
+            stack = self._select_stack()
+            
+            # Step 2: Select template
+            template = self._select_template(stack)
+            
+            # Step 3: Configure project
+            project_config = self._configure_project(template, output_dir)
+            
+            # Step 4: Confirm and create
+            if self._confirm_creation(project_config):
+                self._create_project(project_config)
+            else:
+                self.console.print("[yellow]Project creation cancelled[/yellow]")
+                
+        except KeyboardInterrupt:
+            self.console.print("\n[yellow]Wizard cancelled by user[/yellow]")
+        except Exception as e:
+            logger.error(f"Wizard failed: {e}")
+            self.console.print(f"[red]Wizard failed: {e}[/red]")
+            raise
+    
+    def _display_welcome(self) -> None:
+        """Display welcome message."""
+        welcome_text = """
+Welcome to Template Heaven! 🎉
+
+This wizard will help you create a new project from one of our templates.
+We'll guide you through selecting a template and configuring your project.
+
+Let's get started!
+"""
+        
+        panel = Panel(
+            Text(welcome_text.strip(), style="white"),
+            title="Template Heaven Wizard",
+            border_style="blue"
+        )
+        
+        self.console.print(panel)
+        self.console.print()
+    
+    def _select_stack(self) -> StackCategory:
+        """
+        Interactive stack selection.
+        
+        Returns:
+            Selected stack category
+        """
+        self.console.print("[bold cyan]Step 1: Select Technology Stack[/bold cyan]")
+        self.console.print()
+        
+        # Get available stacks with template counts
+        stacks = self.template_manager.get_stacks()
+        stack_choices = []
+        
+        for stack in stacks:
+            stack_info = self.template_manager.get_stack_info(stack)
+            choice_text = f"{stack_info['name']} ({stack_info['template_count']} templates)"
+            stack_choices.append((choice_text, stack))
+        
+        # Add search option
+        stack_choices.append(("🔍 Search all templates", "search"))
+        
+        # Display stack selection
+        selected = questionary.select(
+            "Choose a technology stack:",
+            choices=stack_choices,
+            style=questionary.Style([
+                ('qmark', 'fg:#673ab7 bold'),
+                ('question', 'bold'),
+                ('answer', 'fg:#f44336 bold'),
+                ('pointer', 'fg:#673ab7 bold'),
+                ('highlighted', 'fg:#673ab7 bold'),
+                ('selected', 'fg:#cc5454'),
+                ('separator', 'fg:#cc5454'),
+                ('instruction', ''),
+                ('text', ''),
+                ('disabled', 'fg:#858585 italic')
+            ])
+        ).ask()
+        
+        if selected == "search":
+            return self._search_all_templates()
+        
+        self.console.print(f"[green]Selected: {selected}[/green]")
+        self.console.print()
+        
+        return selected
+    
+    def _search_all_templates(self) -> StackCategory:
+        """
+        Search across all templates.
+        
+        Returns:
+            Stack category of selected template
+        """
+        query = questionary.text("Enter search query:").ask()
+        
+        if not query:
+            return self._select_stack()  # Fallback to stack selection
+        
+        # Search templates
+        results = self.template_manager.search_templates(query, limit=10)
+        
+        if not results:
+            self.console.print("[yellow]No templates found matching your query.[/yellow]")
+            return self._select_stack()  # Fallback to stack selection
+        
+        # Display search results
+        self._display_search_results(results)
+        
+        # Select from results
+        choices = []
+        for result in results:
+            choice_text = f"{result.template.name} ({result.template.stack.value}) - {result.template.description[:50]}..."
+            choices.append((choice_text, result.template))
+        
+        selected_template = questionary.select(
+            "Choose a template:",
+            choices=choices
+        ).ask()
+        
+        return selected_template.stack
+    
+    def _select_template(self, stack: StackCategory) -> Template:
+        """
+        Interactive template selection for stack.
+        
+        Args:
+            stack: Selected stack category
+            
+        Returns:
+            Selected template
+        """
+        self.console.print("[bold cyan]Step 2: Select Template[/bold cyan]")
+        self.console.print()
+        
+        # Get templates for the stack
+        templates = self.template_manager.list_templates(stack=stack.value)
+        
+        if not templates:
+            self.console.print(f"[red]No templates found for stack: {stack.value}[/red]")
+            raise ValueError(f"No templates found for stack: {stack.value}")
+        
+        # Display templates
+        self._display_templates(templates)
+        
+        # Create choices
+        choices = []
+        for template in templates:
+            # Create choice text with template info
+            choice_text = f"{template.name} - {template.description}"
+            if template.version:
+                choice_text += f" (v{template.version})"
+            
+            choices.append((choice_text, template))
+        
+        # Add back option
+        choices.append(("← Back to stack selection", None))
+        
+        # Select template
+        selected = questionary.select(
+            f"Choose a template from {stack.value}:",
+            choices=choices
+        ).ask()
+        
+        if selected is None:
+            return self._select_template(self._select_stack())
+        
+        self.console.print(f"[green]Selected: {selected.name}[/green]")
+        self.console.print()
+        
+        return selected
+    
+    def _configure_project(self, template: Template, output_dir: Path) -> ProjectConfig:
+        """
+        Configure project settings.
+        
+        Args:
+            template: Selected template
+            output_dir: Output directory
+            
+        Returns:
+            Project configuration
+        """
+        self.console.print("[bold cyan]Step 3: Configure Project[/bold cyan]")
+        self.console.print()
+        
+        # Project name
+        project_name = self._get_project_name()
+        
+        # Author
+        author = self._get_author()
+        
+        # License
+        license_type = self._get_license()
+        
+        # Package manager
+        package_manager = self._get_package_manager(template)
+        
+        # Description
+        description = self._get_description(template)
+        
+        # Create project configuration
+        project_config = ProjectConfig(
+            name=project_name,
+            directory=str(output_dir),
+            template=template,
+            author=author,
+            license=license_type,
+            package_manager=package_manager,
+            description=description
+        )
+        
+        return project_config
+    
+    def _get_project_name(self) -> str:
+        """Get project name from user."""
+        while True:
+            name = questionary.text(
+                "Project name:",
+                default="my-project"
+            ).ask()
+            
+            if not name:
+                self.console.print("[red]Project name cannot be empty[/red]")
+                continue
+            
+            try:
+                validate_project_name(name)
+                return name
+            except ValueError as e:
+                self.console.print(f"[red]{e}[/red]")
+                
+                # Suggest sanitized name
+                sanitized = sanitize_project_name(name)
+                if sanitized != name:
+                    if Confirm.ask(f"Use '{sanitized}' instead?"):
+                        return sanitized
+    
+    def _get_author(self) -> str:
+        """Get project author from user."""
+        default_author = self.config.get('default_author', 'Template Heaven User')
+        
+        author = questionary.text(
+            "Author:",
+            default=default_author
+        ).ask()
+        
+        return author or default_author
+    
+    def _get_license(self) -> str:
+        """Get project license from user."""
+        licenses = [
+            "MIT",
+            "Apache-2.0",
+            "GPL-3.0",
+            "BSD-3-Clause",
+            "ISC",
+            "Unlicense"
+        ]
+        
+        default_license = self.config.get('default_license', 'MIT')
+        
+        license_type = questionary.select(
+            "License:",
+            choices=licenses,
+            default=default_license
+        ).ask()
+        
+        return license_type
+    
+    def _get_package_manager(self, template: Template) -> str:
+        """Get package manager based on template."""
+        # Determine appropriate package managers based on template
+        if any(tag in template.tags for tag in ['python', 'fastapi', 'django', 'pytorch']):
+            managers = ['pip', 'poetry']
+            default = self.config.get('package_managers.python', 'pip')
+        elif any(tag in template.tags for tag in ['nodejs', 'react', 'vue', 'typescript', 'nextjs']):
+            managers = ['npm', 'yarn', 'pnpm']
+            default = self.config.get('package_managers.node', 'npm')
+        elif any(tag in template.tags for tag in ['rust']):
+            managers = ['cargo']
+            default = 'cargo'
+        elif any(tag in template.tags for tag in ['go']):
+            managers = ['go']
+            default = 'go'
+        else:
+            managers = ['npm', 'pip']
+            default = 'npm'
+        
+        if len(managers) == 1:
+            return managers[0]
+        
+        package_manager = questionary.select(
+            "Package manager:",
+            choices=managers,
+            default=default
+        ).ask()
+        
+        return package_manager
+    
+    def _get_description(self, template: Template) -> str:
+        """Get project description from user."""
+        default_desc = f"A {template.stack.value} project created with {template.name}"
+        
+        description = questionary.text(
+            "Project description:",
+            default=default_desc
+        ).ask()
+        
+        return description or default_desc
+    
+    def _confirm_creation(self, project_config: ProjectConfig) -> bool:
+        """
+        Confirm project creation with preview.
+        
+        Args:
+            project_config: Project configuration
+            
+        Returns:
+            True if user confirms creation
+        """
+        self.console.print("[bold cyan]Step 4: Confirm Creation[/bold cyan]")
+        self.console.print()
+        
+        # Display project preview
+        self._display_project_preview(project_config)
+        
+        return Confirm.ask("Create this project?")
+    
+    def _create_project(self, project_config: ProjectConfig) -> None:
+        """
+        Create the project.
+        
+        Args:
+            project_config: Project configuration
+        """
+        self.console.print("[bold cyan]Creating Project...[/bold cyan]")
+        self.console.print()
+        
+        try:
+            # Create project
+            success = self.customizer.customize(
+                project_config.template,
+                project_config,
+                Path(project_config.directory)
+            )
+            
+            if success:
+                project_path = Path(project_config.directory) / project_config.name
+                
+                # Display success message
+                success_text = f"""
+Project created successfully! 🎉
+
+Location: {project_path}
+Template: {project_config.template.name}
+Stack: {project_config.template.stack.value}
+"""
+                
+                panel = Panel(
+                    Text(success_text.strip(), style="white"),
+                    title="Success",
+                    border_style="green"
+                )
+                
+                self.console.print(panel)
+                
+                # Display next steps
+                self._display_next_steps(project_path, project_config)
+                
+            else:
+                self.console.print("[red]Project creation failed[/red]")
+                
+        except Exception as e:
+            logger.error(f"Project creation failed: {e}")
+            self.console.print(f"[red]Project creation failed: {e}[/red]")
+            raise
+    
+    def _display_templates(self, templates: List[Template]) -> None:
+        """
+        Display templates in a table.
+        
+        Args:
+            templates: List of templates to display
+        """
+        table = Table(title="Available Templates")
+        table.add_column("Name", style="cyan")
+        table.add_column("Description", style="white")
+        table.add_column("Tags", style="blue")
+        table.add_column("Version", style="yellow")
+        
+        for template in templates:
+            # Truncate description
+            description = template.description
+            if len(description) > 50:
+                description = description[:47] + "..."
+            
+            # Format tags
+            tags = ", ".join(template.tags[:3])
+            if len(template.tags) > 3:
+                tags += f" (+{len(template.tags) - 3})"
+            
+            table.add_row(
+                template.name,
+                description,
+                tags,
+                template.version or "N/A"
+            )
+        
+        self.console.print(table)
+        self.console.print()
+    
+    def _display_search_results(self, results: List) -> None:
+        """
+        Display search results.
+        
+        Args:
+            results: List of search results
+        """
+        table = Table(title="Search Results")
+        table.add_column("Template", style="cyan")
+        table.add_column("Stack", style="green")
+        table.add_column("Description", style="white")
+        table.add_column("Score", style="yellow")
+        
+        for result in results:
+            description = result.template.description
+            if len(description) > 40:
+                description = description[:37] + "..."
+            
+            table.add_row(
+                result.template.name,
+                result.template.stack.value,
+                description,
+                f"{result.score:.2f}"
+            )
+        
+        self.console.print(table)
+        self.console.print()
+    
+    def _display_project_preview(self, project_config: ProjectConfig) -> None:
+        """
+        Display project preview.
+        
+        Args:
+            project_config: Project configuration
+        """
+        table = Table(title="Project Preview")
+        table.add_column("Property", style="cyan")
+        table.add_column("Value", style="white")
+        
+        table.add_row("Name", project_config.name)
+        table.add_row("Template", project_config.template.name)
+        table.add_row("Stack", project_config.template.stack.value)
+        table.add_row("Author", project_config.author or "N/A")
+        table.add_row("License", project_config.license or "N/A")
+        table.add_row("Package Manager", project_config.package_manager)
+        table.add_row("Description", project_config.description or "N/A")
+        table.add_row("Location", str(Path(project_config.directory) / project_config.name))
+        
+        self.console.print(table)
+        self.console.print()
+    
+    def _display_next_steps(self, project_path: Path, project_config: ProjectConfig) -> None:
+        """
+        Display next steps for the user.
+        
+        Args:
+            project_path: Path to the created project
+            project_config: Project configuration
+        """
+        steps = [
+            f"cd {project_path.name}",
+        ]
+        
+        # Add installation step
+        if project_config.package_manager in ['npm', 'yarn', 'pnpm']:
+            steps.append(f"{project_config.package_manager} install")
+        elif project_config.package_manager == 'pip':
+            steps.append("pip install -r requirements.txt")
+        elif project_config.package_manager == 'poetry':
+            steps.append("poetry install")
+        elif project_config.package_manager == 'cargo':
+            steps.append("cargo build")
+        elif project_config.package_manager == 'go':
+            steps.append("go mod tidy")
+        
+        # Add development step
+        template = project_config.template
+        if any(tag in template.tags for tag in ['react', 'vue', 'nextjs', 'typescript']):
+            steps.append("npm run dev")
+        elif any(tag in template.tags for tag in ['python', 'fastapi', 'django']):
+            steps.append("python app.py  # or python main.py")
+        elif any(tag in template.tags for tag in ['rust']):
+            steps.append("cargo run")
+        elif any(tag in template.tags for tag in ['go']):
+            steps.append("go run main.go")
+        
+        steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(steps))
+        
+        panel = Panel(
+            Text(steps_text, style="white"),
+            title="Next Steps",
+            border_style="green"
+        )
+        
+        self.console.print(panel)

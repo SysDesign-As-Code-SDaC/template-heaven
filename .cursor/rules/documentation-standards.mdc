@@ -1,0 +1,259 @@
+---
+globs: *.md,*.rst,*.txt
+description: Documentation and README standards for Template Heaven
+---
+
+# Documentation Standards
+
+## 📚 Documentation Requirements
+
+### Comprehensive Documentation
+- **Every template must have a detailed README.md** with setup instructions
+- **All scripts require comprehensive docstrings** and usage examples
+- **Configuration files need clear comments** explaining each setting
+- **API endpoints must be documented** with request/response examples
+
+### Documentation Structure
+- **Clear headings** with proper hierarchy (H1, H2, H3)
+- **Table of contents** for long documents
+- **Code examples** with syntax highlighting
+- **Screenshots or diagrams** where helpful
+- **Links to external resources** and upstream sources
+
+## 📋 README Template Standards
+
+### Template README Structure
+```markdown
+# Template Name
+
+Brief description of what this template provides and its key features.
+
+## 🚀 Features
+
+- Key feature 1
+- Key feature 2
+- Key feature 3
+
+## 📋 Prerequisites
+
+- Prerequisite 1
+- Prerequisite 2
+- Prerequisite 3
+
+## 🛠️ Quick Start
+
+### 1. Installation
+
+```bash
+# Installation commands
+npm install
+# or
+pip install -r requirements.txt
+```
+
+### 2. Configuration
+
+```bash
+# Configuration steps
+cp .env.example .env
+# Edit configuration files
+```
+
+### 3. Running
+
+```bash
+# Run commands
+npm run dev
+# or
+python app.py
+```
+
+## 📁 Project Structure
+
+```
+project/
+├── src/                    # Source code
+├── tests/                  # Test files
+├── docs/                   # Documentation
+├── config/                 # Configuration files
+└── README.md              # This file
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `API_KEY` | API key for external service | - | Yes |
+| `DATABASE_URL` | Database connection string | - | Yes |
+| `DEBUG` | Enable debug mode | `false` | No |
+
+### Configuration Files
+
+- **`config.yaml`**: Main configuration file
+- **`.env`**: Environment variables
+- **`package.json`**: Node.js dependencies and scripts
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+# or
+pytest
+
+# Run with coverage
+npm run test:coverage
+# or
+pytest --cov
+```
+
+## 🚀 Deployment
+
+### Development
+```bash
+npm run dev
+```
+
+### Production
+```bash
+npm run build
+npm start
+```
+
+## 📚 API Documentation
+
+### Endpoints
+
+#### GET /api/health
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## 📄 License
+
+[License information]
+
+## 🔗 Upstream Source
+
+- **Original Repository**: [Link to upstream]
+- **License**: [Upstream license]
+- **Last Updated**: [Date]
+```
+
+## 📖 Project Documentation Standards
+
+### Main README Requirements
+- **Project overview** with clear value proposition
+- **Architecture explanation** with diagrams
+- **Quick start guide** for new users
+- **Contributing guidelines** for developers
+- **License and attribution** information
+
+### Technical Documentation
+- **API documentation** with examples
+- **Configuration guides** with all options explained
+- **Troubleshooting sections** for common issues
+- **Performance considerations** and optimization tips
+- **Security best practices** and recommendations
+
+## 🎯 Template-Specific Documentation
+
+### Technology Stack Documentation
+- **Framework version** and compatibility requirements
+- **Dependency management** and version constraints
+- **Build and deployment** instructions
+- **Environment setup** for different operating systems
+- **Integration examples** with common services
+
+### Code Documentation
+- **Inline comments** for complex logic
+- **Function documentation** with parameters and return values
+- **Class documentation** with usage examples
+- **Configuration documentation** with all available options
+- **Error handling** documentation with common scenarios
+
+## 📊 Documentation Quality Checklist
+
+### Content Quality
+- [ ] **Clear and concise** language
+- [ ] **Accurate information** that matches current implementation
+- [ ] **Complete examples** that actually work
+- [ ] **Up-to-date** with latest changes
+- [ ] **Consistent formatting** throughout
+
+### Technical Accuracy
+- [ ] **Code examples** are tested and working
+- [ ] **Configuration options** are documented
+- [ ] **Dependencies** are listed with versions
+- [ ] **Prerequisites** are clearly stated
+- [ ] **Troubleshooting** covers common issues
+
+### User Experience
+- [ ] **Logical flow** from setup to usage
+- [ ] **Clear headings** and table of contents
+- [ ] **Searchable content** with good keywords
+- [ ] **Visual elements** (diagrams, screenshots) where helpful
+- [ ] **Links to related resources**
+
+## 🔄 Documentation Maintenance
+
+### Regular Updates
+- **Review documentation** with each release
+- **Update examples** when APIs change
+- **Verify links** to external resources
+- **Check code examples** for accuracy
+- **Update version numbers** and compatibility info
+
+### Version Control
+- **Documentation changes** in commit messages
+- **Link documentation** to code changes
+- **Maintain changelog** for significant updates
+- **Archive old versions** when appropriate
+
+## 🚨 Documentation Anti-Patterns
+
+### Avoid These
+- **Outdated information** that doesn't match current code
+- **Missing prerequisites** or setup steps
+- **Broken code examples** that don't work
+- **Inconsistent formatting** across documents
+- **Missing error handling** documentation
+- **Unclear instructions** or ambiguous language
+
+### Best Practices
+- **Test all examples** before publishing
+- **Use consistent terminology** throughout
+- **Provide multiple examples** for different use cases
+- **Include troubleshooting** for common issues
+- **Keep documentation** close to the code it describes
+
+## 🔗 Integration with Project Structure
+
+### Documentation Location
+- **Template READMEs**: In each template directory
+- **Project documentation**: In `docs/` directory
+- **Script documentation**: In docstrings and comments
+- **Configuration docs**: In configuration files
+- **API documentation**: In dedicated API docs
+
+### Cross-References
+- **Link between related documents** using relative paths
+- **Reference upstream sources** with proper attribution
+- **Link to external resources** for additional information
+- **Maintain consistent** file naming and organization

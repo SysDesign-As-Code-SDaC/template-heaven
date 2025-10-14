@@ -1,0 +1,17 @@
+# Template Heaven - Core Dependencies
+# This file contains the core dependencies required to run Template Heaven
+
+# CLI Framework
+click>=8.0
+
+# Terminal UI and formatting
+rich>=13.0
+
+# Interactive prompts
+questionary>=2.0
+
+# YAML configuration
+pyyaml>=6.0
+
+# Template engine
+jinja2>=3.1
