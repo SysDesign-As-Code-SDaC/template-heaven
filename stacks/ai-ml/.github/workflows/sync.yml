@@ -1,0 +1,48 @@
+﻿name: AI-ML Stack - Upstream Sync
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      template_name:
+        description: 'Template name to sync (leave empty to sync all)'
+        required: false
+
+jobs:
+  sync-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: stack/ai-ml
+          fetch-depth: 0
+      
+      - name: Setup Git
+        run: |
+          git config user.name "Template Bot"
+          git config user.email "bot@template-heaven.com"
+      
+      - name: Sync templates
+        run: |
+          echo "Syncing templates for ai-ml stack"
+          # Add sync logic here
+          # For now, this is a placeholder
+      
+      - name: Create Pull Request
+        if: success()
+        uses: peter-evans/create-pull-request@v5
+        with:
+          branch: auto-sync/ai-ml
+          title: "chore: sync ai-ml templates"
+          body: |
+            Automated sync of templates from upstream repositories.
+            
+            Stack: ai-ml
+            Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          labels: |
+            automated
+            sync
+            stack/ai-ml
