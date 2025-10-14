@@ -1,0 +1,141 @@
+# Database Configuration for Template Heaven Trend Detection System
+# This file contains database connection settings and configuration options
+
+database:
+  # PostgreSQL connection settings
+  host: localhost
+  port: 5432
+  database: template_heaven
+  user: postgres
+  password: ""
+  
+  # Connection pool settings
+  min_connections: 1
+  max_connections: 10
+  connection_timeout: 30
+  
+  # SSL settings (optional)
+  ssl_mode: prefer
+  ssl_cert: ""
+  ssl_key: ""
+  ssl_rootcert: ""
+
+# Redis configuration for caching
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  max_connections: 10
+  socket_timeout: 5
+  socket_connect_timeout: 5
+
+# GitHub API configuration
+github:
+  # GitHub API token (required for API access)
+  token: ""
+  
+  # API rate limiting
+  rate_limit: 5000  # requests per hour
+  rate_limit_per_minute: 60
+  
+  # Request timeout
+  timeout: 30
+  
+  # Retry settings
+  max_retries: 3
+  retry_delay: 1  # seconds
+
+# Trend detection settings
+trend_detection:
+  # Monitoring intervals
+  check_interval: 3600  # seconds (1 hour)
+  full_scan_interval: 86400  # seconds (24 hours)
+  
+  # Trend scoring thresholds
+  min_stars: 100
+  min_forks: 10
+  min_contributors: 3
+  
+  # Growth rate thresholds
+  star_growth_threshold: 0.1  # 10% growth per day
+  fork_growth_threshold: 0.05  # 5% growth per day
+  
+  # Activity thresholds
+  min_recent_commits: 5  # commits in last 30 days
+  min_recent_issues: 2   # issues in last 30 days
+  min_recent_prs: 1      # PRs in last 30 days
+  
+  # Quality thresholds
+  min_documentation_score: 0.6
+  min_code_quality_score: 0.7
+  min_maintenance_score: 0.5
+
+# Notification settings
+notifications:
+  # Slack configuration
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#template-heaven"
+    username: "Template Heaven Bot"
+    icon_emoji: ":robot_face:"
+  
+  # Email configuration
+  email:
+    enabled: false
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    smtp_username: ""
+    smtp_password: ""
+    from_email: ""
+    to_emails: []
+    use_tls: true
+  
+  # GitHub Issues configuration
+  github_issues:
+    enabled: true
+    repository: "your-org/template-heaven"
+    labels: ["trend-detection", "template-candidate"]
+    assignees: []
+
+# Logging configuration
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/trend_detector.log"
+  max_size: 10485760  # 10MB
+  backup_count: 5
+
+# Monitoring and metrics
+monitoring:
+  # Prometheus metrics
+  prometheus:
+    enabled: false
+    port: 8000
+    path: "/metrics"
+  
+  # Health check endpoint
+  health_check:
+    enabled: true
+    port: 8001
+    path: "/health"
+
+# Security settings
+security:
+  # API key for webhook endpoints
+  api_key: ""
+  
+  # CORS settings
+  cors:
+    enabled: true
+    allowed_origins: ["*"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+    allowed_headers: ["*"]
+
+# Development settings
+development:
+  debug: false
+  mock_github_api: false
+  skip_rate_limits: false
+  verbose_logging: false

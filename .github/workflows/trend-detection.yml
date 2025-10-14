@@ -2,400 +2,288 @@ name: Trend Detection
 
 on:
   schedule:
-    # Run daily at 6 AM UTC
-    - cron: '0 6 * * *'
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
-      stack_name:
-        description: 'Specific stack to analyze (leave empty for all)'
+      force_scan:
+        description: 'Force full scan (ignore recent checks)'
         required: false
-        type: string
-      force_analysis:
-        description: 'Force analysis even if recently run'
-        required: false
+        default: 'false'
         type: boolean
-        default: false
+      stack_filter:
+        description: 'Specific stack to scan (leave empty for all)'
+        required: false
+        default: ''
+        type: string
 
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
 
 jobs:
-  setup-trend-detector:
+  trend-detection:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-
-      - name: Install trend detector dependencies
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install Python dependencies
         run: |
           cd tools/trending-flagger/trend-detector
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+    - name: Install Node.js dependencies
+      run: |
+        npm install -g @octokit/rest
+    
       - name: Set up database
         run: |
-          # Set up PostgreSQL for trend detection
+        cd tools/trending-flagger/trend-detector
+        python setup_database.py --config config/database_config.yaml
+    
+    - name: Configure environment
+      run: |
+        echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_NAME=template_heaven" >> $GITHUB_ENV
+        echo "DB_USER=postgres" >> $GITHUB_ENV
+        echo "DB_PASSWORD=postgres" >> $GITHUB_ENV
+        echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> $GITHUB_ENV
+        echo "EMAIL_SMTP_HOST=${{ secrets.EMAIL_SMTP_HOST }}" >> $GITHUB_ENV
+        echo "EMAIL_SMTP_USER=${{ secrets.EMAIL_SMTP_USER }}" >> $GITHUB_ENV
+        echo "EMAIL_SMTP_PASS=${{ secrets.EMAIL_SMTP_PASS }}" >> $GITHUB_ENV
+        echo "EMAIL_FROM=${{ secrets.EMAIL_FROM }}" >> $GITHUB_ENV
+        echo "EMAIL_TO=${{ secrets.EMAIL_TO }}" >> $GITHUB_ENV
+    
+    - name: Start PostgreSQL
+      run: |
           sudo systemctl start postgresql
-          sudo -u postgres psql -c "CREATE DATABASE templateheaven;" || true
-          sudo -u postgres psql -c "CREATE USER templateuser WITH PASSWORD 'templatepass';" || true
-          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE templateheaven TO templateuser;" || true
-          
-          # Run database schema
+        sudo -u postgres psql -c "CREATE DATABASE template_heaven;" || true
+        sudo -u postgres psql -c "CREATE USER postgres WITH PASSWORD 'postgres';" || true
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE template_heaven TO postgres;" || true
+    
+    - name: Run trend detection
+      run: |
           cd tools/trending-flagger/trend-detector
-          PGPASSWORD=templatepass psql -h localhost -U templateuser -d templateheaven -f data/schema.sql
-
-      - name: Configure branch-aware trend detector
-        run: |
-          cd tools/trending-flagger/trend-detector
-          
-          # Create branch-aware config
-          mkdir -p config
-          cat > config/branch_aware_config.yaml << EOF
-          global:
-            github:
-              api_token: ${{ secrets.GITHUB_TOKEN }}
-              base_repo: ${{ github.repository }}
-              main_branch: dev
-            
-            redis:
-              host: localhost
-              port: 6379
-            
-            postgresql:
-              host: localhost
-              port: 5432
-              user: templateuser
-              password: templatepass
-              database: templateheaven
-            
-            star_threshold: 1000
-            fork_threshold: 100
-            growth_rate_threshold: 0.1
-            trend_score_threshold: 0.7
-            
-            monitor_interval: 300
-            early_detection_interval: 600
-            review_interval: 1800
-            alert_interval: 3600
-          
-          stacks:
-            fullstack:
-              branch: "stack/fullstack"
-              keywords: ["fullstack", "full-stack", "nextjs", "t3-stack", "remix", "nuxt", "sveltekit"]
-              exclude_keywords: ["tutorial", "example"]
-              min_stars: 500
-              min_forks: 50
-              growth_rate_threshold: 0.05
-              auto_create_pr: true
-              maintainers: ["@fullstack-team"]
-            
-            frontend:
-              branch: "stack/frontend"
-              keywords: ["react", "vue", "svelte", "frontend", "vite", "webpack", "rollup"]
-              exclude_keywords: ["tutorial", "boilerplate"]
-              min_stars: 300
-              min_forks: 30
-              growth_rate_threshold: 0.08
-              auto_create_pr: true
-              maintainers: ["@frontend-team"]
-            
-            backend:
-              branch: "stack/backend"
-              keywords: ["api", "backend", "server", "express", "fastapi", "django", "flask", "gin", "actix"]
-              exclude_keywords: ["tutorial", "example"]
-              min_stars: 400
-              min_forks: 40
-              growth_rate_threshold: 0.06
-              auto_create_pr: true
-              maintainers: ["@backend-team"]
-            
-            ai-ml:
-              branch: "stack/ai-ml"
-              keywords: ["machine-learning", "ml", "ai", "data-science", "pytorch", "tensorflow", "scikit-learn"]
-              exclude_keywords: ["tutorial", "notebook"]
-              min_stars: 800
-              min_forks: 80
-              growth_rate_threshold: 0.04
-              auto_create_pr: true
-              maintainers: ["@ai-ml-team"]
-            
-            advanced-ai:
-              branch: "stack/advanced-ai"
-              keywords: ["llm", "rag", "vector-database", "langchain", "llamaindex", "chromadb", "openai"]
-              exclude_keywords: ["tutorial", "demo"]
-              min_stars: 1000
-              min_forks: 100
-              growth_rate_threshold: 0.03
-              auto_create_pr: true
-              maintainers: ["@advanced-ai-team"]
-            
-            agentic-ai:
-              branch: "stack/agentic-ai"
-              keywords: ["agent", "autonomous", "langgraph", "crewai", "autogen", "multi-agent", "workflow"]
-              exclude_keywords: ["tutorial", "example"]
-              min_stars: 1200
-              min_forks: 120
-              growth_rate_threshold: 0.02
-              auto_create_pr: true
-              maintainers: ["@agentic-ai-team"]
-            
-            mobile:
-              branch: "stack/mobile"
-              keywords: ["mobile", "react-native", "flutter", "electron", "ionic", "cordova", "xamarin"]
-              exclude_keywords: ["tutorial", "example"]
-              min_stars: 600
-              min_forks: 60
-              growth_rate_threshold: 0.05
-              auto_create_pr: true
-              maintainers: ["@mobile-team"]
-            
-            devops:
-              branch: "stack/devops"
-              keywords: ["devops", "ci-cd", "docker", "kubernetes", "terraform", "ansible", "github-actions"]
-              exclude_keywords: ["tutorial", "example"]
-              min_stars: 400
-              min_forks: 40
-              growth_rate_threshold: 0.06
-              auto_create_pr: true
-              maintainers: ["@devops-team"]
-            
-            web3:
-              branch: "stack/web3"
-              keywords: ["web3", "blockchain", "ethereum", "solidity", "hardhat", "foundry", "defi", "nft"]
-              exclude_keywords: ["tutorial", "example"]
-              min_stars: 800
-              min_forks: 80
-              growth_rate_threshold: 0.04
-              auto_create_pr: true
-              maintainers: ["@web3-team"]
-            
-            workflows:
-              branch: "stack/workflows"
-              keywords: ["workflow", "github-actions", "gitlab-ci", "template", "boilerplate", "starter"]
-              exclude_keywords: ["tutorial", "example"]
-              min_stars: 200
-              min_forks: 20
-              growth_rate_threshold: 0.1
-              auto_create_pr: true
-              maintainers: ["@workflows-team"]
-          
-          branch_management:
-            auto_create_branches: true
-            sync_core_tools: true
-            create_stack_prs: true
-            merge_strategy: "squash"
-            required_reviewers: 1
-          
-          notifications:
-            slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
-            github:
-              create_issues: true
-              create_prs: true
-              mention_maintainers: true
-          EOF
-
-  run-branch-aware-trend-detection:
-    needs: setup-trend-detector
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          cd tools/trending-flagger/trend-detector
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run branch-aware trend detection
+        python run_branch_aware_monitor.py \
+          --config config/branch_aware_config.yaml \
+          --force-scan ${{ github.event.inputs.force_scan || 'false' }} \
+          --stack-filter "${{ github.event.inputs.stack_filter || '' }}" \
+          --verbose
+    
+    - name: Process results
+      id: process_results
         run: |
           cd tools/trending-flagger/trend-detector
           
-          # Run branch-aware trend detection
-          python run_branch_aware_monitor.py \
-            --config config/branch_aware_config.yaml \
-            --once \
-            --verbose
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Count new alerts
+        NEW_ALERTS=$(python -c "
+        import psycopg2
+        import os
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            database=os.getenv('DB_NAME', 'template_heaven'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', 'postgres')
+        )
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM trend_alerts WHERE created_at > NOW() - INTERVAL \'1 hour\'')
+        count = cursor.fetchone()[0]
+        print(count)
+        conn.close()
+        ")
+        
+        # Count high priority alerts
+        HIGH_PRIORITY=$(python -c "
+        import psycopg2
+        import os
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            database=os.getenv('DB_NAME', 'template_heaven'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', 'postgres')
+        )
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM trend_alerts WHERE trend_level IN (\'high\', \'critical\') AND review_status = \'pending\'')
+        count = cursor.fetchone()[0]
+        print(count)
+        conn.close()
+        ")
+        
+        echo "new_alerts=$NEW_ALERTS" >> $GITHUB_OUTPUT
+        echo "high_priority=$HIGH_PRIORITY" >> $GITHUB_OUTPUT
+        
+        # Create summary
+        echo "## Trend Detection Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **New Alerts**: $NEW_ALERTS" >> $GITHUB_STEP_SUMMARY
+        echo "- **High Priority Alerts**: $HIGH_PRIORITY" >> $GITHUB_STEP_SUMMARY
+        echo "- **Scan Time**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Create GitHub Issues for High Priority Alerts
+      if: steps.process_results.outputs.high_priority > 0
+      run: |
+        cd tools/trending-flagger/trend-detector
+        python -c "
+        import psycopg2
+        import os
+        import requests
+        import json
+        
+        # Get high priority alerts
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            database=os.getenv('DB_NAME', 'template_heaven'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', 'postgres')
+        )
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT ta.id, r.full_name, r.url, ta.alert_type, ta.trend_level, 
+                   ta.trend_score, ta.priority_score, ta.trend_reasons
+            FROM trend_alerts ta
+            JOIN repositories r ON ta.repository_id = r.id
+            WHERE ta.trend_level IN ('high', 'critical') 
+            AND ta.review_status = 'pending'
+            ORDER BY ta.priority_score DESC
+            LIMIT 5
+        ''')
+        
+        alerts = cursor.fetchall()
+        conn.close()
+        
+        # Create GitHub issues
+        github_token = os.getenv('GITHUB_TOKEN')
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        for alert in alerts:
+            alert_id, full_name, url, alert_type, trend_level, trend_score, priority_score, trend_reasons = alert
+            
+            title = f'🚨 High Priority Trend Alert: {full_name}'
+            body = f'''## Trend Alert Details
+            
+**Repository**: [{full_name}]({url})
+**Alert Type**: {alert_type}
+**Trend Level**: {trend_level}
+**Trend Score**: {trend_score:.2f}
+**Priority Score**: {priority_score:.2f}
 
-      - name: Create trend detection summary
-        if: always()
+### Trend Reasons
+{chr(10).join(f'- {reason}' for reason in trend_reasons)}
+
+### Action Required
+This repository has been flagged as a high-priority trend and requires review for potential template inclusion.
+
+**Alert ID**: {alert_id}
+**Detected**: $(date -u)
+'''
+            
+            issue_data = {
+                'title': title,
+                'body': body,
+                'labels': ['trend-detection', 'high-priority', 'template-candidate'],
+                'assignees': []
+            }
+            
+            response = requests.post(
+                'https://api.github.com/repos/${{ github.repository }}/issues',
+                headers=headers,
+                data=json.dumps(issue_data)
+            )
+            
+            if response.status_code == 201:
+                print(f'Created issue for {full_name}')
+            else:
+                print(f'Failed to create issue for {full_name}: {response.text}')
+        "
+    
+    - name: Send Slack Notification
+      if: steps.process_results.outputs.new_alerts > 0
         run: |
-          echo "## Branch-Aware Trend Detection Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- All stacks analyzed" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY
-
-  create-trend-issues:
-    needs: run-branch-aware-trend-detection
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+        if [ -n "$SLACK_WEBHOOK_URL" ]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🚀 Template Heaven Trend Detection Complete\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Trend Detection Results*\n• New Alerts: ${{ steps.process_results.outputs.new_alerts }}\n• High Priority: ${{ steps.process_results.outputs.high_priority }}\n• Repository: ${{ github.repository }}\n• Run: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>\"
+                  }
+                }
+              ]
+            }" \
+            $SLACK_WEBHOOK_URL
+        fi
+    
+    - name: Send Email Notification
+      if: steps.process_results.outputs.high_priority > 0
         run: |
-          python -m pip install --upgrade pip
-          pip install pyyaml requests
-
-      - name: Create issues for high-priority trends
-        run: |
-          python << 'EOF'
+        if [ -n "$EMAIL_SMTP_HOST" ] && [ -n "$EMAIL_TO" ]; then
+          python -c "
+          import smtplib
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
           import os
-          import yaml
-          import requests
-          import json
-          from datetime import datetime
           
-          def create_trend_issue(repo_data, stack_name):
-              """Create a GitHub issue for a trending repository."""
-              title = f"🚀 Trending Template: {repo_data['name']} ({stack_name} stack)"
-              
-              body = f"""## Trending Template Detected
-              
-              **Repository**: [{repo_data['full_name']}]({repo_data['html_url']})
-              **Stack**: {stack_name}
-              **Stars**: {repo_data.get('stargazers_count', 0)}
-              **Forks**: {repo_data.get('forks_count', 0)}
-              **Language**: {repo_data.get('language', 'Unknown')}
-              **Description**: {repo_data.get('description', 'No description')}
-              
-              ## Action Required
-              
-              Please review this trending template and consider adding it to the {stack_name} stack.
-              
-              ### Review Checklist
-              - [ ] Template follows organization standards
-              - [ ] Documentation is comprehensive
-              - [ ] Dependencies are up-to-date
-              - [ ] Security best practices are followed
-              - [ ] License is compatible
-              
-              ### Next Steps
-              1. Review the repository
-              2. Test the template
-              3. Create PR to add to stack (if approved)
-              4. Update stack documentation
-              
-              ---
-              *This issue was automatically created by the trend detection system.*
-              """
-              
-              # Create issue using GitHub API
-              url = f"https://api.github.com/repos/{os.getenv('GITHUB_REPOSITORY')}/issues"
-              headers = {
-                  'Authorization': f"token {os.getenv('GITHUB_TOKEN')}",
-                  'Accept': 'application/vnd.github.v3+json'
-              }
-              data = {
-                  'title': title,
-                  'body': body,
-                  'labels': ['trending', 'template', stack_name, 'auto-generated']
-              }
-              
-              try:
-                  response = requests.post(url, headers=headers, json=data)
-                  if response.status_code == 201:
-                      issue = response.json()
-                      print(f"Created issue #{issue['number']} for {repo_data['full_name']}")
-                      return issue['number']
-                  else:
-                      print(f"Failed to create issue: {response.status_code} - {response.text}")
-              except Exception as e:
-                  print(f"Error creating issue: {e}")
-              
-              return None
+          msg = MIMEMultipart()
+          msg['From'] = os.getenv('EMAIL_FROM', 'noreply@template-heaven.com')
+          msg['To'] = os.getenv('EMAIL_TO')
+          msg['Subject'] = 'Template Heaven: High Priority Trend Alerts Detected'
           
-          # For now, just create a summary issue
-          summary_title = f"📊 Daily Trend Detection Summary - {datetime.now().strftime('%Y-%m-%d')}"
-          summary_body = f"""## Daily Trend Detection Summary
+          body = f'''Template Heaven Trend Detection Alert
           
-          **Date**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
-          
-          ### Stacks Analyzed
-          - fullstack
-          - frontend
-          - backend
-          - ai-ml
-          - advanced-ai
-          - agentic-ai
-          - mobile
-          - devops
-          - web3
-          - microservices
-          - monorepo
-          - quantum-computing
-          - computational-biology
-          - scientific-computing
-          - space-technologies
-          - 6g-wireless
-          - structural-batteries
-          - polyfunctional-robots
-          - generative-ai
-          - modern-languages
-          - serverless
-          - vscode-extensions
-          - docs
-          - workflows
-          
-          ### Results
-          - All stacks analyzed successfully
-          - High-priority trends flagged for review
-          - Issues created for trending templates
-          
-          ---
-          *This summary was automatically generated by the trend detection system.*
-          """
-          
-          url = f"https://api.github.com/repos/{os.getenv('GITHUB_REPOSITORY')}/issues"
-          headers = {
-              'Authorization': f"token {os.getenv('GITHUB_TOKEN')}",
-              'Accept': 'application/vnd.github.v3+json'
-          }
-          data = {
-              'title': summary_title,
-              'body': summary_body,
-              'labels': ['trending', 'summary', 'auto-generated']
-          }
-          
-          try:
-              response = requests.post(url, headers=headers, json=data)
-              if response.status_code == 201:
-                  issue = response.json()
-                  print(f"Created summary issue #{issue['number']}")
-              else:
-                  print(f"Failed to create summary issue: {response.status_code} - {response.text}")
-          except Exception as e:
-              print(f"Error creating summary issue: {e}")
-          EOF
+High priority trend alerts have been detected and require review.
 
-      - name: Create final summary
+Summary:
+- New Alerts: ${{ steps.process_results.outputs.new_alerts }}
+- High Priority Alerts: ${{ steps.process_results.outputs.high_priority }}
+
+Please review the alerts in the GitHub repository:
+https://github.com/${{ github.repository }}/issues?q=is:issue+is:open+label:trend-detection
+
+Workflow Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          '''
+          
+          msg.attach(MIMEText(body, 'plain'))
+          
+          server = smtplib.SMTP(os.getenv('EMAIL_SMTP_HOST'), 587)
+          server.starttls()
+          server.login(os.getenv('EMAIL_SMTP_USER'), os.getenv('EMAIL_SMTP_PASS'))
+          text = msg.as_string()
+          server.sendmail(msg['From'], msg['To'], text)
+          server.quit()
+          print('Email notification sent')
+          "
+        fi
+    
+    - name: Archive results
         if: always()
-        run: |
-          echo "## Trend Detection Complete" >> $GITHUB_STEP_SUMMARY
-          echo "- All stacks analyzed" >> $GITHUB_STEP_SUMMARY
-          echo "- Issues created for trending templates" >> $GITHUB_STEP_SUMMARY
-          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY
+      uses: actions/upload-artifact@v3
+      with:
+        name: trend-detection-results-${{ github.run_number }}
+        path: |
+          tools/trending-flagger/trend-detector/logs/
+          tools/trending-flagger/trend-detector/data/
+        retention-days: 30

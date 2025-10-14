@@ -1,0 +1,157 @@
+# Frontend Stack Configuration
+# This file defines the configuration for the frontend stack branch
+
+stack_name: "Frontend Frameworks"
+category: "frontend"
+description: "Frontend framework templates including React, Vue, Svelte, and other modern frontend technologies"
+maintainers:
+  - "@frontend-team"
+  - "@ui-team"
+
+# Keywords for trend detection
+keywords:
+  - "react"
+  - "vue"
+  - "svelte"
+  - "frontend"
+  - "vite"
+  - "webpack"
+  - "rollup"
+  - "esbuild"
+  - "swc"
+  - "angular"
+  - "preact"
+  - "solid"
+  - "lit"
+  - "stencil"
+
+# Keywords to exclude from trend detection
+exclude_keywords:
+  - "tutorial"
+  - "example"
+  - "boilerplate"
+  - "starter"
+  - "backend"
+  - "api"
+
+# Upstream sources to monitor
+upstream_sources:
+  - "github.com/facebook/react"
+  - "github.com/vuejs/vue"
+  - "github.com/sveltejs/svelte"
+  - "github.com/vitejs/vite"
+  - "github.com/webpack/webpack"
+  - "github.com/rollup/rollup"
+  - "github.com/angular/angular"
+  - "github.com/preactjs/preact"
+  - "github.com/solidjs/solid"
+  - "github.com/lit/lit"
+
+# Trend detection thresholds
+trend_detection:
+  min_stars: 300
+  min_forks: 30
+  growth_rate_threshold: 0.08
+  auto_create_pr: true
+
+# Template requirements
+template_requirements:
+  min_documentation_score: 8
+  required_files:
+    - "README.md"
+    - "package.json"
+    - ".gitignore"
+  recommended_files:
+    - "LICENSE"
+    - "CONTRIBUTING.md"
+    - "CHANGELOG.md"
+    - "docs/"
+    - "examples/"
+
+# Quality standards
+quality_standards:
+  code_quality:
+    - "TypeScript support"
+    - "ESLint configuration"
+    - "Prettier configuration"
+    - "Testing setup (Jest, Vitest, etc.)"
+  documentation:
+    - "Clear setup instructions"
+    - "Component documentation"
+    - "Styling guide"
+    - "Contributing guidelines"
+  performance:
+    - "Bundle size optimization"
+    - "Lazy loading"
+    - "Code splitting"
+    - "Performance monitoring"
+  accessibility:
+    - "WCAG compliance"
+    - "Screen reader support"
+    - "Keyboard navigation"
+    - "Color contrast"
+
+# Branch settings
+branch_settings:
+  auto_merge: false
+  required_reviewers: 2
+  merge_strategy: "squash"
+  protection_rules:
+    - "require_pull_request_reviews"
+    - "require_status_checks"
+    - "require_up_to_date_branch"
+
+# Integration settings
+integrations:
+  github_actions:
+    - "ci.yml"
+    - "test.yml"
+    - "build.yml"
+  bundlers:
+    - "vite"
+    - "webpack"
+    - "rollup"
+    - "esbuild"
+  testing:
+    - "jest"
+    - "vitest"
+    - "cypress"
+    - "playwright"
+  styling:
+    - "tailwind"
+    - "styled-components"
+    - "emotion"
+    - "css-modules"
+
+# Template categories within this stack
+template_categories:
+  - name: "React-based"
+    description: "Frontend applications built with React"
+    keywords: ["react", "jsx", "hooks"]
+  - name: "Vue-based"
+    description: "Frontend applications built with Vue"
+    keywords: ["vue", "vue3", "composition-api"]
+  - name: "Svelte-based"
+    description: "Frontend applications built with Svelte"
+    keywords: ["svelte", "sveltekit"]
+  - name: "Build Tools"
+    description: "Modern build tools and bundlers"
+    keywords: ["vite", "webpack", "rollup", "esbuild"]
+  - name: "UI Libraries"
+    description: "Component libraries and design systems"
+    keywords: ["components", "ui", "design-system"]
+
+# Maintenance schedule
+maintenance:
+  review_interval: "monthly"
+  update_check: "weekly"
+  security_audit: "weekly"
+  dependency_update: "weekly"
+
+# Statistics
+stats:
+  created_date: "2024-01-15"
+  last_updated: "2024-01-15"
+  template_count: 1
+  total_stars: 0
+  total_forks: 0
