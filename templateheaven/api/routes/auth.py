@@ -12,7 +12,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form, Path
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 
-from ...core.models import APIResponse, User, UserRole
+from ...core.models import APIResponse
+from ...database.models import User, UserRole
+from ...services.auth_service import auth_service
 from ..dependencies import (
     get_settings, get_current_user, require_auth, get_request_id
 )
@@ -35,8 +37,7 @@ async def login(
     access token for API authentication.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Authenticate user
         user = await auth_service.authenticate_user(
@@ -52,9 +53,12 @@ async def login(
             )
         
         # Create access token
-        access_token = await auth_service.create_access_token(
-            data={"sub": user.username, "user_id": user.id}
-        )
+        token_data = {
+            "sub": user.username,
+            "user_id": str(user.id),
+            "roles": [role.role.name for role in user.roles]
+        }
+        access_token = auth_service.create_access_token(token_data)
         
         logger.info(f"User {user.username} logged in successfully")
         
@@ -63,10 +67,10 @@ async def login(
             "token_type": "bearer",
             "expires_in": get_settings().access_token_expire_minutes * 60,
             "user": {
-                "id": user.id,
+                "id": str(user.id),
                 "username": user.username,
                 "email": user.email,
-                "role": user.role
+                "roles": [role.role.name for role in user.roles]
             }
         }
         
@@ -92,8 +96,7 @@ async def refresh_token(
     extending their session.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Create new access token
         access_token = await auth_service.create_access_token(
@@ -140,8 +143,7 @@ async def logout(
     Invalidates the current user's session and logs the logout event.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Log logout event
         await auth_service.logout_user(current_user.id)
@@ -175,8 +177,7 @@ async def register_user(
     Creates a new user account with the provided information.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Check if user already exists
         existing_user = await auth_service.get_user_by_username(username)
@@ -199,7 +200,7 @@ async def register_user(
             email=email,
             password=password,
             full_name=full_name,
-            role=UserRole.USER
+            roles=["user"]  # Default role
         )
         
         logger.info(f"New user registered: {username}")
@@ -208,10 +209,10 @@ async def register_user(
             success=True,
             message="User registered successfully",
             data={
-                "user_id": user.id,
+                "user_id": str(user.id),
                 "username": user.username,
                 "email": user.email,
-                "role": user.role
+                "roles": [role.role.name for role in user.roles]
             }
         )
         
@@ -238,8 +239,7 @@ async def change_password(
     Changes the password for the currently authenticated user.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Verify current password
         if not await auth_service.verify_password(current_password, current_user.password):
@@ -279,8 +279,7 @@ async def request_password_reset(
     Initiates a password reset process for the user with the given email.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Check if user exists
         user = await auth_service.get_user_by_email(email)
@@ -324,8 +323,7 @@ async def confirm_password_reset(
     Completes the password reset process using the provided token.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Verify reset token
         user_id = await auth_service.verify_password_reset_token(token)
@@ -369,8 +367,7 @@ async def get_user_sessions(
     Returns information about the current user's active sessions.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Get user sessions
         sessions = await auth_service.get_user_sessions(current_user.id)
@@ -401,8 +398,7 @@ async def revoke_session(
     Revokes a specific session for the current user.
     """
     try:
-        # Get auth service
-        auth_service = get_service("auth_service")
+        # Use the imported auth service
         
         # Revoke session
         success = await auth_service.revoke_session(session_id, current_user.id)

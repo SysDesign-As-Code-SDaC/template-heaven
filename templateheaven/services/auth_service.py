@@ -17,14 +17,13 @@ from sqlalchemy.orm import selectinload
 
 from ..database.models import User, Role, UserRole, APIKey
 from ..database.connection import get_db_session
-from ..core.models import User as UserModel, UserRole as UserRoleEnum
 from ..utils.logger import get_logger
 from ..api.dependencies import get_settings
 
 logger = get_logger(__name__)
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 class AuthService:
@@ -42,6 +41,8 @@ class AuthService:
     
     def get_password_hash(self, password: str) -> str:
         """Hash a password."""
+        # Truncate password to 72 bytes to avoid bcrypt limitation
+        password = password[:72]
         return pwd_context.hash(password)
     
     def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -66,7 +67,8 @@ class AuthService:
     
     async def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """Authenticate a user with username and password."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(User).options(
                 selectinload(User.roles).selectinload(UserRole.role)
             ).where(
@@ -86,7 +88,8 @@ class AuthService:
     
     async def get_user_by_id(self, user_id: str) -> Optional[User]:
         """Get a user by ID."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(User).options(
                 selectinload(User.roles).selectinload(UserRole.role)
             ).where(User.id == user_id)
@@ -96,7 +99,8 @@ class AuthService:
     
     async def get_user_by_username(self, username: str) -> Optional[User]:
         """Get a user by username."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(User).options(
                 selectinload(User.roles).selectinload(UserRole.role)
             ).where(User.username == username)
@@ -106,7 +110,8 @@ class AuthService:
     
     async def get_user_by_email(self, email: str) -> Optional[User]:
         """Get a user by email."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(User).options(
                 selectinload(User.roles).selectinload(UserRole.role)
             ).where(User.email == email)
@@ -123,7 +128,8 @@ class AuthService:
         roles: Optional[List[str]] = None
     ) -> User:
         """Create a new user."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             # Check if user already exists
             existing_user = await self.get_user_by_username(username)
             if existing_user:
@@ -160,7 +166,8 @@ class AuthService:
         update_data: Dict[str, Any]
     ) -> Optional[User]:
         """Update a user."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(User).where(User.id == user_id)
             result = await session.execute(query)
             user = result.scalar_one_or_none()
@@ -183,7 +190,8 @@ class AuthService:
     
     async def delete_user(self, user_id: str) -> bool:
         """Delete a user (soft delete)."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(User).where(User.id == user_id)
             result = await session.execute(query)
             user = result.scalar_one_or_none()
@@ -199,7 +207,8 @@ class AuthService:
     
     async def assign_roles(self, user_id: str, roles: List[str]) -> bool:
         """Assign roles to a user."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             return await self._assign_roles(session, user_id, roles)
     
     async def _assign_roles(self, session: AsyncSession, user_id: str, roles: List[str]) -> bool:
@@ -233,7 +242,8 @@ class AuthService:
     
     async def get_user_roles(self, user_id: str) -> List[str]:
         """Get user roles."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(Role.name).join(UserRole).where(UserRole.user_id == user_id)
             result = await session.execute(query)
             return [row[0] for row in result.fetchall()]
@@ -261,7 +271,8 @@ class AuthService:
         api_key = f"th_{secrets.token_urlsafe(32)}"
         key_hash = self.get_password_hash(api_key)
         
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             api_key_model = APIKey(
                 user_id=user_id,
                 name=name,
@@ -276,7 +287,8 @@ class AuthService:
     
     async def verify_api_key(self, api_key: str) -> Optional[User]:
         """Verify an API key and return the associated user."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(APIKey).options(
                 selectinload(APIKey.user).selectinload(User.roles).selectinload(UserRole.role)
             ).where(
@@ -301,7 +313,8 @@ class AuthService:
     
     async def revoke_api_key(self, api_key_id: str) -> bool:
         """Revoke an API key."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(APIKey).where(APIKey.id == api_key_id)
             result = await session.execute(query)
             api_key = result.scalar_one_or_none()
@@ -316,7 +329,8 @@ class AuthService:
     
     async def get_user_api_keys(self, user_id: str) -> List[APIKey]:
         """Get all API keys for a user."""
-        async with get_db_session() as session:
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
             query = select(APIKey).where(
                 and_(APIKey.user_id == user_id, APIKey.is_active == True)
             ).order_by(APIKey.created_at.desc())

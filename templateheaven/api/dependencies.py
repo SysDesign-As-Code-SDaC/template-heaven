@@ -13,7 +13,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from ..core.models import User, UserRole
+# Import will be done locally to avoid circular imports
 from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -104,6 +104,8 @@ def get_current_user(
         token = credentials.credentials
         
         # Mock user creation (replace with actual JWT validation)
+        from ..database.models import User, UserRole
+        
         if token == "admin-token":
             return User(
                 id="admin-1",
@@ -127,15 +129,15 @@ def get_current_user(
 
 
 def get_optional_user(
-    current_user: Optional[User] = Depends(get_current_user)
-) -> Optional[User]:
+    current_user = Depends(get_current_user)
+):
     """Get optional current user (doesn't raise exception if not authenticated)."""
     return current_user
 
 
 def require_auth(
-    current_user: Optional[User] = Depends(get_current_user)
-) -> User:
+    current_user = Depends(get_current_user)
+):
     """Require authentication (raises exception if not authenticated)."""
     if not current_user:
         raise HTTPException(
