@@ -15,7 +15,7 @@ param(
     [string]$Subdir = "",
     [switch]$Force,
     [switch]$DryRun,
-    [switch]$Verbose,
+    [switch]$VerboseOutput,
     [switch]$Help
 )
 
@@ -223,12 +223,10 @@ function Sync-Template {
         [string]$Subdir,
         [bool]$Force,
         [bool]$DryRun,
-        [bool]$Verbose
+        [bool]$VerboseOutput
     )
     
-    $ScriptDir = Split-Path -Parent $MyInvocation.PSCommandPath
-    $RepoRoot = Split-Path -Parent $ScriptDir
-    $StacksDir = Join-Path $RepoRoot "stacks"
+    $StacksDir = "C:\Users\jimmy\.cursor\template-heaven-2\stacks"
     $TemplatePath = Join-Path $StacksDir "$Category\$TemplateName"
     $TempDir = Join-Path $env:TEMP "template-sync-$(Get-Random)"
     
@@ -252,7 +250,7 @@ function Sync-Template {
         Write-Info "Cloning upstream repository..."
         $cloneArgs = @("clone", "--depth", "1", "--branch", $Branch, $UpstreamUrl, (Join-Path $TempDir "upstream"))
         
-        if ($Verbose) {
+        if ($VerboseOutput) {
             & git @cloneArgs
         }
         else {
@@ -323,7 +321,7 @@ if (-not $TargetCategory) {
 }
 
 # Validate category
-$StacksDir = Join-Path (Split-Path -Parent (Split-Path -Parent $MyInvocation.PSCommandPath)) "stacks"
+$StacksDir = "C:\Users\jimmy\.cursor\template-heaven-2\stacks"
 $CategoryPath = Join-Path $StacksDir $TargetCategory
 if (-not (Test-Path $CategoryPath)) {
     Write-Error "Invalid category: '$TargetCategory'. Available categories:"
@@ -332,4 +330,4 @@ if (-not (Test-Path $CategoryPath)) {
 }
 
 # Perform the sync
-Sync-Template $TemplateName $UpstreamUrl $TargetCategory $Branch $Subdir $Force $DryRun $Verbose
+Sync-Template $TemplateName $UpstreamUrl $TargetCategory $Branch $Subdir $Force $DryRun $VerboseOutput

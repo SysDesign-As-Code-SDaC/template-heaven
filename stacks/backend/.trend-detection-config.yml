@@ -1,0 +1,33 @@
+stack_name: backend
+enabled: true
+keywords:
+- backend
+- template
+- boilerplate
+- starter
+characteristics:
+  has_readme: true
+  has_license: true
+  has_ci: true
+thresholds:
+  stars:
+    minimum: 100
+    trending: 1000
+    critical: 5000
+  forks:
+    minimum: 10
+    trending: 100
+    critical: 500
+  growth_rate:
+    minimum: 0.1
+    trending: 0.5
+    critical: 1.0
+auto_sync:
+  enabled: true
+  require_approval: true
+notifications:
+  enabled: true
+  channels:
+  - slack
+  - email
+  priority_threshold: 0.7

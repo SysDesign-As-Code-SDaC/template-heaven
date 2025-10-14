@@ -1,0 +1,289 @@
+name: Trend Detection
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force_scan:
+        description: 'Force full scan (ignore recent checks)'
+        required: false
+        default: 'false'
+        type: boolean
+      stack_filter:
+        description: 'Specific stack to scan (leave empty for all)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  trend-detection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install Python dependencies
+        run: |
+          cd tools/trending-flagger/trend-detector
+          pip install -r requirements.txt
+
+    - name: Install Node.js dependencies
+      run: |
+        npm install -g @octokit/rest
+    
+      - name: Set up database
+        run: |
+        cd tools/trending-flagger/trend-detector
+        python setup_database.py --config config/database_config.yaml
+    
+    - name: Configure environment
+      run: |
+        echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_NAME=template_heaven" >> $GITHUB_ENV
+        echo "DB_USER=postgres" >> $GITHUB_ENV
+        echo "DB_PASSWORD=postgres" >> $GITHUB_ENV
+        echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> $GITHUB_ENV
+        echo "EMAIL_SMTP_HOST=${{ secrets.EMAIL_SMTP_HOST }}" >> $GITHUB_ENV
+        echo "EMAIL_SMTP_USER=${{ secrets.EMAIL_SMTP_USER }}" >> $GITHUB_ENV
+        echo "EMAIL_SMTP_PASS=${{ secrets.EMAIL_SMTP_PASS }}" >> $GITHUB_ENV
+        echo "EMAIL_FROM=${{ secrets.EMAIL_FROM }}" >> $GITHUB_ENV
+        echo "EMAIL_TO=${{ secrets.EMAIL_TO }}" >> $GITHUB_ENV
+    
+    - name: Start PostgreSQL
+      run: |
+          sudo systemctl start postgresql
+        sudo -u postgres psql -c "CREATE DATABASE template_heaven;" || true
+        sudo -u postgres psql -c "CREATE USER postgres WITH PASSWORD 'postgres';" || true
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE template_heaven TO postgres;" || true
+    
+    - name: Run trend detection
+      run: |
+          cd tools/trending-flagger/trend-detector
+        python run_branch_aware_monitor.py \
+          --config config/branch_aware_config.yaml \
+          --force-scan ${{ github.event.inputs.force_scan || 'false' }} \
+          --stack-filter "${{ github.event.inputs.stack_filter || '' }}" \
+          --verbose
+    
+    - name: Process results
+      id: process_results
+        run: |
+          cd tools/trending-flagger/trend-detector
+          
+        # Count new alerts
+        NEW_ALERTS=$(python -c "
+        import psycopg2
+        import os
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            database=os.getenv('DB_NAME', 'template_heaven'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', 'postgres')
+        )
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM trend_alerts WHERE created_at > NOW() - INTERVAL \'1 hour\'')
+        count = cursor.fetchone()[0]
+        print(count)
+        conn.close()
+        ")
+        
+        # Count high priority alerts
+        HIGH_PRIORITY=$(python -c "
+        import psycopg2
+        import os
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            database=os.getenv('DB_NAME', 'template_heaven'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', 'postgres')
+        )
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM trend_alerts WHERE trend_level IN (\'high\', \'critical\') AND review_status = \'pending\'')
+        count = cursor.fetchone()[0]
+        print(count)
+        conn.close()
+        ")
+        
+        echo "new_alerts=$NEW_ALERTS" >> $GITHUB_OUTPUT
+        echo "high_priority=$HIGH_PRIORITY" >> $GITHUB_OUTPUT
+        
+        # Create summary
+        echo "## Trend Detection Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **New Alerts**: $NEW_ALERTS" >> $GITHUB_STEP_SUMMARY
+        echo "- **High Priority Alerts**: $HIGH_PRIORITY" >> $GITHUB_STEP_SUMMARY
+        echo "- **Scan Time**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Create GitHub Issues for High Priority Alerts
+      if: steps.process_results.outputs.high_priority > 0
+      run: |
+        cd tools/trending-flagger/trend-detector
+        python -c "
+        import psycopg2
+        import os
+        import requests
+        import json
+        
+        # Get high priority alerts
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            database=os.getenv('DB_NAME', 'template_heaven'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', 'postgres')
+        )
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT ta.id, r.full_name, r.url, ta.alert_type, ta.trend_level, 
+                   ta.trend_score, ta.priority_score, ta.trend_reasons
+            FROM trend_alerts ta
+            JOIN repositories r ON ta.repository_id = r.id
+            WHERE ta.trend_level IN ('high', 'critical') 
+            AND ta.review_status = 'pending'
+            ORDER BY ta.priority_score DESC
+            LIMIT 5
+        ''')
+        
+        alerts = cursor.fetchall()
+        conn.close()
+        
+        # Create GitHub issues
+        github_token = os.getenv('GITHUB_TOKEN')
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        for alert in alerts:
+            alert_id, full_name, url, alert_type, trend_level, trend_score, priority_score, trend_reasons = alert
+            
+            title = f'🚨 High Priority Trend Alert: {full_name}'
+            body = f'''## Trend Alert Details
+            
+**Repository**: [{full_name}]({url})
+**Alert Type**: {alert_type}
+**Trend Level**: {trend_level}
+**Trend Score**: {trend_score:.2f}
+**Priority Score**: {priority_score:.2f}
+
+### Trend Reasons
+{chr(10).join(f'- {reason}' for reason in trend_reasons)}
+
+### Action Required
+This repository has been flagged as a high-priority trend and requires review for potential template inclusion.
+
+**Alert ID**: {alert_id}
+**Detected**: $(date -u)
+'''
+            
+            issue_data = {
+                'title': title,
+                'body': body,
+                'labels': ['trend-detection', 'high-priority', 'template-candidate'],
+                'assignees': []
+            }
+            
+            response = requests.post(
+                'https://api.github.com/repos/${{ github.repository }}/issues',
+                headers=headers,
+                data=json.dumps(issue_data)
+            )
+            
+            if response.status_code == 201:
+                print(f'Created issue for {full_name}')
+            else:
+                print(f'Failed to create issue for {full_name}: {response.text}')
+        "
+    
+    - name: Send Slack Notification
+      if: steps.process_results.outputs.new_alerts > 0
+        run: |
+        if [ -n "$SLACK_WEBHOOK_URL" ]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🚀 Template Heaven Trend Detection Complete\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Trend Detection Results*\n• New Alerts: ${{ steps.process_results.outputs.new_alerts }}\n• High Priority: ${{ steps.process_results.outputs.high_priority }}\n• Repository: ${{ github.repository }}\n• Run: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>\"
+                  }
+                }
+              ]
+            }" \
+            $SLACK_WEBHOOK_URL
+        fi
+    
+    - name: Send Email Notification
+      if: steps.process_results.outputs.high_priority > 0
+        run: |
+        if [ -n "$EMAIL_SMTP_HOST" ] && [ -n "$EMAIL_TO" ]; then
+          python -c "
+          import smtplib
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
+          import os
+          
+          msg = MIMEMultipart()
+          msg['From'] = os.getenv('EMAIL_FROM', 'noreply@template-heaven.com')
+          msg['To'] = os.getenv('EMAIL_TO')
+          msg['Subject'] = 'Template Heaven: High Priority Trend Alerts Detected'
+          
+          body = f'''Template Heaven Trend Detection Alert
+          
+High priority trend alerts have been detected and require review.
+
+Summary:
+- New Alerts: ${{ steps.process_results.outputs.new_alerts }}
+- High Priority Alerts: ${{ steps.process_results.outputs.high_priority }}
+
+Please review the alerts in the GitHub repository:
+https://github.com/${{ github.repository }}/issues?q=is:issue+is:open+label:trend-detection
+
+Workflow Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          '''
+          
+          msg.attach(MIMEText(body, 'plain'))
+          
+          server = smtplib.SMTP(os.getenv('EMAIL_SMTP_HOST'), 587)
+          server.starttls()
+          server.login(os.getenv('EMAIL_SMTP_USER'), os.getenv('EMAIL_SMTP_PASS'))
+          text = msg.as_string()
+          server.sendmail(msg['From'], msg['To'], text)
+          server.quit()
+          print('Email notification sent')
+          "
+        fi
+    
+    - name: Archive results
+        if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: trend-detection-results-${{ github.run_number }}
+        path: |
+          tools/trending-flagger/trend-detector/logs/
+          tools/trending-flagger/trend-detector/data/
+        retention-days: 30
