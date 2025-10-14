@@ -16,6 +16,7 @@ from ..utils.logger import setup_logging, get_logger
 from .commands.init import init_command
 from .commands.list import list_command
 from .commands.config import config_command
+from .commands.populate import populate
 from .wizard import Wizard
 
 logger = get_logger(__name__)
@@ -391,6 +392,10 @@ def stats(ctx: click.Context) -> None:
     except Exception as e:
         logger.error(f"Failed to get statistics: {e}")
         raise click.ClickException(f"Failed to get statistics: {e}")
+
+
+# Add populate command group
+cli.add_command(populate)
 
 
 def _display_template_info(template) -> None:
