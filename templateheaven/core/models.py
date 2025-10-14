@@ -159,6 +159,10 @@ class Template:
         features: List of template features (optional)
         min_python_version: Minimum Python version required (optional)
         min_node_version: Minimum Node.js version required (optional)
+        stars: GitHub stars count (for stack validation)
+        forks: GitHub forks count (for stack validation)
+        growth_rate: Weekly growth rate (for stack validation)
+        technologies: List of technologies used (for stack validation)
     """
     
     name: str
@@ -174,6 +178,12 @@ class Template:
     features: List[str] = field(default_factory=list)
     min_python_version: Optional[str] = None
     min_node_version: Optional[str] = None
+
+    # Stack-specific validation fields
+    stars: int = 0
+    forks: int = 0
+    growth_rate: float = 0.0
+    technologies: List[str] = field(default_factory=list)
     
     def __post_init__(self) -> None:
         """Validate template data after initialization."""

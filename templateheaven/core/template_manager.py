@@ -11,6 +11,8 @@ from typing import List, Optional, Dict, Any
 from functools import lru_cache
 
 from .models import Template, StackCategory, TemplateSearchResult
+from .stack_config import get_stack_config_manager
+from .github_search import GitHubSearchService
 from ..config.settings import Config
 from ..utils.logger import get_logger
 from ..utils.cache import Cache
@@ -39,10 +41,10 @@ class TemplateManager:
     def __init__(self, config: Optional[Config] = None):
         """
         Initialize template manager.
-        
+
         Args:
             config: Configuration instance (creates default if None)
-            
+
         Raises:
             FileNotFoundError: If bundled data files are missing
             yaml.YAMLError: If YAML data is invalid
@@ -52,10 +54,12 @@ class TemplateManager:
             cache_dir=self.config.get_metadata_cache_dir(),
             default_ttl=3600  # 1 hour
         )
-        
+        self.stack_config = get_stack_config_manager()
+        self.github_search = GitHubSearchService(self.config)
+
         # Load bundled template data
         self._load_bundled_data()
-        
+
         logger.info(f"TemplateManager initialized with {len(self.bundled_templates)} templates")
     
     def _load_bundled_data(self) -> None:
@@ -334,32 +338,300 @@ class TemplateManager:
     def validate_template(self, template: Template) -> bool:
         """
         Validate a template.
-        
+
         Args:
             template: Template to validate
-            
+
         Returns:
             True if template is valid
         """
         try:
-            # Check required fields
+            # Basic validation
             if not template.name or not template.description:
                 return False
-            
+
             # Check name format
             if len(template.name) > 50 or not template.name.replace('-', '').replace('_', '').isalnum():
                 return False
-            
+
             # Check tags
             if len(template.tags) > 10:
                 return False
-            
+
+            # Stack-specific validation
+            stack_config = self.stack_config.get_stack_config(template.stack.value)
+            if stack_config:
+                # Check if template meets stack requirements
+                template_data = {
+                    'stars': getattr(template, 'stars', 0),
+                    'forks': getattr(template, 'forks', 0),
+                    'growth_rate': getattr(template, 'growth_rate', 0.0),
+                    'technologies': getattr(template, 'technologies', [])
+                }
+
+                validation_result = self.stack_config.validate_template_for_stack(
+                    template_data, template.stack.value
+                )
+
+                if not validation_result.get('valid', True):
+                    logger.warning(f"Template {template.name} failed stack validation: {validation_result.get('issues', [])}")
+                    return False
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Template validation failed: {e}")
             return False
-    
+
+    def validate_template_for_stack(self, template: Template, stack_name: str) -> Dict[str, Any]:
+        """
+        Comprehensive validation with stack-specific requirements.
+
+        Args:
+            template: Template to validate
+            stack_name: Stack to validate against
+
+        Returns:
+            Detailed validation results
+        """
+        results = {
+            'valid': True,
+            'issues': [],
+            'warnings': [],
+            'recommendations': [],
+            'quality_score': 0.0,
+            'stack_requirements': {}
+        }
+
+        try:
+            # Basic validation
+            if not template.name:
+                results['issues'].append("Template name is required")
+                results['valid'] = False
+
+            if not template.description:
+                results['issues'].append("Template description is required")
+                results['valid'] = False
+
+            if len(template.name) > 50:
+                results['issues'].append("Template name too long (max 50 characters)")
+                results['valid'] = False
+
+            if len(template.tags) > 10:
+                results['issues'].append("Too many tags (max 10)")
+                results['valid'] = False
+
+            # Stack-specific validation
+            stack_config = self.stack_config.get_stack_config(stack_name)
+            if stack_config:
+                results['stack_requirements'] = {
+                    'quality_standards': stack_config.quality_standards,
+                    'min_stars': stack_config.requirements.min_stars,
+                    'min_forks': stack_config.requirements.min_forks,
+                    'min_growth_rate': stack_config.requirements.min_growth_rate
+                }
+
+                # Check requirements
+                template_stars = getattr(template, 'stars', 0)
+                template_forks = getattr(template, 'forks', 0)
+                template_growth = getattr(template, 'growth_rate', 0.0)
+
+                if template_stars < stack_config.requirements.min_stars:
+                    results['issues'].append(
+                        f"Insufficient stars: {template_stars} < {stack_config.requirements.min_stars}"
+                    )
+
+                if template_forks < stack_config.requirements.min_forks:
+                    results['issues'].append(
+                        f"Insufficient forks: {template_forks} < {stack_config.requirements.min_forks}"
+                    )
+
+                if template_growth < stack_config.requirements.min_growth_rate:
+                    results['warnings'].append(
+                        f"Low growth rate: {template_growth:.1%} < {stack_config.requirements.min_growth_rate:.1%}"
+                    )
+
+                # Check technology alignment
+                template_tech = set(getattr(template, 'technologies', []))
+                stack_tech = set(stack_config.technologies)
+
+                if template_tech and stack_tech:
+                    overlap = template_tech.intersection(stack_tech)
+                    if not overlap:
+                        results['warnings'].append(
+                            f"No technology overlap with stack: {template_tech} vs {stack_tech}"
+                        )
+                    elif len(overlap) / len(template_tech) < 0.5:
+                        results['recommendations'].append(
+                            f"Low technology alignment ({len(overlap)}/{len(template_tech)} technologies match)"
+                        )
+
+                # Calculate quality score
+                quality_score = self._calculate_quality_score(template, stack_config)
+                results['quality_score'] = quality_score
+
+                if quality_score < 7.0:
+                    results['warnings'].append(f"Low quality score: {quality_score:.1f}/10")
+            else:
+                results['warnings'].append(f"No configuration found for stack: {stack_name}")
+
+            # Update validity
+            results['valid'] = len(results['issues']) == 0
+
+        except Exception as e:
+            logger.error(f"Stack validation failed for template {template.name}: {e}")
+            results['issues'].append(f"Validation error: {str(e)}")
+            results['valid'] = False
+
+        return results
+
+    def _calculate_quality_score(self, template: Template, stack_config) -> float:
+        """Calculate quality score based on stack requirements."""
+        score = 0.0
+        max_score = 10.0
+
+        # Stars contribution (2 points)
+        stars_ratio = min(getattr(template, 'stars', 0) / stack_config.requirements.min_stars, 2.0)
+        score += stars_ratio
+
+        # Forks contribution (1 point)
+        forks_ratio = min(getattr(template, 'forks', 0) / stack_config.requirements.min_forks, 1.0)
+        score += forks_ratio
+
+        # Growth rate contribution (1 point)
+        growth_ratio = min(getattr(template, 'growth_rate', 0.0) / stack_config.requirements.min_growth_rate, 1.0)
+        score += growth_ratio
+
+        # Documentation quality (2 points) - estimated
+        if len(template.description) > 50:
+            score += 2.0
+        elif len(template.description) > 20:
+            score += 1.5
+        else:
+            score += 0.5
+
+        # Technology alignment (2 points)
+        template_tech = set(getattr(template, 'technologies', []))
+        stack_tech = set(stack_config.technologies)
+        if template_tech and stack_tech:
+            overlap_ratio = len(template_tech.intersection(stack_tech)) / len(template_tech)
+            score += 2.0 * overlap_ratio
+        else:
+            score += 1.0  # Neutral if no technology data
+
+        # Tags quality (1 point)
+        if 3 <= len(template.tags) <= 8:
+            score += 1.0
+        elif len(template.tags) > 0:
+            score += 0.5
+
+        # Normalize to 10-point scale
+        return min(score, max_score)
+
+    async def search_all_templates(
+        self,
+        query: str,
+        stack: Optional[str] = None,
+        include_github: bool = True,
+        github_limit: int = 10,
+        total_limit: int = 20
+    ) -> List[TemplateSearchResult]:
+        """
+        Comprehensive search across local templates and GitHub.
+
+        Args:
+            query: Search query
+            stack: Optional stack filter
+            include_github: Whether to include GitHub search results
+            github_limit: Maximum GitHub results to include
+            total_limit: Maximum total results to return
+
+        Returns:
+            Combined search results from local and GitHub
+        """
+        all_results = []
+
+        # Search local templates
+        local_results = self.search_templates(query, limit=total_limit)
+        all_results.extend(local_results)
+
+        # Search GitHub if requested
+        if include_github:
+            try:
+                # Check cache first for search results
+                cache_key = f"github_search_{query}_{stack or 'all'}"
+                cached_results = self.cache.get_cached_search_results(query, stack)
+
+                if cached_results:
+                    logger.debug(f"Using cached GitHub search results for: {query}")
+                    github_results = cached_results
+                else:
+                    # Perform live search
+                    github_results = await self.github_search.search_github_templates(
+                        query=query,
+                        stack=stack,
+                        limit=github_limit
+                    )
+
+                    # Cache the results for future use
+                    if github_results:
+                        self.cache.cache_search_results(query, stack, github_results, ttl_seconds=3600)
+
+                # Mark GitHub results as external
+                for result in github_results:
+                    result.match_reason = f"GitHub: {result.match_reason}"
+
+                all_results.extend(github_results)
+
+            except ImportError as e:
+                logger.info(f"GitHub search not available: {e}")
+            except Exception as e:
+                logger.warning(f"GitHub search failed: {e}")
+
+        # Sort all results by score
+        all_results.sort(key=lambda x: x.score, reverse=True)
+
+        # Limit total results
+        return all_results[:total_limit]
+
+    async def discover_templates_for_stack(
+        self,
+        stack_name: str,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Discover new template candidates for a specific stack.
+
+        Args:
+            stack_name: Stack to find templates for
+            limit: Maximum candidates to return
+
+        Returns:
+            List of template candidates with analysis
+        """
+        return await self.github_search.discover_templates_for_stack(stack_name, limit)
+
+    async def analyze_github_repository(self, repo_url: str) -> Optional[Dict[str, Any]]:
+        """
+        Analyze a GitHub repository for template potential.
+
+        Args:
+            repo_url: GitHub repository URL
+
+        Returns:
+            Analysis results or None if failed
+        """
+        return await self.github_search.analyze_repository(repo_url)
+
+    async def get_github_rate_limit(self) -> Dict[str, Any]:
+        """
+        Get GitHub API rate limit status.
+
+        Returns:
+            Rate limit information
+        """
+        return await self.github_search.get_rate_limit_status()
+
     def get_popular_templates(self, limit: int = 10) -> List[Template]:
         """
         Get popular templates (based on common tags and features).

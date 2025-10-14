@@ -56,7 +56,12 @@ def sample_template():
         author="Test Author",
         license="MIT",
         features=["TypeScript", "Hot Reload", "ESLint"],
-        min_node_version="16.0.0"
+        min_node_version="16.0.0",
+        # Stack validation fields
+        stars=500,  # Meets frontend requirement of 300+
+        forks=50,   # Meets frontend requirement of 30+
+        growth_rate=0.10,  # Meets frontend requirement of 8%+
+        technologies=["react", "typescript", "vite"]  # Matches frontend technologies
     )
 
 
