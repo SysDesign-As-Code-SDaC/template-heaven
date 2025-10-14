@@ -351,8 +351,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/{{ project_name }}:latest
-            ${{ secrets.DOCKER_USERNAME }}/{{ project_name }}:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/test-yaml-final-2:latest
+            ${{ secrets.DOCKER_USERNAME }}/test-yaml-final-2:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

@@ -1,0 +1,6 @@
+"""
+Core application modules.
+
+This package contains the core business logic, models, and configuration
+for the test-project-2 application.
+"""

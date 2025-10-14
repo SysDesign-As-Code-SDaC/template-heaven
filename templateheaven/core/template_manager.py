@@ -112,7 +112,6 @@ class TemplateManager:
         
         return templates
     
-    @lru_cache(maxsize=128)
     def list_templates(
         self,
         stack: Optional[str] = None,
@@ -121,12 +120,12 @@ class TemplateManager:
     ) -> List[Template]:
         """
         List available templates with optional filtering.
-        
+
         Args:
             stack: Filter by stack category
             tags: Filter by tags (any match)
             search: Search in name, description, and tags
-            
+
         Returns:
             List of matching templates
         """

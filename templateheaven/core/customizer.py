@@ -135,8 +135,12 @@ class Customizer:
             # Read source file
             content = source_file.read_text(encoding='utf-8')
             
-            # Check if file contains Jinja2 template syntax
-            if '{{' in content or '{%' in content:
+            # Check if file contains Jinja2 template syntax and is not a YAML file
+            # YAML files with GitHub Actions syntax (${{ }}) should not be processed as Jinja2
+            is_yaml_file = source_file.suffix.lower() in ['.yml', '.yaml']
+            contains_jinja_syntax = ('{{' in content or '{%' in content) and not is_yaml_file
+
+            if contains_jinja_syntax:
                 # Process with Jinja2
                 template = self.jinja_env.from_string(content)
                 processed_content = template.render(**variables)
