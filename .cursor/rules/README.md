@@ -40,6 +40,42 @@ This directory contains comprehensive Cursor Rules for the Template Heaven proje
 - **Purpose**: Establishes GitHub Actions standards, security practices, and automation workflows
 - **Key Topics**: Workflow architecture, security best practices, monitoring, performance optimization
 
+### 7. Template Management
+**File**: `template-management.mdc`
+- **Scope**: Stack directories, sync scripts, trend detection tools (`stacks/**`, `scripts/sync_template.*`, `tools/trending-flagger/**`)
+- **Purpose**: Standards for template organization, synchronization, and quality management
+- **Key Topics**: Stack organization, template synchronization, quality standards, upstream attribution
+
+### 8. API Integration
+**File**: `api-integration.mdc`
+- **Scope**: API layer files (`templateheaven/api/**`, `*.py`)
+- **Purpose**: FastAPI architecture, authentication, database integration, and external API patterns
+- **Key Topics**: Route organization, authentication middleware, database sessions, error handling
+
+### 9. Database Operations
+**File**: `database-operations.mdc`
+- **Scope**: Database layer files (`templateheaven/database/**`, `templateheaven/core/models.py`, `*.py`)
+- **Purpose**: SQLAlchemy ORM patterns, connection management, query optimization, and transaction handling
+- **Key Topics**: Model definitions, repository patterns, session management, performance optimization
+
+### 10. Security & Privacy
+**File**: `security-privacy.mdc`
+- **Scope**: Security-sensitive files (`templateheaven/api/**`, `templateheaven/database/**`, `scripts/**`, `*.py`, `*.yml`, `*.yaml`)
+- **Purpose**: Comprehensive security standards for private repository system
+- **Key Topics**: Authentication security, API security, database security, template security, privacy protection
+
+### 11. Template Validation
+**File**: `template-validation.mdc`
+- **Scope**: Template and validation files (`stacks/**`, `scripts/**`, `tools/**`, `tests/**`, `*.py`)
+- **Purpose**: Multi-layer validation framework for template quality assurance
+- **Key Topics**: Structure validation, dependency validation, documentation validation, security validation
+
+### 12. Development Workflow
+**File**: `development-workflow.mdc`
+- **Scope**: Documentation, scripts, and workflow files (`*.md`, `*.yml`, `*.yaml`, `scripts/**`, `docs/**`, `CONTRIBUTING.md`)
+- **Purpose**: Complete development workflow from contribution to maintenance
+- **Key Topics**: Contribution process, template discovery, branch management, code standards, release management
+
 ## 🎯 Rule Application
 
 ### Always Applied Rules
@@ -51,6 +87,12 @@ This directory contains comprehensive Cursor Rules for the Template Heaven proje
 - **Documentation Standards**: Applied to all documentation files
 - **Testing & Validation**: Applied to test files and Python modules
 - **GitHub Actions**: Applied to CI/CD workflow files
+- **Template Management**: Applied to stack directories and sync scripts
+- **API Integration**: Applied to API layer files for consistent patterns
+- **Database Operations**: Applied to database layer for ORM best practices
+- **Security & Privacy**: Applied to security-sensitive files across the codebase
+- **Template Validation**: Applied to template and validation files for quality assurance
+- **Development Workflow**: Applied to documentation and workflow files for process guidance
 
 ## 🚀 Key Features
 
@@ -61,6 +103,12 @@ This directory contains comprehensive Cursor Rules for the Template Heaven proje
 - **Documentation**: README standards and technical documentation requirements
 - **Testing**: Comprehensive testing framework and validation requirements
 - **Automation**: GitHub Actions standards and CI/CD best practices
+- **Template Management**: Stack organization and template lifecycle management
+- **API Integration**: FastAPI patterns, authentication, and external API handling
+- **Database Operations**: SQLAlchemy ORM patterns and database best practices
+- **Security & Privacy**: Comprehensive security standards for private repository
+- **Template Validation**: Multi-layer validation framework for quality assurance
+- **Development Workflow**: Complete contributor journey and maintenance processes
 
 ### Quality Assurance
 - **Manual Validation**: Emphasis on testing implementations and avoiding automated scripts
@@ -73,6 +121,11 @@ This directory contains comprehensive Cursor Rules for the Template Heaven proje
 - **Trend Detection**: Automated monitoring and template discovery
 - **Template Synchronization**: Upstream repository integration and management
 - **Branch Management**: Advanced Python tools for stack branch operations
+- **API Ecosystem**: RESTful API with comprehensive authentication and security
+- **Database Layer**: Robust data persistence with PostgreSQL and SQLite support
+- **Security Framework**: Multi-layer security for private repository protection
+- **Validation Pipeline**: Automated quality assurance for all templates
+- **Development Lifecycle**: Complete workflow from discovery to deployment
 
 ## 🔧 Usage
 
@@ -83,6 +136,12 @@ These rules are automatically applied by Cursor based on file types and scope. T
 3. **Workflow Guidance**: Multi-branch Git practices and template management
 4. **Quality Assurance**: Testing and validation requirements
 5. **Automation Standards**: GitHub Actions and CI/CD best practices
+6. **Template Management**: Stack organization and template lifecycle guidance
+7. **API Development**: FastAPI patterns and integration standards
+8. **Database Operations**: SQLAlchemy ORM patterns and best practices
+9. **Security Standards**: Comprehensive security for private repository systems
+10. **Validation Framework**: Multi-layer quality assurance for templates
+11. **Development Process**: Complete contributor journey and maintenance workflows
 
 ## 📚 Related Documentation
 

@@ -166,6 +166,22 @@ stacks:
         features: ["Jupyter Notebooks", "Data Pipeline", "Documentation"]
         min_python_version: "3.8"
 
+      - name: "quantum-computing-starter"
+        description: "Quantum computing development environment with Qiskit, Cirq, and PennyLane"
+        tags: ["python", "quantum", "qiskit", "cirq", "pennylane", "future-tech"]
+        dependencies:
+          qiskit: "^0.44.0"
+          cirq: "^1.0.0"
+          pennylane: "^0.30.0"
+          numpy: "^1.24.0"
+          matplotlib: "^3.6.0"
+        upstream_url: "https://github.com/Qiskit/qiskit"
+        version: "1.0.0"
+        author: "Template Heaven Team"
+        license: "MIT"
+        features: ["Multi-framework Support", "Quantum Algorithms", "Cloud Access", "Visualization"]
+        min_python_version: "3.9"
+
   devops:
     name: "DevOps & Infrastructure"
     description: "CI/CD, infrastructure, Docker, and Kubernetes templates"

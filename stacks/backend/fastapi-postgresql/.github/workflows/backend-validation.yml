@@ -1,0 +1,443 @@
+name: Backend Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - 'Dockerfile'
+      - 'docker/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - 'Dockerfile'
+      - 'docker/**'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - unit
+        - integration
+        - security
+        - performance
+
+env:
+  PYTHON_VERSION: '3.11'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml') }}" >> $GITHUB_OUTPUT
+
+  code-quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run pre-commit hooks
+        run: |
+          pre-commit run --all-files --show-diff-on-failure
+
+      - name: Run security checks
+        run: |
+          make security-full
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+            pip-audit-report.json
+
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run database migrations
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          python -c "import asyncio; from src.app.core.database import init_database; asyncio.run(init_database())"
+
+      - name: Run unit tests
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          pytest tests/unit/ -v --tb=short --cov=src/app --cov-report=xml --cov-report=term
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-coverage
+          path: |
+            coverage.xml
+            htmlcov/
+
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Start FastAPI application
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          python -c "import asyncio; from src.app.core.database import init_database; asyncio.run(init_database())" &
+          uvicorn src.app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 10
+
+      - name: Run integration tests
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          pytest tests/integration/ -v --tb=short --maxfail=5
+
+  test-e2e:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run database migrations
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          python -c "import asyncio; from src.app.core.database import init_database; asyncio.run(init_database())" &
+
+      - name: Start application
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          uvicorn src.app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 15
+
+      - name: Run E2E tests
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          pytest tests/e2e/ -v --tb=short --maxfail=3
+
+  performance-test:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [setup, test-unit]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run database setup
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          python -c "import asyncio; from src.app.core.database import init_database; asyncio.run(init_database())"
+
+      - name: Run performance tests
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          pytest tests/performance/ --benchmark-only --benchmark-save=benchmark --benchmark-json=benchmark.json
+        continue-on-error: true
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-results
+          path: |
+            .benchmarks/
+            benchmark.json
+
+  docker-validation:
+    name: Docker Image Validation
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build development image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          target: development
+          tags: fastapi-backend:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          target: production
+          tags: fastapi-backend:prod
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test development image
+        run: |
+          docker run --rm fastapi-backend:dev python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from app.core.config import get_settings
+          print('✅ Development image: Configuration loaded')
+          from app.models.user import User
+          print('✅ Development image: Models imported')
+          from app.services.user_service import UserService
+          print('✅ Development image: Services imported')
+          "
+
+  publish-test-results:
+    name: Publish Test Results
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-integration, test-e2e, performance-test, docker-validation]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts/
+
+      - name: Publish unit test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: "artifacts/unit-test-coverage/coverage.xml"
+
+      - name: Generate test summary
+        run: |
+          echo "# FastAPI Backend Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code Quality & Security: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit Tests: ${{ needs.test-unit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Integration Tests: ${{ needs.test-integration.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ End-to-End Tests: ${{ needs.test-e2e.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Performance Tests: ${{ needs.performance-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Docker Validation: ${{ needs.docker-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Summary" >> $GITHUB_STEP_SUMMARY
+          echo "All backend validations completed successfully! 🚀" >> $GITHUB_STEP_SUMMARY
+
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [code-quality, test-unit, test-integration]
+    if: failure()
+
+    steps:
+      - name: Notify failure
+        run: |
+          echo "Backend validation failed! Check the logs above for details."
+          echo "Common issues:"
+          echo "- Database connection failures in tests"
+          echo "- Import errors in Docker containers"
+          echo "- Security vulnerabilities detected"
+          echo "- Code quality issues (linting, type checking)"

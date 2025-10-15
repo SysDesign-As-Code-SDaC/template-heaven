@@ -1,0 +1,730 @@
+---
+globs: stacks/**,scripts/**,tools/**,tests/**,*.py
+description: Template validation and quality assurance standards for Template Heaven
+---
+
+# Template Validation Standards
+
+## 🔍 Validation Framework
+
+### Multi-Layer Validation Approach
+- **Automated validation** for quick feedback during development
+- **Manual validation** for comprehensive quality assurance
+- **Integration testing** for external service compatibility
+- **Performance testing** for resource usage validation
+- **Security scanning** for vulnerability assessment
+
+### Validation Pipeline
+```python
+# tools/validation/template_validator.py
+import asyncio
+from typing import Dict, List, Optional
+from pathlib import Path
+from dataclasses import dataclass
+from enum import Enum
+
+class ValidationSeverity(Enum):
+    """Severity levels for validation issues."""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
+@dataclass
+class ValidationIssue:
+    """Represents a validation issue or finding."""
+    severity: ValidationSeverity
+    category: str
+    message: str
+    file_path: Optional[str] = None
+    line_number: Optional[int] = None
+    suggestion: Optional[str] = None
+
+class TemplateValidator:
+    """Comprehensive template validation system."""
+
+    def __init__(self, template_path: str):
+        self.template_path = Path(template_path)
+        self.issues: List[ValidationIssue] = []
+
+    async def validate_all(self) -> Dict[str, any]:
+        """
+        Run all validation checks on the template.
+
+        Returns:
+            Validation results with issues and scores
+        """
+        # Run validation tasks concurrently
+        tasks = [
+            self.validate_structure(),
+            self.validate_dependencies(),
+            self.validate_documentation(),
+            self.validate_functionality(),
+            self.validate_security(),
+            self.validate_performance(),
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        for result in results:
+            if isinstance(result, Exception):
+                self.issues.append(ValidationIssue(
+                    severity=ValidationSeverity.HIGH,
+                    category="validation_error",
+                    message=f"Validation task failed: {str(result)}"
+                ))
+
+        return self.generate_report()
+
+    def generate_report(self) -> Dict[str, any]:
+        """Generate comprehensive validation report."""
+        return {
+            "template_path": str(self.template_path),
+            "total_issues": len(self.issues),
+            "issues_by_severity": self._count_by_severity(),
+            "issues_by_category": self._count_by_category(),
+            "validation_score": self._calculate_score(),
+            "issues": [issue.__dict__ for issue in self.issues],
+            "validation_timestamp": asyncio.get_event_loop().time()
+        }
+```
+
+## 📋 Validation Categories
+
+### 1. Structure Validation
+- **Directory structure** compliance with template standards
+- **Required files** presence (README, configuration files)
+- **File naming conventions** adherence
+- **Template organization** best practices
+
+### Structure Validation Implementation
+```python
+async def validate_structure(self) -> None:
+    """Validate template directory structure."""
+    # Required files for different template types
+    required_files = {
+        "node": ["package.json", "README.md"],
+        "python": ["requirements.txt", "README.md", "setup.py"],
+        "go": ["go.mod", "README.md", "main.go"],
+        "rust": ["Cargo.toml", "README.md", "src/main.rs"]
+    }
+
+    # Detect template type
+    template_type = self._detect_template_type()
+
+    if template_type in required_files:
+        for required_file in required_files[template_type]:
+            file_path = self.template_path / required_file
+            if not file_path.exists():
+                self.issues.append(ValidationIssue(
+                    severity=ValidationSeverity.HIGH,
+                    category="missing_file",
+                    message=f"Missing required file: {required_file}",
+                    suggestion=f"Create {required_file} with appropriate content"
+                ))
+
+    # Check for UPSTREAM.md in all templates
+    upstream_file = self.template_path / "UPSTREAM.md"
+    if not upstream_file.exists():
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.MEDIUM,
+            category="missing_attribution",
+            message="Missing UPSTREAM.md file for source attribution",
+            suggestion="Create UPSTREAM.md documenting original source and license"
+        ))
+```
+
+### 2. Dependency Validation
+- **Dependency resolution** verification
+- **Version compatibility** checking
+- **Security vulnerability** scanning
+- **License compliance** verification
+
+### Dependency Validation Implementation
+```python
+async def validate_dependencies(self) -> None:
+    """Validate template dependencies."""
+    # Node.js dependencies
+    package_json = self.template_path / "package.json"
+    if package_json.exists():
+        await self._validate_npm_dependencies(package_json)
+
+    # Python dependencies
+    requirements_txt = self.template_path / "requirements.txt"
+    if requirements_txt.exists():
+        await self._validate_python_dependencies(requirements_txt)
+
+    # Go dependencies
+    go_mod = self.template_path / "go.mod"
+    if go_mod.exists():
+        await self._validate_go_dependencies(go_mod)
+
+async def _validate_npm_dependencies(self, package_json_path: Path) -> None:
+    """Validate npm package dependencies."""
+    try:
+        import json
+        with open(package_json_path) as f:
+            package_data = json.load(f)
+
+        dependencies = {**package_data.get("dependencies", {}),
+                       **package_data.get("devDependencies", {})}
+
+        for package, version in dependencies.items():
+            # Check for known vulnerable packages
+            if self._is_vulnerable_package(package, version):
+                self.issues.append(ValidationIssue(
+                    severity=ValidationSeverity.CRITICAL,
+                    category="vulnerable_dependency",
+                    message=f"Vulnerable package detected: {package}@{version}",
+                    suggestion="Update to a secure version or find alternative"
+                ))
+
+            # Check for outdated packages
+            if self._is_outdated_package(package, version):
+                self.issues.append(ValidationIssue(
+                    severity=ValidationSeverity.MEDIUM,
+                    category="outdated_dependency",
+                    message=f"Package may be outdated: {package}@{version}",
+                    suggestion="Consider updating to latest stable version"
+                ))
+
+    except Exception as e:
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.HIGH,
+            category="dependency_scan_error",
+            message=f"Failed to scan dependencies: {str(e)}"
+        ))
+```
+
+### 3. Documentation Validation
+- **README completeness** and accuracy
+- **Code documentation** presence and quality
+- **Example functionality** verification
+- **Setup instructions** testing
+
+### Documentation Validation Implementation
+```python
+async def validate_documentation(self) -> None:
+    """Validate template documentation."""
+    readme_path = self.template_path / "README.md"
+
+    if not readme_path.exists():
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.HIGH,
+            category="missing_documentation",
+            message="README.md file is missing",
+            suggestion="Create comprehensive README with setup instructions"
+        ))
+        return
+
+    # Validate README content
+    await self._validate_readme_content(readme_path)
+
+    # Check for code documentation
+    await self._validate_code_documentation()
+
+async def _validate_readme_content(self, readme_path: Path) -> None:
+    """Validate README content completeness."""
+    content = readme_path.read_text()
+
+    # Required sections
+    required_sections = [
+        "# ",  # Title
+        "## Features",
+        "## Prerequisites" if "Prerequisites" in content else "## Requirements",
+        "## Installation" if "Installation" in content else "## Setup",
+        "## Usage",
+    ]
+
+    for section in required_sections:
+        if section not in content:
+            self.issues.append(ValidationIssue(
+                severity=ValidationSeverity.MEDIUM,
+                category="incomplete_documentation",
+                message=f"Missing section: {section}",
+                file_path=str(readme_path),
+                suggestion=f"Add '{section}' section to README"
+            ))
+
+    # Check for code examples
+    if "```" not in content:
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.LOW,
+            category="missing_examples",
+            message="No code examples found in README",
+            file_path=str(readme_path),
+            suggestion="Add code examples demonstrating template usage"
+        ))
+```
+
+### 4. Functionality Validation
+- **Template execution** without errors
+- **Feature completeness** verification
+- **Configuration validation** testing
+- **Integration testing** for external services
+
+### Functionality Validation Implementation
+```python
+async def validate_functionality(self) -> None:
+    """Validate template functionality."""
+    # Test basic template execution
+    await self._test_template_execution()
+
+    # Validate configuration files
+    await self._validate_configuration()
+
+    # Test example usage
+    await self._test_examples()
+
+async def _test_template_execution(self) -> None:
+    """Test that template can be executed without errors."""
+    template_type = self._detect_template_type()
+
+    try:
+        if template_type == "node":
+            await self._test_node_execution()
+        elif template_type == "python":
+            await self._test_python_execution()
+        elif template_type == "go":
+            await self._test_go_execution()
+        elif template_type == "rust":
+            await self._test_rust_execution()
+    except Exception as e:
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.CRITICAL,
+            category="execution_failure",
+            message=f"Template execution failed: {str(e)}",
+            suggestion="Fix errors preventing template execution"
+        ))
+
+async def _test_node_execution(self) -> None:
+    """Test Node.js template execution."""
+    package_json = self.template_path / "package.json"
+    if not package_json.exists():
+        return
+
+    # Check if dependencies can be installed
+    try:
+        # This would run in a controlled environment
+        # For security, use a containerized approach
+        result = await self._run_command_safely(
+            ["npm", "install", "--dry-run"],
+            cwd=self.template_path
+        )
+
+        if result.returncode != 0:
+            self.issues.append(ValidationIssue(
+                severity=ValidationSeverity.HIGH,
+                category="dependency_issue",
+                message="npm install would fail",
+                suggestion="Fix dependency issues in package.json"
+            ))
+
+    except Exception as e:
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.MEDIUM,
+            category="execution_test_error",
+            message=f"Could not test npm execution: {str(e)}"
+        ))
+```
+
+### 5. Security Validation
+- **Dependency vulnerability** scanning
+- **Secret detection** in template files
+- **Input validation** verification
+- **Access control** validation
+
+### Security Validation Implementation
+```python
+async def validate_security(self) -> None:
+    """Validate template security."""
+    # Scan for hardcoded secrets
+    await self._scan_for_secrets()
+
+    # Check for insecure configurations
+    await self._validate_security_config()
+
+    # Scan dependencies for vulnerabilities
+    await self._scan_dependencies_security()
+
+async def _scan_for_secrets(self) -> None:
+    """Scan template files for hardcoded secrets."""
+    import re
+
+    secret_patterns = [
+        r'password[=:]\s*["\'][^"\']+["\']',
+        r'api_key[=:]\s*["\'][^"\']+["\']',
+        r'secret[=:]\s*["\'][^"\']+["\']',
+        r'token[=:]\s*["\'][^"\']+["\']',
+        r'private_key[=:]\s*["\'][^"\']+["\']',
+    ]
+
+    for file_path in self.template_path.rglob("*"):
+        if file_path.is_file() and file_path.suffix not in ['.jpg', '.png', '.pdf']:
+            try:
+                content = file_path.read_text()
+
+                for pattern in secret_patterns:
+                    matches = list(re.finditer(pattern, content, re.IGNORECASE))
+                    for match in matches:
+                        self.issues.append(ValidationIssue(
+                            severity=ValidationSeverity.CRITICAL,
+                            category="hardcoded_secret",
+                            message="Potential hardcoded secret detected",
+                            file_path=str(file_path.relative_to(self.template_path)),
+                            line_number=content[:match.start()].count('\n') + 1,
+                            suggestion="Remove hardcoded secrets and use environment variables"
+                        ))
+            except Exception:
+                continue
+```
+
+### 6. Performance Validation
+- **Resource usage** assessment
+- **Build time** measurement
+- **Runtime performance** testing
+- **Memory usage** validation
+
+### Performance Validation Implementation
+```python
+async def validate_performance(self) -> None:
+    """Validate template performance characteristics."""
+    # Measure build/install time
+    await self._measure_build_time()
+
+    # Check resource requirements
+    await self._validate_resource_requirements()
+
+    # Test runtime performance
+    await self._test_runtime_performance()
+
+async def _measure_build_time(self) -> None:
+    """Measure template build/install time."""
+    import time
+
+    template_type = self._detect_template_type()
+
+    try:
+        start_time = time.time()
+
+        if template_type == "node":
+            # Simulate npm install time (in real implementation, run in container)
+            await asyncio.sleep(0.1)  # Placeholder
+        elif template_type == "python":
+            # Simulate pip install time
+            await asyncio.sleep(0.1)  # Placeholder
+
+        build_time = time.time() - start_time
+
+        # Flag slow builds
+        if build_time > 60:  # 60 seconds threshold
+            self.issues.append(ValidationIssue(
+                severity=ValidationSeverity.MEDIUM,
+                category="slow_build",
+                message=f"Build time is {build_time".1f"}s, which may be slow",
+                suggestion="Optimize dependencies or build process"
+            ))
+
+    except Exception as e:
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.LOW,
+            category="performance_test_error",
+            message=f"Could not measure build time: {str(e)}"
+        ))
+```
+
+## 🧪 Testing Integration
+
+### Test Requirements
+- **Unit tests** for core functionality
+- **Integration tests** for external service interactions
+- **End-to-end tests** for complete workflows
+- **Performance tests** for load and stress testing
+
+### Test Validation
+```python
+async def validate_testing(self) -> None:
+    """Validate testing completeness and quality."""
+    # Check for test files
+    test_files = list(self.template_path.rglob("test_*.py")) + \
+                 list(self.template_path.rglob("*_test.py")) + \
+                 list(self.template_path.rglob("*.test.js")) + \
+                 list(self.template_path.rglob("*.spec.js"))
+
+    if not test_files:
+        self.issues.append(ValidationIssue(
+            severity=ValidationSeverity.HIGH,
+            category="missing_tests",
+            message="No test files found",
+            suggestion="Add comprehensive tests for template functionality"
+        ))
+        return
+
+    # Validate test quality
+    await self._validate_test_quality(test_files)
+
+async def _validate_test_quality(self, test_files: List[Path]) -> None:
+    """Validate quality of test files."""
+    for test_file in test_files:
+        try:
+            content = test_file.read_text()
+
+            # Check for test structure
+            if "def test_" not in content and "it(" not in content:
+                self.issues.append(ValidationIssue(
+                    severity=ValidationSeverity.MEDIUM,
+                    category="poor_test_structure",
+                    message=f"Test file may lack proper test functions: {test_file.name}",
+                    file_path=str(test_file.relative_to(self.template_path)),
+                    suggestion="Add proper test functions with descriptive names"
+                ))
+
+            # Check for assertions
+            if "assert" not in content and "expect(" not in content:
+                self.issues.append(ValidationIssue(
+                    severity=ValidationSeverity.MEDIUM,
+                    category="missing_assertions",
+                    message=f"Test file may lack assertions: {test_file.name}",
+                    file_path=str(test_file.relative_to(self.template_path)),
+                    suggestion="Add assertions to verify expected behavior"
+                ))
+
+        except Exception as e:
+            self.issues.append(ValidationIssue(
+                severity=ValidationSeverity.LOW,
+                category="test_validation_error",
+                message=f"Could not validate test file {test_file.name}: {str(e)}"
+            ))
+```
+
+## 📊 Validation Scoring
+
+### Score Calculation
+- **Weighted scoring** based on issue severity
+- **Category-based penalties** for critical areas
+- **Bonus points** for best practices
+- **Overall grade** assignment (A-F scale)
+
+### Score Calculation Implementation
+```python
+def _calculate_score(self) -> float:
+    """Calculate overall validation score (0-100)."""
+    if not self.issues:
+        return 100.0
+
+    # Severity weights
+    weights = {
+        ValidationSeverity.CRITICAL: 25.0,
+        ValidationSeverity.HIGH: 15.0,
+        ValidationSeverity.MEDIUM: 8.0,
+        ValidationSeverity.LOW: 3.0,
+        ValidationSeverity.INFO: 0.5
+    }
+
+    # Category penalties
+    category_penalties = {
+        "missing_file": 2.0,
+        "vulnerable_dependency": 3.0,
+        "hardcoded_secret": 5.0,
+        "execution_failure": 4.0,
+        "missing_tests": 2.0
+    }
+
+    total_penalty = 0.0
+
+    for issue in self.issues:
+        # Base penalty from severity
+        total_penalty += weights.get(issue.severity, 1.0)
+
+        # Additional penalty from category
+        total_penalty += category_penalties.get(issue.category, 0.0)
+
+    # Calculate score (ensure it's not negative)
+    score = max(0.0, 100.0 - total_penalty)
+
+    return round(score, 1)
+```
+
+## 🔄 Validation Workflow
+
+### Automated Validation Pipeline
+```yaml
+# .github/workflows/template-validation.yml
+name: Template Validation
+
+on:
+  push:
+    paths:
+      - 'stacks/**'
+  pull_request:
+    paths:
+      - 'stacks/**'
+
+jobs:
+  validate-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install validation tools
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Run template validation
+        run: |
+          python tools/validation/validate_all_templates.py
+
+      - name: Generate validation report
+        run: |
+          python tools/validation/generate_report.py
+
+      - name: Upload validation results
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-report
+          path: validation-report.json
+```
+
+### Manual Validation Process
+1. **Template submission** by contributor
+2. **Automated validation** runs in CI/CD pipeline
+3. **Manual review** by maintainers for complex issues
+4. **Integration testing** for external service compatibility
+5. **Final approval** and merge to main branch
+
+## 📋 Validation Checklist
+
+### Pre-Submission Checklist
+- [ ] **Template structure** follows project standards
+- [ ] **Dependencies** are properly declared and tested
+- [ ] **Documentation** is complete and accurate
+- [ ] **Functionality** works as described
+- [ ] **Security** scan passes without critical issues
+- [ ] **Performance** meets acceptable thresholds
+- [ ] **Tests** provide adequate coverage
+
+### Maintainer Review Checklist
+- [ ] **Validation report** reviewed for all issues
+- [ ] **Manual testing** confirms functionality
+- [ ] **Integration testing** for external services
+- [ ] **Security review** for sensitive templates
+- [ ] **Performance testing** for resource-intensive templates
+- [ ] **Documentation accuracy** verified
+
+## 🚨 Validation Failure Handling
+
+### Critical Issues
+- **Template execution failures** must be fixed before acceptance
+- **Security vulnerabilities** require immediate attention
+- **Missing essential documentation** blocks template inclusion
+- **Broken dependencies** prevent template functionality
+
+### Issue Resolution Process
+1. **Issue identification** through automated validation
+2. **Root cause analysis** by template maintainer
+3. **Fix implementation** with proper testing
+4. **Re-validation** to confirm issue resolution
+5. **Maintainer review** for complex fixes
+
+## 📊 Validation Metrics
+
+### Tracking and Reporting
+- **Validation success rates** by template type
+- **Common validation failures** and trends
+- **Average resolution time** for validation issues
+- **Template quality scores** over time
+
+### Continuous Improvement
+- **Validation rule updates** based on common issues
+- **New validation categories** for emerging requirements
+- **Performance improvements** for validation pipeline
+- **User feedback integration** for validation enhancements
+
+## 🔧 Validation Tools
+
+### Required Tools
+- **Python validation framework** for comprehensive checking
+- **Security scanning tools** (safety, bandit, npm audit)
+- **Performance testing tools** for resource measurement
+- **Documentation validation** for content checking
+
+### Tool Integration
+```python
+# tools/validation/__init__.py
+from .template_validator import TemplateValidator
+from .dependency_scanner import DependencyScanner
+from .security_scanner import SecurityScanner
+from .performance_tester import PerformanceTester
+from .documentation_validator import DocumentationValidator
+
+__all__ = [
+    'TemplateValidator',
+    'DependencyScanner',
+    'SecurityScanner',
+    'PerformanceTester',
+    'DocumentationValidator'
+]
+```
+
+## 📚 Validation Best Practices
+
+### Template Development
+- **Test early and often** during template development
+- **Follow established patterns** from existing templates
+- **Document assumptions** and requirements clearly
+- **Consider edge cases** in functionality and error handling
+
+### Quality Assurance
+- **Comprehensive testing** of all features and scenarios
+- **Security-first approach** to template design
+- **Performance awareness** in resource usage
+- **User experience focus** in documentation and setup
+
+## 🚀 Validation in CI/CD
+
+### Integration Points
+- **Pre-commit hooks** for immediate feedback
+- **Pull request validation** before merge
+- **Post-merge validation** for regression detection
+- **Scheduled validation** for template health monitoring
+
+### Automated Workflows
+- **Parallel validation** for faster feedback
+- **Caching mechanisms** for performance optimization
+- **Artifact generation** for validation reporting
+- **Notification systems** for validation failures
+
+## 🔗 External Validation Resources
+
+### Industry Standards
+- **OpenSSF Scorecard** for security assessment
+- **Core Infrastructure Initiative** best practices
+- **OWASP guidelines** for secure coding
+- **Semantic versioning** for dependency management
+
+### Community Tools
+- **Template validation frameworks** from other projects
+- **Security scanning services** for comprehensive analysis
+- **Performance benchmarking** tools and methodologies
+- **Documentation quality** assessment tools
+
+## 📈 Validation Evolution
+
+### Continuous Improvement Process
+- **Regular review** of validation rules and thresholds
+- **Feedback collection** from template users and maintainers
+- **Metric analysis** for validation effectiveness
+- **Technology updates** for new validation capabilities
+
+### Future Enhancements
+- **AI-powered validation** for intelligent issue detection
+- **Cross-template analysis** for consistency checking
+- **Performance prediction** based on template characteristics
+- **Automated fix suggestions** for common issues

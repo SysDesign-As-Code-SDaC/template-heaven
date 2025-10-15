@@ -1,0 +1,261 @@
+---
+globs: stacks/**,scripts/sync_template.*,tools/trending-flagger/**
+description: Template management standards for Template Heaven stack organization
+---
+
+# Template Management Standards
+
+## 📦 Template Organization
+
+### Stack Categories Structure
+- **Organize templates by technology stack** in dedicated directories
+- **Maintain consistent naming** across all template directories
+- **Document template purpose** and target use cases clearly
+- **Include upstream attribution** for all sourced templates
+
+### Template Directory Structure
+```
+stacks/frontend/react-vite/
+├── README.md                    # Template overview and setup
+├── template/                    # Actual template files
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   ├── vite.config.js
+│   └── index.html
+├── tests/                       # Template-specific tests
+├── docs/                        # Additional documentation
+├── scripts/                     # Template-specific scripts
+└── UPSTREAM.md                  # Upstream source information
+```
+
+## 🔄 Template Synchronization
+
+### Sync Process Requirements
+- **Use sync scripts** for adding/updating templates from upstream
+- **Never fork public repositories** directly to maintain privacy
+- **Validate template functionality** after synchronization
+- **Update documentation** to reflect any changes
+
+### Sync Script Usage
+```bash
+# Add new template from upstream
+./scripts/sync_template.sh template-name upstream-url stack-category
+
+# Update existing template
+./scripts/sync_template.sh existing-template upstream-url stack-category
+
+# PowerShell version
+.\scripts\sync_template.ps1 template-name upstream-url stack-category
+```
+
+### Upstream Attribution
+- **Document original source** in `UPSTREAM.md`
+- **Maintain license information** from upstream
+- **Track last sync date** and version
+- **Note any modifications** made to original template
+
+## 📋 Template Quality Standards
+
+### Template Requirements
+- **Complete working example** that can be run immediately
+- **Proper dependency management** with pinned versions
+- **Comprehensive README** with setup instructions
+- **Example usage** and common customization points
+- **Error handling** for common failure scenarios
+
+### Testing Requirements
+- **Template-specific tests** in `tests/` directory
+- **Integration tests** for external service dependencies
+- **Manual validation** of all documented features
+- **Cross-platform compatibility** testing
+
+## 🛠️ Template Development
+
+### Adding New Templates
+```bash
+# 1. Create feature branch from target stack
+git checkout stack/frontend
+git checkout -b feature/add-new-template
+
+# 2. Use sync script to add template
+./scripts/sync_template.sh new-template-name upstream-url stack/frontend
+
+# 3. Validate template works correctly
+cd stacks/frontend/new-template-name
+npm install  # or equivalent
+npm run dev  # or equivalent
+
+# 4. Add comprehensive tests
+mkdir tests
+# Add template-specific tests
+
+# 5. Update stack documentation
+vim stacks/frontend/README.md
+# Add template to stack overview
+
+# 6. Commit with proper message
+git add .
+git commit -m "feat(frontend): add new-template-name from upstream"
+```
+
+### Template Validation Checklist
+- [ ] **Functionality**: Template runs without errors
+- [ ] **Dependencies**: All dependencies resolve correctly
+- [ ] **Documentation**: README provides complete setup guide
+- [ ] **Testing**: Template-specific tests pass
+- [ ] **Integration**: Works with external services if applicable
+- [ ] **Cross-platform**: Works on different operating systems
+- [ ] **Security**: No security vulnerabilities in dependencies
+- [ ] **Licensing**: Compatible with project license requirements
+
+## 📚 Template Documentation
+
+### README Requirements
+- **Clear description** of template purpose and features
+- **Prerequisites** and system requirements
+- **Quick start guide** with copy-paste commands
+- **Configuration options** with examples
+- **Troubleshooting section** for common issues
+- **Upstream attribution** and license information
+
+### Documentation Structure
+```markdown
+# Template Name
+
+Brief description of what this template provides.
+
+## 🚀 Features
+
+- Feature 1
+- Feature 2
+
+## 📋 Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+## 🛠️ Quick Start
+
+### Installation
+```bash
+npm install
+```
+
+### Development
+```bash
+npm run dev
+```
+
+### Production Build
+```bash
+npm run build
+npm start
+```
+
+## 📁 Project Structure
+
+```
+template/
+├── src/                 # Source code
+├── public/             # Static assets
+├── tests/              # Test files
+└── docs/               # Additional docs
+```
+
+## 🔧 Configuration
+
+Environment variables and configuration options.
+
+## 🧪 Testing
+
+```bash
+npm test
+```
+
+## 🚀 Deployment
+
+Deployment instructions for different platforms.
+
+## 📚 API Reference
+
+If applicable, document API endpoints.
+
+## 🔗 Upstream Source
+
+- **Repository**: [link]
+- **License**: [license]
+- **Last Updated**: [date]
+```
+
+## 🔍 Template Discovery
+
+### Trend Detection Integration
+- **Monitor GitHub trends** for popular templates
+- **Evaluate template quality** before inclusion
+- **Consider community adoption** and maintenance status
+- **Check license compatibility** with project requirements
+
+### Quality Assessment Criteria
+- **Star count** and recent activity on GitHub
+- **Maintenance status** (active vs archived)
+- **Issue resolution** and community engagement
+- **Documentation quality** and completeness
+- **Security audit** of dependencies
+- **Performance characteristics** and resource usage
+
+## 🚨 Template Maintenance
+
+### Regular Updates
+- **Monitor upstream changes** for security updates
+- **Update dependencies** to resolve vulnerabilities
+- **Refresh documentation** to reflect upstream changes
+- **Validate functionality** after updates
+
+### Deprecation Process
+- **Monitor template usage** and community feedback
+- **Announce deprecation** with migration guidance
+- **Provide migration path** to replacement templates
+- **Remove deprecated templates** after grace period
+
+## 🔒 Security Considerations
+
+### Template Security
+- **Scan dependencies** for known vulnerabilities
+- **Review code** for potential security issues
+- **Validate input handling** in template code
+- **Check for hardcoded secrets** or credentials
+
+### Privacy Protection
+- **Remove personal data** from template examples
+- **Anonymize configuration** examples
+- **Document data handling** requirements
+- **Comply with privacy regulations** in examples
+
+## 📊 Template Metrics
+
+### Tracking Requirements
+- **Usage statistics** for template popularity
+- **Update frequency** for maintenance tracking
+- **Issue reports** and resolution times
+- **Community contributions** and feedback
+
+### Performance Monitoring
+- **Build times** and resource usage
+- **Runtime performance** characteristics
+- **Dependency update** impact assessment
+- **Security vulnerability** tracking
+
+## 🔗 Integration Points
+
+### Template Ecosystem
+- **Cross-template compatibility** where applicable
+- **Shared utilities** and common patterns
+- **Consistent tooling** across similar templates
+- **Documentation standards** uniformity
+
+### External Integrations
+- **API integrations** with external services
+- **Database connections** and data handling
+- **Authentication providers** and security
+- **Deployment platforms** and hosting services

@@ -1,0 +1,130 @@
+# Development Docker Compose configuration
+# FastAPI PostgreSQL Backend for local development
+
+version: '3.8'
+
+services:
+  # Main FastAPI application (development mode)
+  fastapi-app:
+    build:
+      context: ..
+      target: development
+    container_name: fastapi-backend-dev
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=fastapi
+      - POSTGRES_PASSWORD=fastapi123
+      - POSTGRES_DB=fastapi_db
+      - REDIS_HOST=redis
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - DEBUG=true
+      - ALLOWED_HOSTS=fastapi-app,localhost,127.0.0.1,host.docker.internal
+      - LOG_LEVEL=DEBUG
+    ports:
+      - "8000:8000"
+      - "8888:8888"  # Jupyter Lab
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ..:/app
+      - /app/__pycache__
+      - ../uploads:/app/uploads
+      - ../logs:/app/logs
+    restart: unless-stopped
+    command: ["uvicorn", "src.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/src"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL database (development)
+  postgres:
+    image: postgres:15-alpine
+    container_name: fastapi-backend-postgres-dev
+    environment:
+      - POSTGRES_USER=fastapi
+      - POSTGRES_PASSWORD=fastapi123
+      - POSTGRES_DB=fastapi_db
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init-dev.sql:/docker-entrypoint-initdb.d/init-dev.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fastapi -d fastapi_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache/session store (development)
+  redis:
+    image: redis:7-alpine
+    container_name: fastapi-backend-redis-dev
+    command: redis-server --appendonly yes --protected-mode no
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PgAdmin - PostgreSQL administration tool
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fastapi-backend-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@fastapi.dev
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+    profiles: ["admin"]
+
+  # Redis Commander - Redis administration tool
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: fastapi-backend-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    profiles: ["admin"]
+
+  # MailHog - Email testing tool for development
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: fastapi-backend-mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web interface
+    restart: unless-stopped
+    profiles: ["email"]
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  pgadmin_data:
+
+networks:
+  default:
+    name: fastapi-backend-dev-network
+    driver: bridge

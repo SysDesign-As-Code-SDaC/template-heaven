@@ -1,0 +1,568 @@
+---
+globs: templateheaven/api/**,*.py
+description: API integration standards for Template Heaven API layer
+---
+
+# API Integration Standards
+
+## 🌐 FastAPI Architecture
+
+### Core Structure
+- **Modular route organization** in `routes/` directory
+- **Dependency injection** for shared resources
+- **Middleware** for cross-cutting concerns
+- **Comprehensive error handling** with custom exceptions
+
+### Application Structure
+```python
+# templateheaven/api/main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from .routes import templates, stacks, search, auth, health
+
+app = FastAPI(
+    title="Template Heaven API",
+    description="Multi-branch template repository management system",
+    version="1.0.0"
+)
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(templates.router, prefix="/api/templates", tags=["templates"])
+app.include_router(stacks.router, prefix="/api/stacks", tags=["stacks"])
+app.include_router(search.router, prefix="/api/search", tags=["search"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(health.router, prefix="/api/health", tags=["health"])
+```
+
+## 🛣️ Route Organization
+
+### Router Structure
+- **Separate files** for each domain area
+- **Consistent prefix** and tag patterns
+- **Proper HTTP methods** and status codes
+- **Request/response models** with Pydantic
+
+### Route Definition Pattern
+```python
+# templateheaven/api/routes/templates.py
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Optional
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from ..dependencies import get_db, get_current_user
+from ..services.template_service import TemplateService
+
+router = APIRouter()
+
+class TemplateResponse(BaseModel):
+    """Response model for template information."""
+    id: int
+    name: str
+    description: str
+    stack_category: str
+    created_at: str
+    updated_at: str
+
+    class Config:
+        from_attributes = True
+
+@router.get("/", response_model=List[TemplateResponse])
+async def list_templates(
+    stack: Optional[str] = Query(None, description="Filter by stack category"),
+    search: Optional[str] = Query(None, description="Search in name/description"),
+    db: Session = Depends(get_db)
+):
+    """
+    List all available templates with optional filtering.
+
+    Args:
+        stack: Stack category to filter by
+        search: Search term for template name/description
+        db: Database session
+
+    Returns:
+        List of template information
+    """
+    try:
+        templates = TemplateService.get_templates(db, stack, search)
+        return templates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve templates: {str(e)}")
+
+@router.get("/{template_id}", response_model=TemplateResponse)
+async def get_template(template_id: int, db: Session = Depends(get_db)):
+    """
+    Get detailed information about a specific template.
+
+    Args:
+        template_id: Unique identifier for the template
+        db: Database session
+
+    Returns:
+        Detailed template information
+    """
+    template = TemplateService.get_template_by_id(db, template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return template
+```
+
+## 🔐 Authentication & Authorization
+
+### Authentication Middleware
+- **JWT token validation** for protected routes
+- **User session management** with Redis
+- **Role-based access control** for different operations
+- **Secure password handling** with proper hashing
+
+### Authentication Dependencies
+```python
+# templateheaven/api/dependencies.py
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
+from redis import Redis
+
+from .config import settings
+from .database import get_db
+from .models.user import User
+from .services.auth_service import AuthService
+
+security = HTTPBearer()
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """
+    Validate JWT token and return current user.
+
+    Args:
+        credentials: Bearer token from request
+        db: Database session
+
+    Returns:
+        User object for authenticated user
+
+    Raises:
+        HTTPException: If token is invalid or user not found
+    """
+    token = credentials.credentials
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials"
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
+
+    user = AuthService.get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+
+    return user
+
+async def get_admin_user(current_user: User = Depends(get_current_user)):
+    """
+    Check if current user has admin privileges.
+
+    Args:
+        current_user: Authenticated user object
+
+    Returns:
+        User object if admin
+
+    Raises:
+        HTTPException: If user is not an admin
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
+```
+
+## 🗄️ Database Integration
+
+### Database Dependencies
+- **SQLAlchemy ORM** for database operations
+- **Connection pooling** for performance
+- **Transaction management** for data consistency
+- **Database migrations** with Alembic
+
+### Database Session Management
+```python
+# templateheaven/api/database.py
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from typing import Generator
+
+from .config import settings
+
+# Database engine with connection pooling
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_size=20,
+    max_overflow=30,
+    pool_pre_ping=True,
+    pool_recycle=3600
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    Dependency for database session management.
+
+    Yields:
+        Database session for request lifecycle
+
+    Ensures session is closed after request completion.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+## 🚨 Error Handling
+
+### Custom Exception Classes
+```python
+# templateheaven/api/exceptions.py
+from fastapi import HTTPException
+
+class TemplateNotFoundError(HTTPException):
+    """Raised when requested template is not found."""
+
+    def __init__(self, template_id: int):
+        super().__init__(
+            status_code=404,
+            detail=f"Template with ID {template_id} not found"
+        )
+
+class StackNotFoundError(HTTPException):
+    """Raised when requested stack is not found."""
+
+    def __init__(self, stack_name: str):
+        super().__init__(
+            status_code=404,
+            detail=f"Stack '{stack_name}' not found"
+        )
+
+class DuplicateTemplateError(HTTPException):
+    """Raised when attempting to create duplicate template."""
+
+    def __init__(self, template_name: str):
+        super().__init__(
+            status_code=409,
+            detail=f"Template '{template_name}' already exists"
+        )
+
+class AuthenticationError(HTTPException):
+    """Raised for authentication failures."""
+
+    def __init__(self, detail: str = "Authentication failed"):
+        super().__init__(
+            status_code=401,
+            detail=detail
+        )
+```
+
+### Global Error Handlers
+```python
+# templateheaven/api/main.py
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import SQLAlchemyError
+
+@app.exception_handler(TemplateNotFoundError)
+async def template_not_found_handler(request: Request, exc: TemplateNotFoundError):
+    """Handle template not found errors."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": "Template Not Found",
+            "message": exc.detail,
+            "path": str(request.url.path)
+        }
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    """Handle request validation errors."""
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": "Validation Error",
+            "message": "Request data is invalid",
+            "details": exc.errors()
+        }
+    )
+
+@app.exception_handler(SQLAlchemyError)
+async def database_error_handler(request: Request, exc: SQLAlchemyError):
+    """Handle database operation errors."""
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Database Error",
+            "message": "A database error occurred"
+        }
+    )
+```
+
+## 📊 Response Models
+
+### Standard Response Patterns
+- **Consistent response structure** across all endpoints
+- **Pagination support** for list endpoints
+- **Metadata inclusion** for debugging and monitoring
+- **Proper HTTP status codes** for different scenarios
+
+### Response Model Examples
+```python
+# templateheaven/api/models/responses.py
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+
+class StandardResponse(BaseModel):
+    """Standard API response wrapper."""
+    success: bool
+    message: str
+    data: Optional[Any] = None
+    timestamp: datetime
+
+class PaginatedResponse(BaseModel):
+    """Response model for paginated results."""
+    items: List[Any]
+    total: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+
+class ErrorResponse(BaseModel):
+    """Standard error response format."""
+    error: str
+    message: str
+    details: Optional[Dict[str, Any]] = None
+    timestamp: datetime
+    path: Optional[str] = None
+```
+
+## 🔄 External API Integration
+
+### HTTP Client Configuration
+- **Requests session** with proper configuration
+- **Retry logic** for transient failures
+- **Timeout handling** for external calls
+- **Response validation** and error handling
+
+### External API Client Pattern
+```python
+# templateheaven/api/services/github_service.py
+import requests
+from typing import Dict, List, Optional
+import logging
+
+class GitHubService:
+    """Service for interacting with GitHub API."""
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update({
+            'Authorization': f'token {settings.GITHUB_TOKEN}',
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Template-Heaven/1.0'
+        })
+        self.base_url = 'https://api.github.com'
+        self.logger = logging.getLogger(__name__)
+
+    def get_repository_info(self, owner: str, repo: str) -> Dict:
+        """
+        Get repository information from GitHub.
+
+        Args:
+            owner: Repository owner username
+            repo: Repository name
+
+        Returns:
+            Repository information dictionary
+
+        Raises:
+            GitHubAPIError: If API call fails
+        """
+        url = f"{self.base_url}/repos/{owner}/{repo}"
+
+        try:
+            response = self.session.get(url, timeout=30)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"GitHub API error: {e}")
+            raise GitHubAPIError(f"Failed to fetch repository info: {str(e)}")
+```
+
+## 📝 API Documentation
+
+### OpenAPI/Swagger Integration
+- **Automatic documentation** generation with FastAPI
+- **Custom operation descriptions** and examples
+- **Request/response schema** documentation
+- **Authentication requirements** clearly stated
+
+### Documentation Standards
+- **Clear endpoint descriptions** with purpose
+- **Example requests** and responses
+- **Parameter documentation** with types and constraints
+- **Error response** documentation
+- **Authentication requirements** for protected endpoints
+
+## 🧪 API Testing
+
+### Test Structure
+- **Unit tests** for individual route handlers
+- **Integration tests** for full request/response cycles
+- **Authentication tests** for protected endpoints
+- **Error condition testing** for proper error handling
+
+### Testing Patterns
+```python
+# tests/api/test_templates.py
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from templateheaven.api.main import app
+from templateheaven.api.database import Base
+
+@pytest.fixture
+def client():
+    """FastAPI test client."""
+    return TestClient(app)
+
+@pytest.fixture
+def db_session():
+    """Test database session."""
+    engine = create_engine("sqlite:///./test.db")
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+    yield session
+    session.close()
+
+def test_list_templates(client, db_session):
+    """Test template listing endpoint."""
+    response = client.get("/api/templates/")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "items" in data
+    assert isinstance(data["items"], list)
+
+def test_get_template_not_found(client, db_session):
+    """Test 404 response for non-existent template."""
+    response = client.get("/api/templates/999")
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "error" in data
+    assert "not found" in data["message"].lower()
+```
+
+## 🔒 Security Considerations
+
+### API Security
+- **Input validation** on all endpoints
+- **Rate limiting** for public endpoints
+- **CORS configuration** for web clients
+- **SQL injection prevention** with parameterized queries
+- **XSS protection** for response data
+- **CSRF protection** for state-changing operations
+
+### Authentication Security
+- **Secure token storage** and transmission
+- **Token expiration** and refresh mechanisms
+- **Password hashing** with strong algorithms
+- **Session management** with secure cookies
+- **Brute force protection** with account lockout
+
+## 📈 Monitoring & Logging
+
+### Request Logging
+- **Request/response logging** for debugging
+- **Performance metrics** collection
+- **Error tracking** and alerting
+- **Usage analytics** for API consumption patterns
+
+### Monitoring Integration
+- **Health check endpoints** for load balancer integration
+- **Metrics collection** for performance monitoring
+- **Alert configuration** for error conditions
+- **Distributed tracing** for request flow analysis
+
+## 🔧 Configuration Management
+
+### Environment Configuration
+- **Database URLs** and connection settings
+- **API keys** for external services
+- **JWT secrets** and token configuration
+- **Logging levels** and output destinations
+- **CORS origins** and security settings
+
+### Configuration Validation
+- **Configuration validation** on startup
+- **Required environment variables** checking
+- **Database connectivity** verification
+- **External service** availability confirmation
+
+## 🚀 Deployment Considerations
+
+### Production Deployment
+- **Gunicorn** or similar WSGI server for production
+- **Reverse proxy** configuration (nginx)
+- **SSL/TLS** certificate management
+- **Load balancing** configuration
+- **Database connection** pooling optimization
+
+### Performance Optimization
+- **Response caching** for frequently accessed data
+- **Database query optimization** with proper indexing
+- **Pagination** for large result sets
+- **Compression** for response payloads
+- **CDN integration** for static assets
