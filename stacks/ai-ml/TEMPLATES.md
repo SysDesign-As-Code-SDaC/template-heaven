@@ -4,7 +4,7 @@ Comprehensive index of all templates available in the ai-ml stack.
 
 ## 📊 Statistics
 
-- **Total Templates**: 11
+- **Total Templates**: 12
 - **Last Updated**: 2025-10-15
 - **Status**: Active development
 
@@ -257,6 +257,54 @@ Comprehensive index of all templates available in the ai-ml stack.
 - Educational quantum computing courses
 - Quantum simulation and modeling
 - Future technology research and development
+
+### 🎤 NVIDIA Maverick Llama 4 Voice (`nvidia-maverick-llama-voice/`)
+**Status**: ✅ Complete
+**Description**: Model-agnostic voice-enabled AI template following NVIDIA's Maverick architecture and Llama 4 Voice model patterns. Complete voice processing pipeline with real-time speech recognition, emotion-aware synthesis, and conversational AI.
+
+**Features:**
+- **NVIDIA Maverick Architecture**: Following NVIDIA's optimized AI inference patterns
+- **Voice Processing Pipeline**: Real-time speech recognition and synthesis
+- **Llama 4 Voice Integration**: Voice-enabled conversational AI with context awareness
+- **Multi-Modal Support**: Text, audio, and emotion processing integration
+- **Real-Time Streaming**: Low-latency voice interactions with streaming inference
+- **Emotion Recognition**: Voice emotion analysis and adaptive responses
+- **Model Agnostic**: Support for various LLM backends (Llama, GPT, Claude, etc.)
+- **Hardware Acceleration**: NVIDIA GPU optimization with TensorRT and Triton
+- **Session Management**: Conversation context preservation and memory
+- **Performance Monitoring**: Real-time metrics and optimization
+- **Multi-Language Support**: Voice processing in multiple languages
+- **Security & Privacy**: Encrypted voice data and privacy protection
+
+**Voice Capabilities:**
+- **Speech Recognition**: Real-time speech-to-text with multiple languages
+- **Voice Synthesis**: High-fidelity text-to-speech with emotional expression
+- **Voice Activity Detection**: Intelligent speech/non-speech detection
+- **Noise Reduction**: Audio enhancement and echo cancellation
+- **Emotion Analysis**: Voice emotion recognition and response adaptation
+- **Voice Cloning**: Personalized voice synthesis and adaptation
+- **Streaming Audio**: Real-time audio processing and feedback
+
+**Technical Features:**
+- **Triton Inference Server**: Optimized model serving and deployment
+- **CUDA Acceleration**: GPU-accelerated voice processing
+- **Async Processing**: Non-blocking voice I/O operations
+- **Scalable Architecture**: Load balancing and auto-scaling
+- **REST & WebSocket APIs**: Multiple interface options
+- **Container Ready**: Docker and Kubernetes deployment support
+- **Monitoring & Logging**: Comprehensive observability and debugging
+
+**Use Cases:**
+- **Voice Assistants**: Build intelligent voice-controlled applications
+- **Conversational AI**: Create natural voice-based chatbots and virtual assistants
+- **Accessibility Tools**: Voice interfaces for users with disabilities
+- **Language Learning**: Interactive voice-based language education
+- **Voice Analytics**: Speech pattern analysis and emotion detection
+- **Telephony Systems**: Voice automation for call centers and IVR
+- **Gaming & Entertainment**: Voice-controlled games and interactive experiences
+- **Healthcare**: Voice-based patient monitoring and assistance
+- **Automotive**: Voice controls for hands-free operation
+- **Smart Home**: Voice-activated home automation systems
 
 ### 🎯 Comprehensive AI Benchmarks Suite (`ai-benchmarks-suite/`)
 **Status**: ✅ Complete
