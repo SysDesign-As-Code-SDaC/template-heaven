@@ -1,0 +1,353 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-middleware"
+version = "1.0.0"
+description = "Containerized middleware for managing multiple MCP (Model Context Protocol) servers"
+authors = [
+    {name = "Template Heaven Team", email = "team@templateheaven.dev"},
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["mcp", "middleware", "ai", "model-context-protocol", "servers", "api", "fastapi"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    # Core FastAPI Framework
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+
+    # MCP Protocol
+    "websockets>=11.0.0",
+    "aiohttp>=3.9.0",
+
+    # Database
+    "sqlalchemy[asyncio]>=2.0.0",
+    "alembic>=1.12.0",
+    "asyncpg>=0.29.0",
+    "psycopg2-binary>=2.9.0",
+
+    # Authentication & Security
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+
+    # Validation
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+
+    # HTTP Client
+    "httpx>=0.25.0",
+    "requests>=2.31.0",
+
+    # Configuration
+    "python-dotenv>=1.0.0",
+
+    # Caching (optional)
+    "redis>=5.0.0",
+
+    # Monitoring
+    "prometheus-client>=0.19.0",
+    "structlog>=23.2.0",
+
+    # Utilities
+    "python-dateutil>=2.8.0",
+    "click>=8.0.0",
+
+    # Git integration (for Git MCP server)
+    "gitpython>=3.1.40",
+
+    # ClickUp integration
+    "clickup-python>=0.2.0",
+
+    # Vector database (optional)
+    "chromadb>=0.4.0",
+    "faiss-cpu>=1.7.0",
+
+    # Code execution (optional)
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing Framework
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "pytest-cov>=4.1.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-xdist>=3.5.0",
+    "pytest-html>=4.1.0",
+    "pytest-json-report>=1.5.0",
+    "hypothesis>=6.75.0",
+
+    # Code Quality and Formatting
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.6.0",
+
+    # Security Scanning
+    "bandit>=1.7.5",
+    "safety>=2.3.0",
+    "pip-audit>=2.6.0",
+
+    # Documentation
+    "sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "sphinx-autodoc-typehints>=1.24.0",
+    "myst-parser>=2.0.0",
+
+    # Testing Utilities
+    "factory-boy>=3.3.0",
+    "faker>=20.1.0",
+    "freezegun>=1.2.0",
+    "responses>=0.24.0",
+
+    # HTTP Testing
+    "httpx>=0.25.0",
+
+    # Development Tools
+    "watchdog>=3.0.0",
+    "tox>=4.0.0",
+
+    # Type Stubs
+    "types-passlib>=1.7.0",
+    "types-redis>=4.6.0",
+    "types-python-dateutil>=2.8.0",
+
+    # Build Tools
+    "build>=1.0.0",
+    "twine>=4.0.0",
+    "wheel>=0.41.0",
+
+    # Git and Version Control
+    "gitpython>=3.1.40",
+
+    # Additional Development Utilities
+    "rich>=13.0.0",
+    "tqdm>=4.64.0",
+    "colorama>=0.4.6",
+
+    # MCP-specific development tools
+    "websockets>=11.0.0",
+    "aiohttp>=3.9.0",
+    "requests>=2.31.0",
+
+    # Performance monitoring
+    "memory-profiler>=0.61.0",
+    "line-profiler>=4.1.0",
+    "coverage>=7.3.0",
+
+    # API documentation
+    "fastapi[all]>=0.104.0",
+
+    # Database development
+    "alembic>=1.12.0",
+    "psycopg2-binary>=2.9.0",
+
+    # Redis development
+    "redis>=5.0.0",
+
+    # Monitoring and observability
+    "prometheus-client>=0.19.0",
+    "structlog>=23.2.0",
+
+    # Container development
+    "docker>=6.1.0",
+]
+docs = [
+    "sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "sphinx-autodoc-typehints>=1.24.0",
+    "myst-parser>=2.0.0",
+    "sphinxcontrib-mermaid>=0.9.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.25.0",
+    "factory-boy>=3.3.0",
+    "faker>=20.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/template-heaven/templateheaven"
+Documentation = "https://templateheaven.dev/docs/ai-ml/mcp-middleware"
+Repository = "https://github.com/template-heaven/templateheaven"
+Issues = "https://github.com/template-heaven/templateheaven/issues"
+Changelog = "https://github.com/template-heaven/templateheaven/blob/main/CHANGELOG.md"
+
+[project.scripts]
+mcp-middleware = "mcp_middleware.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mcp_middleware*"]
+
+[tool.setuptools.package-data]
+"mcp_middleware" = ["py.typed"]
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | docs/_build
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["mcp_middleware"]
+known_third_party = ["fastapi", "sqlalchemy", "pydantic", "uvicorn"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "passlib.*",
+    "jose.*",
+    "alembic.*",
+    "asyncpg.*",
+    "psycopg2.*",
+    "redis.*",
+    "websockets.*",
+    "aiohttp.*",
+    "prometheus_client.*",
+    "structlog.*",
+    "clickup.*",
+    "chromadb.*",
+    "faiss.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/mcp_middleware",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=75",
+    "--asyncio-mode=auto",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "performance: Performance tests",
+    "slow: Slow running tests",
+    "mcp: MCP-specific tests",
+    "database: Database-related tests",
+    "auth: Authentication-related tests",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src/mcp_middleware"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/alembic/*",
+    "*/venv/*",
+    "*/env/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Bandit configuration
+[tool.bandit]
+exclude_dirs = ["tests", "venv", "env", ".venv", "scripts"]
+skips = ["B101", "B601"]
+
+# Safety configuration
+[tool.safety]
+output = "json"
+
+# Flake8 configuration
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".venv",
+    "venv",
+    "env",
+    "docs/_build",
+]

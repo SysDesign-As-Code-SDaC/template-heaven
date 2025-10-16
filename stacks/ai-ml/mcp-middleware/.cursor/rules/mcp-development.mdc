@@ -1,0 +1,553 @@
+---
+description: "MCP (Model Context Protocol) development best practices and AI-assisted coding guidelines"
+globs: ["src/**/*.py", "tests/**/*.py", "docker/**/*.yml"]
+---
+
+# MCP Development Standards
+
+## 🤖 MCP Protocol Requirements
+
+### Protocol Compliance
+- **MCP 2024-11-05 Specification**: Strictly adhere to the latest MCP protocol specification
+- **Message Format Validation**: All MCP messages must validate against the protocol schema
+- **Error Handling**: Proper MCP error responses with correct error codes
+- **Version Negotiation**: Support MCP protocol version negotiation
+
+### Server Implementation
+```python
+# ✅ Good: Proper MCP server implementation
+class CustomMCPServer(BaseMCPServer):
+    """Custom MCP server with proper protocol compliance."""
+
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__(config)
+        self.capabilities = {
+            "tools": {
+                "listChanged": True
+            },
+            "resources": {
+                "subscribe": True,
+                "listChanged": True
+            }
+        }
+
+    async def handle_tool_call(self, tool_name: str, arguments: Dict[str, Any]) -> MCPToolResult:
+        """Handle tool calls with proper MCP response format."""
+        try:
+            # Validate arguments against tool schema
+            validated_args = self.validate_tool_arguments(tool_name, arguments)
+
+            # Execute tool logic
+            result = await self.execute_tool(tool_name, validated_args)
+
+            return MCPToolResult(
+                content=[MCPContent(type="text", text=str(result))],
+                is_error=False
+            )
+
+        except Exception as e:
+            return MCPToolResult(
+                content=[MCPContent(type="text", text=f"Error: {str(e)}")],
+                is_error=True
+            )
+```
+
+### Message Handling
+```python
+# ✅ Good: Proper MCP message handling
+async def handle_mcp_message(self, message: MCPMessage) -> MCPMessage:
+    """Handle incoming MCP messages with proper validation."""
+
+    # Validate message format
+    if not self.validate_message(message):
+        return MCPErrorResponse(
+            id=message.id,
+            error=MCPError(
+                code=MCPErrorCode.INVALID_REQUEST,
+                message="Invalid message format"
+            )
+        )
+
+    # Route to appropriate handler
+    if message.method.startswith("tools/"):
+        return await self.handle_tool_message(message)
+    elif message.method.startswith("resources/"):
+        return await self.handle_resource_message(message)
+    elif message.method.startswith("prompts/"):
+        return await self.handle_prompt_message(message)
+    else:
+        return MCPErrorResponse(
+            id=message.id,
+            error=MCPError(
+                code=MCPErrorCode.METHOD_NOT_FOUND,
+                message=f"Unknown method: {message.method}"
+            )
+        )
+```
+
+## 🏗️ Server Architecture Standards
+
+### Server Registration
+```python
+# ✅ Good: Proper server registration
+@dataclass
+class MCPServerConfig:
+    """MCP server configuration."""
+    name: str
+    type: str
+    config: Dict[str, Any]
+    capabilities: Dict[str, Any]
+    enabled: bool = True
+
+class ServerManager:
+    """MCP server manager with proper lifecycle management."""
+
+    def __init__(self):
+        self.servers: Dict[str, BaseMCPServer] = {}
+        self.server_configs: Dict[str, MCPServerConfig] = {}
+
+    async def register_server(self, config: MCPServerConfig) -> bool:
+        """Register a new MCP server."""
+        try:
+            # Validate configuration
+            self.validate_config(config)
+
+            # Create server instance
+            server_class = self.get_server_class(config.type)
+            server_instance = server_class(config.config)
+
+            # Initialize server
+            await server_instance.initialize()
+
+            # Register server
+            self.servers[config.name] = server_instance
+            self.server_configs[config.name] = config
+
+            logger.info(f"Registered MCP server: {config.name}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to register server {config.name}: {e}")
+            return False
+
+    async def unregister_server(self, name: str) -> bool:
+        """Unregister an MCP server."""
+        if name not in self.servers:
+            return False
+
+        server = self.servers[name]
+        await server.cleanup()
+
+        del self.servers[name]
+        del self.server_configs[name]
+
+        logger.info(f"Unregistered MCP server: {name}")
+        return True
+```
+
+### Health Monitoring
+```python
+# ✅ Good: Comprehensive server health monitoring
+async def check_server_health(self, server_name: str) -> ServerHealth:
+    """Check health of an MCP server."""
+
+    if server_name not in self.servers:
+        return ServerHealth(
+            name=server_name,
+            status="not_found",
+            last_check=datetime.utcnow()
+        )
+
+    server = self.servers[server_name]
+
+    try:
+        # Perform health check
+        health_data = await server.health_check()
+
+        return ServerHealth(
+            name=server_name,
+            status="healthy" if health_data.get("healthy", False) else "unhealthy",
+            last_check=datetime.utcnow(),
+            details=health_data
+        )
+
+    except Exception as e:
+        logger.error(f"Health check failed for {server_name}: {e}")
+
+        return ServerHealth(
+            name=server_name,
+            status="error",
+            last_check=datetime.utcnow(),
+            error=str(e)
+        )
+```
+
+## 🔒 Security Standards
+
+### Input Validation
+```python
+# ✅ Good: Comprehensive input validation
+def validate_mcp_request(self, request: MCPRequest) -> ValidationResult:
+    """Validate MCP request parameters."""
+
+    errors = []
+
+    # Method validation
+    if not request.method or not isinstance(request.method, str):
+        errors.append("Method must be a non-empty string")
+
+    # Params validation
+    if hasattr(request, 'params') and request.params:
+        if not isinstance(request.params, dict):
+            errors.append("Params must be a dictionary")
+
+        # Validate specific parameters based on method
+        if request.method == "tools/call":
+            errors.extend(self.validate_tool_call_params(request.params))
+
+    return ValidationResult(
+        valid=len(errors) == 0,
+        errors=errors
+    )
+
+def validate_tool_call_params(self, params: Dict[str, Any]) -> List[str]:
+    """Validate tool call parameters."""
+    errors = []
+
+    if "name" not in params:
+        errors.append("Tool name is required")
+    elif not isinstance(params["name"], str):
+        errors.append("Tool name must be a string")
+
+    if "arguments" in params:
+        if not isinstance(params["arguments"], dict):
+            errors.append("Tool arguments must be a dictionary")
+
+    return errors
+```
+
+### Authentication & Authorization
+```python
+# ✅ Good: Secure MCP server authentication
+async def authenticate_request(self, request: MCPRequest, token: str) -> bool:
+    """Authenticate MCP request."""
+
+    try:
+        # Decode and verify token
+        payload = jwt.decode(token, self.secret_key, algorithms=["HS256"])
+
+        # Check token expiration
+        if datetime.fromtimestamp(payload["exp"]) < datetime.utcnow():
+            return False
+
+        # Check server permissions
+        user_id = payload["sub"]
+        server_name = request.metadata.get("server_name")
+
+        if server_name:
+            return await self.check_server_permission(user_id, server_name)
+
+        return True
+
+    except jwt.InvalidTokenError:
+        return False
+
+async def check_server_permission(self, user_id: str, server_name: str) -> bool:
+    """Check if user has permission to access server."""
+
+    # Check user permissions from database
+    user_permissions = await self.get_user_permissions(user_id)
+
+    # Check server-specific permissions
+    server_permissions = user_permissions.get("servers", {})
+    server_access = server_permissions.get(server_name, [])
+
+    return "access" in server_access
+```
+
+## 🧪 Testing Standards
+
+### MCP Protocol Testing
+```python
+# ✅ Good: Comprehensive MCP protocol testing
+def test_mcp_tool_call():
+    """Test MCP tool call functionality."""
+
+    # Setup
+    server = CustomMCPServer({"api_key": "test"})
+    protocol_handler = MCPProtocolHandler()
+
+    # Create test request
+    request = MCPRequest(
+        id="test-123",
+        method="tools/call",
+        params={
+            "name": "test_tool",
+            "arguments": {"param1": "value1"}
+        }
+    )
+
+    # Execute request
+    response = await protocol_handler.handle_request(request, server)
+
+    # Assertions
+    assert response.id == "test-123"
+    assert response.result is not None
+    assert not response.error
+
+    # Verify tool was called correctly
+    assert server.tool_called
+    assert server.tool_args == {"param1": "value1"}
+
+def test_mcp_error_handling():
+    """Test MCP error handling."""
+
+    server = FailingMCPServer({"fail_mode": "invalid_tool"})
+    protocol_handler = MCPProtocolHandler()
+
+    request = MCPRequest(
+        id="error-test",
+        method="tools/call",
+        params={"name": "nonexistent_tool"}
+    )
+
+    response = await protocol_handler.handle_request(request, server)
+
+    # Assertions
+    assert response.id == "error-test"
+    assert response.result is None
+    assert response.error is not None
+    assert response.error.code == MCPErrorCode.INVALID_REQUEST
+```
+
+### Server Integration Testing
+```python
+# ✅ Good: Server integration testing
+@pytest.mark.asyncio
+async def test_server_lifecycle():
+    """Test complete MCP server lifecycle."""
+
+    config = MCPServerConfig(
+        name="test_server",
+        type="filesystem",
+        config={"path": "/tmp"},
+        capabilities={"tools": {}, "resources": {}}
+    )
+
+    manager = ServerManager()
+
+    # Test registration
+    success = await manager.register_server(config)
+    assert success
+
+    # Test server is active
+    assert config.name in manager.servers
+    server = manager.servers[config.name]
+    assert await server.health_check() == {"healthy": True}
+
+    # Test request handling
+    request = MCPRequest(id="test", method="tools/list")
+    response = await manager.handle_request(config.name, request)
+    assert response.result is not None
+
+    # Test unregistration
+    success = await manager.unregister_server(config.name)
+    assert success
+    assert config.name not in manager.servers
+```
+
+## 📊 Performance Standards
+
+### Benchmarking Requirements
+```python
+# ✅ Good: MCP performance benchmarking
+def benchmark_mcp_operations():
+    """Benchmark MCP operations performance."""
+
+    @pytest.mark.benchmark
+    def test_tool_call_performance(benchmark):
+        """Benchmark tool call performance."""
+
+        async def run_tool_call():
+            server = FastMCPServer({"optimized": True})
+            request = MCPRequest(
+                id="bench-123",
+                method="tools/call",
+                params={"name": "fast_tool", "arguments": {}}
+            )
+
+            response = await server.handle_request(request)
+            return response
+
+        # Run benchmark
+        result = benchmark(run_tool_call)
+
+        # Assertions
+        assert result.result is not None
+        assert result.error is None
+
+    @pytest.mark.benchmark
+    def test_concurrent_requests(benchmark):
+        """Benchmark concurrent request handling."""
+
+        async def run_concurrent_requests():
+            server = ConcurrentMCPServer({"max_workers": 10})
+
+            requests = [
+                MCPRequest(id=f"req-{i}", method="tools/call",
+                          params={"name": "concurrent_tool"})
+                for i in range(50)
+            ]
+
+            # Execute concurrently
+            responses = await asyncio.gather(*[
+                server.handle_request(req) for req in requests
+            ])
+
+            return responses
+
+        results = benchmark(run_concurrent_requests)
+
+        # Verify all requests succeeded
+        assert all(r.result is not None for r in results)
+        assert all(r.error is None for r in results)
+```
+
+### Monitoring Integration
+```python
+# ✅ Good: Performance monitoring integration
+class MCPMetricsCollector:
+    """Collect and expose MCP performance metrics."""
+
+    def __init__(self):
+        self.request_count = Counter("mcp_requests_total", "Total MCP requests")
+        self.request_duration = Histogram("mcp_request_duration_seconds", "Request duration")
+        self.error_count = Counter("mcp_errors_total", "Total MCP errors")
+        self.active_connections = Gauge("mcp_active_connections", "Active connections")
+
+    async def record_request(self, method: str, duration: float, success: bool):
+        """Record request metrics."""
+
+        # Record request count
+        self.request_count.labels(method=method, status="success" if success else "error").inc()
+
+        # Record duration
+        self.request_duration.labels(method=method).observe(duration)
+
+        # Record errors
+        if not success:
+            self.error_count.labels(method=method).inc()
+
+    def update_connections(self, count: int):
+        """Update active connections gauge."""
+        self.active_connections.set(count)
+```
+
+## 🚀 Deployment Standards
+
+### Container Configuration
+```dockerfile
+# ✅ Good: Optimized MCP container configuration
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash mcp
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY src/ ./src/
+
+# Set ownership
+RUN chown -R mcp:mcp /app
+
+# Switch to non-root user
+USER mcp
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose port
+EXPOSE 8000
+
+# Run application
+CMD ["uvicorn", "src.mcp_middleware.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Configuration Management
+```python
+# ✅ Good: Environment-based configuration
+class MCPSettings(BaseSettings):
+    """MCP middleware settings with environment support."""
+
+    # Server settings
+    host: str = "0.0.0.0"
+    port: int = 8000
+    workers: int = 1
+
+    # Security settings
+    secret_key: str = Field(..., env="SECRET_KEY")
+    allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+
+    # MCP server configurations
+    mcp_servers: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+    # Database settings
+    database_url: str = Field(..., env="DATABASE_URL")
+
+    # Redis settings
+    redis_url: Optional[str] = Field(None, env="REDIS_URL")
+
+    # External API keys
+    clickup_api_token: Optional[str] = Field(None, env="CLICKUP_API_TOKEN")
+    openai_api_key: Optional[str] = Field(None, env="OPENAI_API_KEY")
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+```
+
+## 📋 AI Coding Agent Guidelines
+
+### Code Generation Rules
+- **Protocol Compliance**: All generated code must adhere to MCP 2024-11-05 specification
+- **Type Safety**: Use proper TypeScript/Pydantic types for all MCP messages
+- **Error Handling**: Implement comprehensive error handling for all MCP operations
+- **Documentation**: Generate docstrings with MCP method specifications
+- **Testing**: Create tests for all MCP protocol interactions
+
+### Review Checklist
+- [ ] **MCP Compliance**: Code follows MCP protocol specification
+- [ ] **Message Validation**: All MCP messages are properly validated
+- [ ] **Error Handling**: Proper MCP error responses implemented
+- [ ] **Security**: Input validation and authentication implemented
+- [ ] **Performance**: Efficient handling of MCP requests
+- [ ] **Testing**: Comprehensive test coverage for MCP operations
+- [ ] **Documentation**: Clear documentation of MCP server capabilities
+
+### Common Issues to Flag
+- **Protocol Violations**: Non-compliant MCP message formats
+- **Missing Validation**: Unvalidated MCP request parameters
+- **Poor Error Handling**: Inadequate error responses
+- **Security Gaps**: Missing authentication or authorization
+- **Performance Issues**: Inefficient MCP request processing
+- **Type Safety**: Missing type annotations for MCP operations
+
+### Suggested Improvements
+- **Protocol Updates**: Keep up with latest MCP specification changes
+- **Performance Optimization**: Implement caching and connection pooling
+- **Monitoring**: Add comprehensive MCP operation metrics
+- **Security**: Implement rate limiting and request validation
+- **Testing**: Add integration tests for MCP server interactions

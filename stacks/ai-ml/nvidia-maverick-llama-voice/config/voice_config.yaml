@@ -1,0 +1,120 @@
+# NVIDIA Maverick Voice Configuration
+# Configuration for voice processing, speech recognition, and synthesis
+
+# Speech Recognition Settings
+speech_recognition:
+  model: "nvidia/parakeet-ctc-1.1b"
+  language: "en-US"
+  sample_rate: 16000
+  channels: 1
+  vad_threshold: 0.5
+  max_alternatives: 3
+  profanity_filter: false
+  punctuation: true
+  interim_results: true
+
+# Voice Synthesis Settings
+voice_synthesis:
+  model: "nvidia/tts_en_fastpitch"
+  voice: "ljspeech"
+  sample_rate: 22050
+  channels: 1
+  speed: 1.0
+  pitch: 1.0
+  energy: 1.0
+  emotion_enabled: true
+
+# Audio Processing Settings
+audio:
+  sample_rate: 16000
+  channels: 1
+  chunk_size: 1024
+  buffer_size: 4096
+  dtype: "float32"
+  format: "wav"
+  noise_reduction: true
+  echo_cancellation: true
+  gain_control: true
+
+# Voice Activity Detection
+vad:
+  enabled: true
+  threshold: 0.5
+  min_speech_duration: 0.3
+  max_silence_duration: 1.0
+  padding_duration: 0.1
+
+# Emotion Recognition
+emotion_recognition:
+  enabled: true
+  model: "emotion_recognition"
+  emotions:
+    - neutral
+    - happy
+    - sad
+    - angry
+    - surprised
+    - calm
+    - excited
+  confidence_threshold: 0.6
+
+# Llama Voice Model Settings
+llama_voice:
+  model_path: "models/llama-4-voice"
+  max_tokens: 512
+  temperature: 0.7
+  top_p: 0.9
+  repetition_penalty: 1.1
+  voice_context: true
+  emotion_awareness: true
+  conversation_memory: true
+  streaming: true
+
+# Inference Engine Settings
+inference:
+  batch_size: 1
+  max_concurrent_requests: 10
+  timeout: 30
+  enable_streaming: true
+  priority_queue: true
+  load_balancing: true
+
+# Session Management
+session:
+  max_history_length: 50
+  session_timeout: 3600
+  enable_persistence: true
+  storage_path: "./sessions"
+  auto_cleanup: true
+  cleanup_interval: 300
+
+# Performance Monitoring
+monitoring:
+  enabled: true
+  metrics_interval: 60
+  log_level: "INFO"
+  performance_tracking: true
+  error_tracking: true
+
+# Hardware Acceleration
+hardware:
+  gpu_acceleration: true
+  tensorrt_optimization: true
+  cuda_graphs: true
+  memory_pool: true
+  async_processing: true
+
+# Network Settings
+network:
+  triton_server_url: "localhost:8001"
+  grpc_max_message_size: 1073741824
+  connection_timeout: 10
+  retry_attempts: 3
+
+# Security Settings
+security:
+  input_validation: true
+  output_filtering: true
+  rate_limiting: true
+  audit_logging: true
+  encryption: true

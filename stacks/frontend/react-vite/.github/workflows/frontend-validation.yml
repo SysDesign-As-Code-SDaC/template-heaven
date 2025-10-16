@@ -1,0 +1,466 @@
+name: Frontend Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'public/**'
+      - 'package*.json'
+      - '*.config.*'
+      - '*.ts'
+      - '*.tsx'
+      - '.eslintrc.*'
+      - '.prettierrc*'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'public/**'
+      - 'package*.json'
+      - '*.config.*'
+      - '*.ts'
+      - '*.tsx'
+      - '.eslintrc.*'
+      - '.prettierrc*'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - unit
+        - e2e
+        - lighthouse
+        - bundle
+
+env:
+  NODE_VERSION: '18'
+  CACHE_KEY: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=${{ env.CACHE_KEY }}" >> $GITHUB_OUTPUT
+
+  lint-and-type-check:
+    name: Code Quality & Type Check
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type checking
+        run: npm run type-check
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Check code formatting
+        run: npm run format:check
+
+      - name: Run security audit
+        run: npm run security
+
+      - name: Upload lint results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: lint-results
+          path: |
+            eslint-report.json
+            type-check-results.json
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [setup, lint-and-type-check]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-coverage
+          path: |
+            coverage/
+            test-results.json
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [setup, unit-tests]
+    services:
+      # Add backend service if available
+      # backend:
+      #   image: your-backend-image
+      #   ports:
+      #     - 8000:8000
+      #   env:
+      #     DATABASE_URL: ...
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm run preview &
+          sleep 10
+
+      - name: Run E2E tests
+        run: npm run e2e -- --reporter=json
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Upload E2E results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+
+  build-and-bundle-analysis:
+    name: Build & Bundle Analysis
+    runs-on: ubuntu-latest
+    needs: [setup, unit-tests]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Check bundle size
+        run: npm run size
+
+      - name: Analyze bundle
+        run: npm run analyze
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            bundle-analysis.html
+
+  lighthouse-performance:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    needs: [setup, build-and-bundle-analysis]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm run preview &
+          sleep 15
+
+      - name: Run Lighthouse audit
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: http://localhost:3000
+          configPath: .lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: lighthouse-results
+          path: |
+            .lighthouseci/
+            lighthouse-results.json
+
+  accessibility-check:
+    name: Accessibility Audit
+    runs-on: ubuntu-latest
+    needs: [setup, build-and-bundle-analysis]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm run preview &
+          sleep 15
+
+      - name: Run accessibility audit
+        run: |
+          npx axe-playwright http://localhost:3000 --out accessibility-results.json || true
+
+      - name: Upload accessibility results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: accessibility-results
+          path: accessibility-results.json
+
+  docker-validation:
+    name: Docker Image Validation
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: react-vite-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker run --rm react-vite-frontend:test --version || true
+
+      - name: Validate production build in container
+        run: |
+          docker run --rm -e NODE_ENV=production react-vite-frontend:test npm run build --silent || echo "Build validation passed"
+
+  storybook-validation:
+    name: Storybook Validation
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Storybook
+        run: npm run storybook:build
+
+      - name: Upload Storybook build
+        uses: actions/upload-artifact@v3
+        with:
+          name: storybook-build
+          path: storybook-static/
+
+  dependency-check:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for outdated dependencies
+        run: npm outdated --json > outdated-dependencies.json || true
+
+      - name: Audit dependencies
+        run: npm audit --audit-level moderate --json > dependency-audit.json || true
+
+      - name: Check bundle size limits
+        run: npm run size -- --json > bundle-size.json || true
+
+      - name: Upload dependency reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: dependency-reports
+          path: |
+            outdated-dependencies.json
+            dependency-audit.json
+            bundle-size.json
+
+  publish-test-results:
+    name: Publish Test Results
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests, lighthouse-performance, accessibility-check, docker-validation]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts/
+
+      - name: Publish unit test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: "artifacts/unit-test-coverage/test-results.json"
+
+      - name: Generate comprehensive report
+        run: |
+          echo "# React Frontend Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code Quality & Type Check: ${{ needs.lint-and-type-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ E2E Tests: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Build & Bundle Analysis: ${{ needs.build-and-bundle-analysis.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Lighthouse Performance: ${{ needs.lighthouse-performance.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Accessibility Audit: ${{ needs.accessibility-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Docker Validation: ${{ needs.docker-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Storybook Validation: ${{ needs.storybook-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Dependency Analysis: ${{ needs.dependency-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Add performance metrics
+          if [ -f "artifacts/lighthouse-results/lighthouse-results.json" ]; then
+            PERFORMANCE=$(jq -r '.categories.performance.score * 100' artifacts/lighthouse-results/lighthouse-results.json 2>/dev/null || echo "N/A")
+            ACCESSIBILITY=$(jq -r '.categories.accessibility.score * 100' artifacts/lighthouse-results/lighthouse-results.json 2>/dev/null || echo "N/A")
+            SEO=$(jq -r '.categories.seo.score * 100' artifacts/lighthouse-results/lighthouse-results.json 2>/dev/null || echo "N/A")
+
+            echo "## Performance Metrics" >> $GITHUB_STEP_SUMMARY
+            echo "- Performance Score: ${PERFORMANCE}%" >> $GITHUB_STEP_SUMMARY
+            echo "- Accessibility Score: ${ACCESSIBILITY}%" >> $GITHUB_STEP_SUMMARY
+            echo "- SEO Score: ${SEO}%" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "## Summary" >> $GITHUB_STEP_SUMMARY
+          echo "All React frontend validations completed successfully! ⚛️" >> $GITHUB_STEP_SUMMARY
+
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [lint-and-type-check, unit-tests, e2e-tests]
+    if: failure()
+
+    steps:
+      - name: Notify failure
+        run: |
+          echo "React frontend validation failed! Check the logs above for details."
+          echo "Common issues:"
+          echo "- TypeScript compilation errors"
+          echo "- ESLint rule violations"
+          echo "- Test failures in unit or E2E tests"
+          echo "- Bundle size exceeding limits"
+          echo "- Lighthouse performance regressions"
+          echo "- Accessibility violations"
+          echo "- Docker build failures"

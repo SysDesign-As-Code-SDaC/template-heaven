@@ -1,0 +1,750 @@
+---
+globs: templateheaven/database/**,templateheaven/core/models.py,*.py
+description: Database operations standards for Template Heaven data persistence
+---
+
+# Database Operations Standards
+
+## 🗄️ Database Architecture
+
+### Core Components
+- **SQLAlchemy ORM** for database operations and modeling
+- **PostgreSQL primary database** for production workloads
+- **SQLite fallback** for development and testing
+- **Connection pooling** for optimal performance
+- **Migration system** for schema versioning
+
+### Architecture Pattern
+```python
+# templateheaven/database/__init__.py
+from .connection import engine, SessionLocal, get_db
+from .models import Base, Template, Stack, User, TrendData
+
+__all__ = [
+    'engine',
+    'SessionLocal',
+    'get_db',
+    'Base',
+    'Template',
+    'Stack',
+    'User',
+    'TrendData'
+]
+```
+
+## 🏗️ Database Models
+
+### Model Definition Standards
+- **SQLAlchemy declarative base** for all models
+- **Comprehensive type hints** and documentation
+- **Proper relationship definitions** with foreign keys
+- **Index creation** for performance optimization
+- **Constraint validation** at database level
+
+### Base Model Pattern
+```python
+# templateheaven/database/models.py
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Index
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from typing import Optional, List
+import logging
+
+Base = declarative_base()
+
+class Template(Base):
+    """
+    Template model representing technology stack templates.
+
+    This model stores information about templates including metadata,
+    upstream sources, and usage tracking.
+
+    Attributes:
+        id: Primary key identifier
+        name: Template name (unique)
+        description: Template description
+        stack_category: Technology stack category
+        template_path: File system path to template
+        upstream_url: Original source repository URL
+        license_info: License information from upstream
+        created_at: Template creation timestamp
+        updated_at: Last update timestamp
+        is_active: Whether template is currently available
+        usage_count: Number of times template has been used
+        last_used: Last usage timestamp
+    """
+    __tablename__ = "templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=False)
+    stack_category = Column(String(100), nullable=False, index=True)
+    template_path = Column(String(500), nullable=False)
+    upstream_url = Column(String(500), nullable=True)
+    license_info = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+    usage_count = Column(Integer, default=0, nullable=False)
+    last_used = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    stacks = relationship("Stack", back_populates="templates")
+    trends = relationship("TrendData", back_populates="template")
+
+    # Indexes for performance
+    __table_args__ = (
+        Index('ix_templates_stack_active', 'stack_category', 'is_active'),
+        Index('ix_templates_usage', 'usage_count', 'last_used'),
+    )
+
+    def __repr__(self):
+        return f"<Template(id={self.id}, name='{self.name}', stack='{self.stack_category}')>"
+
+class Stack(Base):
+    """
+    Stack model representing technology stack categories.
+
+    This model defines the 24 different technology stack categories
+    supported by Template Heaven.
+    """
+    __tablename__ = "stacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=False)
+    category_type = Column(String(50), nullable=False, index=True)  # frontend, backend, ai-ml, etc.
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+
+    # Relationships
+    templates = relationship("Template", back_populates="stacks")
+
+    def __repr__(self):
+        return f"<Stack(id={self.id}, name='{self.name}')>"
+
+class User(Base):
+    """
+    User model for authentication and authorization.
+
+    Supports role-based access control for template management.
+    """
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_login = Column(DateTime(timezone=True), nullable=True)
+
+    def __repr__(self):
+        return f"<User(id={self.id}, username='{self.username}')>"
+
+class TrendData(Base):
+    """
+    Trend data model for tracking template popularity and metrics.
+
+    Stores historical data for trend detection and analysis.
+    """
+    __tablename__ = "trend_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+    template_id = Column(Integer, ForeignKey("templates.id"), nullable=False, index=True)
+    github_stars = Column(Integer, nullable=False, default=0)
+    github_forks = Column(Integer, nullable=False, default=0)
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    trend_score = Column(Float, nullable=False, default=0.0)
+
+    # Relationships
+    template = relationship("Template", back_populates="trends")
+
+    __table_args__ = (
+        Index('ix_trend_data_template_time', 'template_id', 'recorded_at'),
+    )
+
+    def __repr__(self):
+        return f"<TrendData(template_id={self.template_id}, stars={self.github_stars}, recorded_at={self.recorded_at})>"
+```
+
+## 🔗 Database Connection Management
+
+### Connection Configuration
+- **Environment-based configuration** for different deployment environments
+- **Connection pooling** with appropriate pool sizes
+- **Connection health checks** and automatic recovery
+- **SSL/TLS encryption** for production databases
+
+### Connection Setup
+```python
+# templateheaven/database/connection.py
+import os
+from sqlalchemy import create_engine, event
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import QueuePool
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Database configuration from environment
+DATABASE_URL = os.getenv(
+    'DATABASE_URL',
+    'postgresql://user:password@localhost/templateheaven'
+)
+
+# Test database for development
+TEST_DATABASE_URL = os.getenv(
+    'TEST_DATABASE_URL',
+    'sqlite:///./test.db'
+)
+
+def create_engine_with_config(database_url: str = None):
+    """
+    Create SQLAlchemy engine with optimized configuration.
+
+    Args:
+        database_url: Database connection URL (uses env var if not provided)
+
+    Returns:
+        Configured SQLAlchemy engine
+    """
+    if database_url is None:
+        database_url = DATABASE_URL
+
+    # Production PostgreSQL configuration
+    if database_url.startswith('postgresql'):
+        engine = create_engine(
+            database_url,
+            poolclass=QueuePool,
+            pool_size=20,
+            max_overflow=30,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+            echo=False,  # Set to True for SQL debugging
+            future=True,
+        )
+    else:
+        # Development SQLite configuration
+        engine = create_engine(
+            database_url,
+            poolclass=QueuePool,
+            pool_size=10,
+            max_overflow=20,
+            echo=False,
+            future=True,
+        )
+
+    # Connection health check
+    @event.listens_for(engine, "engine_connect")
+    def ping_connection(connection, branch):
+        if branch:
+            return
+        save_should_close_with_result = connection.should_close_with_result
+        connection.should_close_with_result = False
+
+        try:
+            connection.scalar(select(1))
+        except Exception as e:
+            logger.warning(f"Database connection failed: {e}")
+            connection.invalidated = True
+        finally:
+            connection.should_close_with_result = save_should_close_with_result
+
+    return engine
+
+# Global engine instance
+engine = create_engine_with_config()
+
+# Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Test engine for testing
+test_engine = create_engine_with_config(TEST_DATABASE_URL)
+TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+```
+
+## 🔄 Session Management
+
+### Session Lifecycle
+- **Request-scoped sessions** for web applications
+- **Proper session cleanup** in finally blocks
+- **Transaction management** with rollback on errors
+- **Connection reuse** through connection pooling
+
+### Session Dependency Pattern
+```python
+# templateheaven/database/__init__.py
+from typing import Generator
+from sqlalchemy.orm import Session
+from .connection import SessionLocal
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    Dependency for database session management.
+
+    Yields:
+        Database session for request lifecycle
+
+    Ensures proper session cleanup after request completion.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_test_db() -> Generator[Session, None, None]:
+    """
+    Test database session dependency.
+
+    Yields:
+        Test database session for testing
+    """
+    db = TestSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+## 📊 Query Patterns
+
+### Basic CRUD Operations
+- **Repository pattern** for data access logic
+- **Consistent error handling** across all operations
+- **Input validation** before database operations
+- **Proper transaction management** for multi-step operations
+
+### Repository Pattern Example
+```python
+# templateheaven/database/repositories/template_repository.py
+from typing import List, Optional, Dict, Any
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_, desc, func
+from ..models import Template
+from ..exceptions import TemplateNotFoundError, DatabaseError
+
+class TemplateRepository:
+    """Repository for template database operations."""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_by_id(self, template_id: int) -> Optional[Template]:
+        """
+        Get template by ID.
+
+        Args:
+            template_id: Template identifier
+
+        Returns:
+            Template instance or None if not found
+
+        Raises:
+            DatabaseError: If database operation fails
+        """
+        try:
+            return self.db.query(Template).filter(Template.id == template_id).first()
+        except Exception as e:
+            raise DatabaseError(f"Failed to retrieve template {template_id}: {str(e)}")
+
+    def get_by_name(self, name: str) -> Optional[Template]:
+        """
+        Get template by name.
+
+        Args:
+            name: Template name
+
+        Returns:
+            Template instance or None if not found
+        """
+        try:
+            return self.db.query(Template).filter(Template.name == name).first()
+        except Exception as e:
+            raise DatabaseError(f"Failed to retrieve template '{name}': {str(e)}")
+
+    def get_by_stack(self, stack_category: str, active_only: bool = True) -> List[Template]:
+        """
+        Get templates by stack category.
+
+        Args:
+            stack_category: Stack category name
+            active_only: Whether to include only active templates
+
+        Returns:
+            List of templates in the stack category
+        """
+        try:
+            query = self.db.query(Template).filter(Template.stack_category == stack_category)
+            if active_only:
+                query = query.filter(Template.is_active == True)
+            return query.all()
+        except Exception as e:
+            raise DatabaseError(f"Failed to retrieve templates for stack '{stack_category}': {str(e)}")
+
+    def search_templates(self, search_term: str, stack_category: Optional[str] = None) -> List[Template]:
+        """
+        Search templates by name and description.
+
+        Args:
+            search_term: Search term for template name/description
+            stack_category: Optional stack category filter
+
+        Returns:
+            List of matching templates
+        """
+        try:
+            query = self.db.query(Template).filter(
+                or_(
+                    Template.name.ilike(f"%{search_term}%"),
+                    Template.description.ilike(f"%{search_term}%")
+                )
+            )
+
+            if stack_category:
+                query = query.filter(Template.stack_category == stack_category)
+
+            return query.all()
+        except Exception as e:
+            raise DatabaseError(f"Failed to search templates: {str(e)}")
+
+    def create_template(self, template_data: Dict[str, Any]) -> Template:
+        """
+        Create new template.
+
+        Args:
+            template_data: Template data dictionary
+
+        Returns:
+            Created template instance
+
+        Raises:
+            DatabaseError: If creation fails
+        """
+        try:
+            template = Template(**template_data)
+            self.db.add(template)
+            self.db.commit()
+            self.db.refresh(template)
+            return template
+        except Exception as e:
+            self.db.rollback()
+            raise DatabaseError(f"Failed to create template: {str(e)}")
+
+    def update_template(self, template_id: int, update_data: Dict[str, Any]) -> Template:
+        """
+        Update existing template.
+
+        Args:
+            template_id: Template identifier
+            update_data: Fields to update
+
+        Returns:
+            Updated template instance
+
+        Raises:
+            TemplateNotFoundError: If template not found
+            DatabaseError: If update fails
+        """
+        try:
+            template = self.get_by_id(template_id)
+            if not template:
+                raise TemplateNotFoundError(template_id)
+
+            for field, value in update_data.items():
+                setattr(template, field, value)
+
+            template.updated_at = func.now()
+            self.db.commit()
+            self.db.refresh(template)
+            return template
+        except TemplateNotFoundError:
+            raise
+        except Exception as e:
+            self.db.rollback()
+            raise DatabaseError(f"Failed to update template {template_id}: {str(e)}")
+
+    def increment_usage(self, template_id: int) -> bool:
+        """
+        Increment template usage count.
+
+        Args:
+            template_id: Template identifier
+
+        Returns:
+            True if successful
+
+        Raises:
+            DatabaseError: If operation fails
+        """
+        try:
+            result = self.db.query(Template).filter(
+                Template.id == template_id
+            ).update({
+                'usage_count': Template.usage_count + 1,
+                'last_used': func.now()
+            })
+            self.db.commit()
+            return result > 0
+        except Exception as e:
+            self.db.rollback()
+            raise DatabaseError(f"Failed to increment usage for template {template_id}: {str(e)}")
+```
+
+## 🚨 Error Handling
+
+### Custom Database Exceptions
+```python
+# templateheaven/database/exceptions.py
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError
+
+class DatabaseError(SQLAlchemyError):
+    """Base database error class."""
+    pass
+
+class ConnectionError(DatabaseError):
+    """Database connection error."""
+    pass
+
+class TransactionError(DatabaseError):
+    """Database transaction error."""
+    pass
+
+class DataIntegrityError(DatabaseError):
+    """Database constraint violation error."""
+    pass
+
+def handle_database_error(error: Exception) -> DatabaseError:
+    """
+    Convert SQLAlchemy errors to custom database errors.
+
+    Args:
+        error: Original SQLAlchemy exception
+
+    Returns:
+        Appropriate custom database exception
+    """
+    if isinstance(error, IntegrityError):
+        return DataIntegrityError(f"Data integrity error: {str(error)}")
+    elif isinstance(error, OperationalError):
+        return ConnectionError(f"Database connection error: {str(error)}")
+    else:
+        return DatabaseError(f"Database error: {str(error)}")
+```
+
+## 🔒 Transaction Management
+
+### Transaction Patterns
+- **Explicit transaction control** for complex operations
+- **Automatic rollback** on exceptions
+- **Nested transaction support** where needed
+- **Transaction logging** for debugging
+
+### Transaction Example
+```python
+# templateheaven/database/repositories/stack_repository.py
+def update_stack_with_templates(self, stack_id: int, template_updates: List[Dict]) -> bool:
+    """
+    Update stack and associated templates in a transaction.
+
+    Args:
+        stack_id: Stack identifier
+        template_updates: List of template update operations
+
+    Returns:
+        True if successful
+    """
+    try:
+        # Start explicit transaction
+        with self.db.begin():
+            # Update stack metadata
+            stack = self.get_by_id(stack_id)
+            if not stack:
+                raise StackNotFoundError(stack_id)
+
+            # Update stack fields
+            for field, value in stack_updates.items():
+                setattr(stack, field, value)
+
+            # Process template updates
+            for update in template_updates:
+                template_id = update['template_id']
+                template_data = update['data']
+
+                template = self.db.query(Template).filter(
+                    Template.id == template_id,
+                    Template.stack_id == stack_id
+                ).first()
+
+                if not template:
+                    raise TemplateNotFoundError(template_id)
+
+                for field, value in template_data.items():
+                    setattr(template, field, value)
+
+        return True
+
+    except Exception as e:
+        # Transaction automatically rolled back
+        logger.error(f"Failed to update stack {stack_id}: {str(e)}")
+        raise DatabaseError(f"Stack update failed: {str(e)}")
+```
+
+## 📈 Performance Optimization
+
+### Query Optimization
+- **Proper indexing** on frequently queried columns
+- **Query result limiting** for large datasets
+- **Eager loading** for related data when needed
+- **Batch operations** for bulk updates
+
+### Performance Best Practices
+- **Use connection pooling** for high-concurrency applications
+- **Implement caching** for frequently accessed data
+- **Monitor query performance** with slow query logging
+- **Optimize database schema** based on usage patterns
+
+## 🧪 Database Testing
+
+### Test Database Setup
+- **Separate test database** for isolated testing
+- **Test data fixtures** for consistent test scenarios
+- **Database cleanup** between tests
+- **Mock database operations** for unit tests
+
+### Testing Patterns
+```python
+# tests/database/test_template_repository.py
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from templateheaven.database.models import Base, Template
+from templateheaven.database.repositories.template_repository import TemplateRepository
+from templateheaven.database.connection import get_test_db
+
+@pytest.fixture
+def test_db():
+    """Test database session."""
+    engine = create_engine("sqlite:///./test_template.db")
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)
+
+    db = SessionLocal()
+    yield db
+    db.close()
+
+    # Cleanup
+    Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture
+def template_repository(test_db):
+    """Template repository instance."""
+    return TemplateRepository(test_db)
+
+def test_create_template(template_repository, test_db):
+    """Test template creation."""
+    template_data = {
+        'name': 'test-template',
+        'description': 'Test template description',
+        'stack_category': 'frontend',
+        'template_path': '/path/to/template'
+    }
+
+    template = template_repository.create_template(template_data)
+
+    assert template.id is not None
+    assert template.name == 'test-template'
+    assert template.description == 'Test template description'
+
+    # Verify in database
+    db_template = test_db.query(Template).filter(Template.id == template.id).first()
+    assert db_template is not None
+    assert db_template.name == 'test-template'
+
+def test_get_template_by_stack(template_repository, test_db):
+    """Test retrieving templates by stack."""
+    # Create test templates
+    templates_data = [
+        {'name': 'template1', 'description': 'Template 1', 'stack_category': 'frontend'},
+        {'name': 'template2', 'description': 'Template 2', 'stack_category': 'frontend'},
+        {'name': 'template3', 'description': 'Template 3', 'stack_category': 'backend'},
+    ]
+
+    for data in templates_data:
+        template_repository.create_template(data)
+
+    # Test retrieval
+    frontend_templates = template_repository.get_by_stack('frontend')
+    backend_templates = template_repository.get_by_stack('backend')
+
+    assert len(frontend_templates) == 2
+    assert len(backend_templates) == 1
+    assert all(t.stack_category == 'frontend' for t in frontend_templates)
+    assert all(t.stack_category == 'backend' for t in backend_templates)
+```
+
+## 🔧 Database Migrations
+
+### Migration Strategy
+- **Alembic migrations** for schema versioning
+- **Version control** for database schema changes
+- **Migration scripts** for data transformations
+- **Rollback capability** for production deployments
+
+### Migration Structure
+```
+templateheaven/
+├── database/
+│   ├── migrations/
+│   │   ├── versions/
+│   │   ├── env.py
+│   │   └── script.py.mako
+│   └── alembic.ini
+```
+
+## 📊 Monitoring & Analytics
+
+### Database Monitoring
+- **Connection pool monitoring** for performance
+- **Slow query logging** for optimization
+- **Database health checks** for availability
+- **Usage metrics** for capacity planning
+
+### Analytics Integration
+- **Query performance tracking** with timing
+- **Popular template identification** through usage data
+- **Trend analysis** using historical data
+- **System performance metrics** collection
+
+## 🔒 Security Considerations
+
+### Database Security
+- **Parameterized queries** to prevent SQL injection
+- **Connection encryption** for production databases
+- **Access control** with proper user permissions
+- **Audit logging** for sensitive operations
+
+### Data Protection
+- **Sensitive data encryption** at rest and in transit
+- **Backup encryption** for data protection
+- **Access logging** for compliance requirements
+- **Data retention policies** implementation
+
+## 🚀 Deployment Considerations
+
+### Production Deployment
+- **Database backup strategy** before migrations
+- **Connection pool tuning** for production load
+- **Read replica configuration** for scaling
+- **Monitoring and alerting** setup
+
+### Environment Configuration
+- **Environment-specific database URLs** and credentials
+- **Database initialization** scripts for new environments
+- **Migration execution** in deployment pipeline
+- **Database health verification** in startup checks

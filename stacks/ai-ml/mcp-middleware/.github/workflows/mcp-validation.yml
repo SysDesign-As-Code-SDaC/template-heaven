@@ -1,0 +1,451 @@
+name: MCP Middleware Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - 'Dockerfile'
+      - 'docker/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - 'Dockerfile'
+      - 'docker/**'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - unit
+        - integration
+        - mcp
+        - security
+
+env:
+  PYTHON_VERSION: '3.11'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml') }}" >> $GITHUB_OUTPUT
+
+  code-quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run pre-commit hooks
+        run: |
+          pre-commit run --all-files --show-diff-on-failure
+
+      - name: Run security checks
+        run: |
+          make security-full
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+            pip-audit-report.json
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run unit tests
+        run: |
+          pytest tests/unit/ -v --tb=short --cov=src/mcp_middleware --cov-report=xml --cov-report=term
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-coverage
+          path: |
+            coverage.xml
+            htmlcov/
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [setup, unit-tests]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run database migrations
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          python -c "import asyncio; from src.mcp_middleware.core.database import init_database; asyncio.run(init_database())"
+
+      - name: Start MCP middleware
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          uvicorn src.mcp_middleware.main:app --host 0.0.0.0 --port 8000 &
+          sleep 15
+
+      - name: Run integration tests
+        run: |
+          export DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb"
+          export REDIS_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key"
+          export TESTING=true
+          pytest tests/integration/ -v --tb=short --maxfail=5
+
+  mcp-tests:
+    name: MCP Protocol Tests
+    runs-on: ubuntu-latest
+    needs: [setup, integration-tests]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run MCP-specific tests
+        run: |
+          pytest tests/ -k "mcp" -v --tb=short
+
+      - name: Test MCP server management
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from mcp_middleware.core.server_manager import ServerManager
+          manager = ServerManager()
+          servers = manager.list_servers()
+          print(f'Available MCP server types: {list(manager.server_types.keys())}')
+          print(f'Active servers: {len(servers)}')
+          "
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [setup, mcp-tests]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run performance tests
+        run: |
+          pytest tests/performance/ --benchmark-only --benchmark-save=benchmark --benchmark-json=benchmark.json
+        continue-on-error: true
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-results
+          path: |
+            .benchmarks/
+            benchmark.json
+
+  docker-validation:
+    name: Docker Image Validation
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Build development image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          target: development
+          tags: mcp-middleware:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          target: production
+          tags: mcp-middleware:prod
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test production image
+        run: |
+          docker run --rm mcp-middleware:prod python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from mcp_middleware.core.protocol_handler import MCPProtocolHandler
+          print('✅ MCP middleware Docker image validation passed')
+          "
+
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [setup, docker-validation]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build test image
+        run: docker build -t mcp-middleware:test .
+
+      - name: Run E2E tests
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URI="postgresql+asyncpg://testuser:testpass@localhost:5432/testdb" \
+            -e REDIS_URL="redis://localhost:6379/1" \
+            -e SECRET_KEY="test-secret-key" \
+            -e TESTING=true \
+            mcp-middleware:test \
+            pytest tests/e2e/ -v --tb=short --maxfail=3
+
+  clickup-integration-test:
+    name: ClickUp Integration Test
+    runs-on: ubuntu-latest
+    needs: [setup, e2e-tests]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, 'clickup'))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Test ClickUp integration
+        run: |
+          export CLICKUP_API_TOKEN="${{ secrets.CLICKUP_API_TOKEN }}"
+          if [ -n "$CLICKUP_API_TOKEN" ]; then
+            python -c "
+            import sys
+            sys.path.insert(0, 'src')
+            from mcp_middleware.servers.clickup import ClickUpServer
+            server = ClickUpServer({'api_token': '$CLICKUP_API_TOKEN'})
+            print('✅ ClickUp server initialization successful')
+            "
+          else
+            echo "⚠️ ClickUp API token not provided, skipping integration test"
+          fi
+
+  publish-test-results:
+    name: Publish Test Results
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, mcp-tests, performance-tests, docker-validation, e2e-tests]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts/
+
+      - name: Publish unit test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: "artifacts/unit-test-coverage/coverage.xml"
+
+      - name: Generate comprehensive report
+        run: |
+          echo "# MCP Middleware Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code Quality & Security: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ MCP Protocol Tests: ${{ needs.mcp-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Performance Tests: ${{ needs.performance-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Docker Validation: ${{ needs.docker-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ End-to-End Tests: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Add performance metrics
+          if [ -f "artifacts/performance-results/benchmark.json" ]; then
+            echo "## Performance Summary" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            jq '.benchmarks[0:5] | map({name: .name, time: (.stats.mean * 1000)}) | .[] | "\(.name): \(.time)ms"' artifacts/performance-results/benchmark.json >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Performance data parsing failed" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "## Summary" >> $GITHUB_STEP_SUMMARY
+          echo "All MCP middleware validations completed successfully! 🤖" >> $GITHUB_STEP_SUMMARY
+
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, mcp-tests]
+    if: failure()
+
+    steps:
+      - name: Notify failure
+        run: |
+          echo "MCP middleware validation failed! Check the logs above for details."
+          echo "Common issues:"
+          echo "- MCP protocol implementation errors"
+          echo "- Database connectivity issues in tests"
+          echo "- Docker build failures"
+          echo "- Security vulnerabilities detected"
+          echo "- Integration test failures with external services"

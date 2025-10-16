@@ -1,0 +1,142 @@
+# Data Configuration
+# This file defines how data is loaded, processed, and split for training
+
+# Data Source Configuration
+data:
+  # Data format
+  format: "csv"  # Options: csv, json, parquet, database, numpy, pandas
+
+  # File paths (for file-based data)
+  train_path: "data/train.csv"
+  val_path: "data/val.csv"
+  test_path: "data/test.csv"
+
+  # Database configuration (for database sources)
+  database:
+    connection_string: "sqlite:///data.db"  # Or PostgreSQL, MySQL, etc.
+    table_name: "training_data"
+    query: "SELECT * FROM training_data"
+
+  # Feature configuration
+  features:
+    # List of feature columns
+    - name: "feature1"
+      type: "numeric"  # Options: numeric, categorical, text, datetime
+      preprocessing:
+        - type: "standard_scaler"  # Options: standard_scaler, min_max_scaler, robust_scaler
+    - name: "feature2"
+      type: "categorical"
+      preprocessing:
+        - type: "one_hot_encoder"  # Options: one_hot_encoder, label_encoder, target_encoder
+    - name: "feature3"
+      type: "text"
+      preprocessing:
+        - type: "tfidf_vectorizer"  # Options: tfidf_vectorizer, count_vectorizer, word2vec
+          max_features: 1000
+    - name: "feature4"
+      type: "datetime"
+      preprocessing:
+        - type: "datetime_features"  # Extract year, month, day, hour, etc.
+
+  # Target configuration
+  target:
+    name: "target"  # Target column name
+    type: "classification"  # Options: classification, regression, multiclass
+    classes: null  # For classification: list of class names, null for auto-detection
+
+# Data Splitting Configuration
+split:
+  # Split ratios
+  train_ratio: 0.7
+  val_ratio: 0.2
+  test_ratio: 0.1
+
+  # Splitting method
+  method: "random"  # Options: random, stratified, time_series, group
+  random_state: 42
+
+  # Stratification (for classification)
+  stratify: true  # Use stratified splitting for classification
+
+  # Time series splitting
+  time_column: null  # Column name for time-based splitting
+  test_size: "1M"    # Test set size (for time series)
+
+  # Group splitting (to avoid data leakage)
+  group_column: null  # Column name for group-based splitting
+
+# Data Preprocessing Configuration
+preprocessing:
+  # Missing value handling
+  missing_values:
+    strategy: "mean"  # Options: mean, median, mode, constant, drop
+    fill_value: 0     # For constant strategy
+
+  # Outlier handling
+  outliers:
+    method: "none"  # Options: none, zscore, iqr, isolation_forest
+    threshold: 3.0  # For zscore method
+
+  # Feature scaling
+  scaling:
+    method: "standard"  # Options: standard, min_max, robust, none
+    feature_range: [0, 1]  # For min_max scaling
+
+  # Feature selection
+  feature_selection:
+    method: "none"  # Options: none, variance, correlation, mutual_info, wrapper
+    threshold: 0.01  # For variance threshold
+
+  # Dimensionality reduction
+  dimensionality_reduction:
+    method: "none"  # Options: none, pca, lda, t_sne
+    n_components: 50  # Number of components to keep
+
+# Data Augmentation (for specific data types)
+augmentation:
+  # Image augmentation
+  image:
+    enabled: false
+    rotations: [-10, 10]
+    flips: ["horizontal"]
+    brightness: [0.8, 1.2]
+    contrast: [0.8, 1.2]
+
+  # Text augmentation
+  text:
+    enabled: false
+    synonym_replacement: 0.1
+    random_deletion: 0.1
+    random_insertion: 0.1
+
+# Data Validation
+validation:
+  # Schema validation
+  schema_validation: true
+  expected_columns: null  # List of expected column names
+
+  # Data quality checks
+  quality_checks:
+    - type: "range_check"
+      column: "age"
+      min_value: 0
+      max_value: 120
+    - type: "uniqueness_check"
+      column: "id"
+    - type: "completeness_check"
+      threshold: 0.95  # Minimum completeness ratio
+
+# Performance Optimization
+performance:
+  # Data loading
+  chunk_size: 10000  # For large datasets
+  parallel_loading: true
+  n_workers: 4
+
+  # Memory management
+  low_memory_mode: false
+  dtype_optimization: true
+
+  # Caching
+  cache_data: true
+  cache_dir: "data/cache"
