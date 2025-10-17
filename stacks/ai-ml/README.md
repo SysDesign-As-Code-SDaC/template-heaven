@@ -8,7 +8,12 @@ This stack branch contains production-ready templates for ai-ml development.
 
 ### Template Categories
 
-<!-- Add template categories here as templates are added -->
+- **MCP Middleware** - Model Context Protocol servers and clients
+- **AI Benchmarks** - Performance testing and evaluation suites
+- **Generic AI Models** - Flexible ML model templates
+- **Quantum Computing** - Quantum algorithms and ML integration
+- **Voice Processing** - NVIDIA Maverick voice AI integration
+- **Advanced Libraries** - Specialized AI/ML libraries and tools
 
 ## ðŸš€ Quick Start
 
@@ -70,7 +75,11 @@ This repository uses automated workflows to:
 
 | Template | Description | Upstream | Status |
 |----------|-------------|----------|--------|
-| _Templates will be listed here_ | | | |
+| [python-mcp-sdk](mcp-middleware/python-mcp-sdk/) | Production-ready MCP server and client template | [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | ✅ Active |
+| [ai-benchmarks-suite](ai-benchmarks-suite/) | Comprehensive AI performance testing suite | Custom | ✅ Active |
+| [generic-ai-model](generic-ai-model/) | Flexible ML model template with multiple algorithms | Custom | ✅ Active |
+| [quantum-computing-starter](quantum-computing-starter/) | Quantum algorithms and ML integration | Custom | ✅ Active |
+| [nvidia-maverick-llama-voice](nvidia-maverick-llama-voice/) | Voice AI integration with NVIDIA Maverick | Custom | ✅ Active |
 
 ## ðŸ¤ Contributing
 

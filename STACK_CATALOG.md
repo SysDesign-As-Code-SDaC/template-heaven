@@ -25,7 +25,7 @@ Template-heaven uses a **multi-branch architecture** where each technology stack
 
 | Stack | Branch | Description | Templates |
 |-------|--------|-------------|-----------|
-| **AI/ML** | [`stack/ai-ml`](../../tree/stack/ai-ml) | Traditional ML and data science | Cookiecutter, PyTorch, TensorFlow |
+| **AI/ML** | [`stack/ai-ml`](../../tree/stack/ai-ml) | Traditional ML and data science | MCP SDK, AI Benchmarks, Quantum ML |
 | **Advanced AI** | [`stack/advanced-ai`](../../tree/stack/advanced-ai) | LLMs, RAG, vector databases | LangChain, LlamaIndex, ChromaDB |
 | **Agentic AI** | [`stack/agentic-ai`](../../tree/stack/agentic-ai) | Autonomous systems and agents | LangGraph, CrewAI, AutoGen |
 | **Generative AI** | [`stack/generative-ai`](../../tree/stack/generative-ai) | Content creation and generation | DALL-E, GPT, Stable Diffusion |

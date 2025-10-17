@@ -1,0 +1,37 @@
+# Python MCP SDK Client - Container for MCP Client Applications
+# Based on the official Model Context Protocol Python SDK
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements-client.txt ./
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install -r requirements-client.txt
+
+# Copy client examples
+COPY examples/ ./examples/
+COPY src/ ./src/
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash mcp && \
+    chown -R mcp:mcp /app
+USER mcp
+
+# Default command - run client example
+CMD ["python", "examples/clients/simple_client.py"]

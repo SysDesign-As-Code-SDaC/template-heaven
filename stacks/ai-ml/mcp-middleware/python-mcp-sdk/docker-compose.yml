@@ -1,0 +1,187 @@
+# Python MCP SDK Template - Docker Compose Configuration
+# Complete development and production setup
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # MCP SDK Server - Main Application
+  # ============================================================================
+  mcp-sdk-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python-mcp-sdk-server
+    ports:
+      - "8000:8000"
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - MCP_LOG_LEVEL=INFO
+      - MCP_DEBUG=false
+      - DATABASE_URL=postgresql://mcp_user:mcp_pass@postgres:5432/mcp_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-mcp-sdk-secret-key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./src:/app/src:ro
+      - ./examples:/app/examples:ro
+      - mcp_data:/app/data
+      - mcp_logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - mcp-network
+
+  # ============================================================================
+  # MCP Client - Example Client Application
+  # ============================================================================
+  mcp-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: python-mcp-sdk-client
+    environment:
+      - MCP_SERVER_URL=http://mcp-sdk-server:8000
+      - CLIENT_LOG_LEVEL=INFO
+    depends_on:
+      - mcp-sdk-server
+    volumes:
+      - ./examples:/app/examples:ro
+      - client_data:/app/data
+    restart: "no"
+    networks:
+      - mcp-network
+    profiles: ["client"]
+
+  # ============================================================================
+  # Infrastructure Services
+  # ============================================================================
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: mcp-postgres
+    environment:
+      - POSTGRES_DB=mcp_db
+      - POSTGRES_USER=mcp_user
+      - POSTGRES_PASSWORD=mcp_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp_user -d mcp_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mcp-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - mcp-network
+
+  # ============================================================================
+  # Development Tools
+  # ============================================================================
+
+  # Jupyter Notebook for Development
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: mcp-jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-mcp-dev-token}
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./examples:/home/jovyan/work/examples:ro
+      - ./src:/home/jovyan/work/src:ro
+    depends_on:
+      - mcp-sdk-server
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    profiles: ["dev"]
+
+  # PgAdmin - Database Administration
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mcp-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@mcp.dev
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    profiles: ["dev"]
+
+  # Redis Commander - Redis Management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: mcp-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    profiles: ["dev"]
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres_data:
+  redis_data:
+  mcp_data:
+  mcp_logs:
+  client_data:
+  pgadmin_data:
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  mcp-network:
+    driver: bridge
+    name: mcp-network
