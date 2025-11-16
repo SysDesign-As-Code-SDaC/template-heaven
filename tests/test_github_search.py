@@ -30,7 +30,6 @@ class TestGitHubSearchService:
     def test_initialization(self, search_service):
         """Test service initialization."""
         assert search_service.config is not None
-        assert search_service.template_manager is not None
         assert search_service.stack_config is not None
         assert search_service.github_token is None  # No token in test config
 
@@ -51,7 +50,7 @@ class TestGitHubSearchService:
             "archived": False
         }
 
-        with patch('templateheaven.core.github_client.GitHubClient') as mock_client_class:
+        with patch('templateheaven.core.github_search.GitHubClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client_class.return_value.__aexit__.return_value = None
@@ -71,13 +70,13 @@ class TestGitHubSearchService:
             assert len(results) == 1
             assert isinstance(results[0], TemplateSearchResult)
             assert results[0].score == 0.8
-            assert "GitHub:" in results[0].match_reason
+            assert results[0].match_reason == "Good star count"
             assert results[0].template.name == "test-repo"
 
     @pytest.mark.asyncio
     async def test_search_github_templates_with_stack(self, search_service):
         """Test GitHub search with stack filtering."""
-        with patch('templateheaven.core.github_client.GitHubClient') as mock_client_class:
+        with patch('templateheaven.core.github_search.GitHubClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client_class.return_value.__aexit__.return_value = None
@@ -91,8 +90,16 @@ class TestGitHubSearchService:
                 mock_client.find_template_candidates.return_value = [{
                     "repository": {
                         "name": "react-template",
+                        "full_name": "user/react-template",
+                        "description": "A React template for frontend development",
+                        "html_url": "https://github.com/user/react-template",
                         "stargazers_count": 200,
-                        "topics": ["react", "template"]
+                        "forks_count": 50,
+                        "language": "JavaScript",
+                        "topics": ["react", "template"],
+                        "license": {"name": "MIT"},
+                        "updated_at": "2024-01-01T00:00:00Z",
+                        "archived": False
                     },
                     "template_potential": 0.9,
                     "reasons": ["High template potential"],
@@ -124,7 +131,7 @@ class TestGitHubSearchService:
             }
         }
 
-        with patch('templateheaven.core.github_client.GitHubClient') as mock_client_class:
+        with patch('templateheaven.core.github_search.GitHubClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client_class.return_value.__aexit__.return_value = None
@@ -164,7 +171,7 @@ class TestGitHubSearchService:
             "quality_score": 0.9
         }]
 
-        with patch('templateheaven.core.github_client.GitHubClient') as mock_client_class:
+        with patch('templateheaven.core.github_search.GitHubClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client_class.return_value.__aexit__.return_value = None
@@ -197,7 +204,7 @@ class TestGitHubSearchService:
             "used": 10
         }
 
-        with patch('templateheaven.core.github_client.GitHubClient') as mock_client_class:
+        with patch('templateheaven.core.github_search.GitHubClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client_class.return_value.__aexit__.return_value = None

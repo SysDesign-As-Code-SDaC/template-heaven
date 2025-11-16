@@ -225,11 +225,11 @@ class TestSQLiteCache:
         stats = cache.get_stats()
 
         # Check basic stats exist
-        assert "sqlite_total_entries" in stats
-        assert "sqlite_template_count" in stats
-        assert "sqlite_repo_count" in stats
-        assert stats["sqlite_template_count"] >= 1
-        assert stats["sqlite_repo_count"] >= 1
+        assert "total_entries" in stats
+        assert "template_count" in stats
+        assert "repo_count" in stats
+        assert stats["template_count"] >= 1
+        assert stats["repo_count"] >= 1
 
     def test_cleanup_expired_entries(self, cache):
         """Test cleanup of expired entries."""

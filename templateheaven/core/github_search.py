@@ -33,17 +33,19 @@ class GitHubSearchService:
     template discovery and analysis capabilities.
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Optional[Config] = None, template_manager=None):
         """
         Initialize the GitHub search service.
 
         Args:
             config: Configuration instance
+            template_manager: Template manager instance
 
         Raises:
             ImportError: If GitHub integration is requested but aiohttp is not available
         """
         self.config = config or Config()
+        self.template_manager = template_manager
         self.stack_config = get_stack_config_manager()
         self.github_token = self.config.get('github_token')
         self.github_available = GITHUB_AVAILABLE
@@ -125,13 +127,7 @@ class GitHubSearchService:
                 result = TemplateSearchResult(
                     template=template,
                     score=candidate["template_potential"],
-                    match_reason=self._generate_match_reason(candidate),
-                    metadata={
-                        "github_data": repo_data,
-                        "analysis": candidate,
-                        "quality_score": candidate["quality_score"],
-                        "risks": candidate["risks"]
-                    }
+                    match_reason=self._generate_match_reason(candidate)
                 )
 
                 results.append(result)

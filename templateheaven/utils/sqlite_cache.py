@@ -218,15 +218,16 @@ class SQLiteCache:
                 conn.commit()
                 logger.debug("Database schema initialized")
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str, default: Any = None) -> Any:
         """
         Get value from cache.
 
         Args:
             key: Cache key
+            default: Default value to return if key not found
 
         Returns:
-            Cached value or None if not found/expired
+            Cached value or default if not found/expired
         """
         with self._lock:
             with self._get_connection() as conn:
@@ -234,7 +235,7 @@ class SQLiteCache:
 
                 cursor.execute("""
                     SELECT value, metadata FROM cache_entries
-                    WHERE key = ? AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+                    WHERE key = ? AND (expires_at IS NULL OR expires_at > strftime('%s', 'now'))
                 """, (key,))
 
                 row = cursor.fetchone()
@@ -253,7 +254,7 @@ class SQLiteCache:
                     except json.JSONDecodeError:
                         return row[0]
 
-        return None
+        return default
 
     def set(self, key: str, value: Any, ttl_seconds: Optional[int] = None, metadata: Optional[Dict] = None) -> bool:
         """
@@ -275,6 +276,7 @@ class SQLiteCache:
                 expires_at = None
                 if ttl_seconds:
                     expires_at = datetime.now() + timedelta(seconds=ttl_seconds)
+                    expires_at = expires_at.timestamp()  # Store as Unix timestamp
 
                 try:
                     json_value = json.dumps(value)
@@ -335,7 +337,7 @@ class SQLiteCache:
         with self._lock:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM cache_entries WHERE expires_at <= CURRENT_TIMESTAMP")
+                cursor.execute("DELETE FROM cache_entries WHERE expires_at <= strftime('%s', 'now')")
                 removed = cursor.rowcount
                 conn.commit()
 
@@ -541,8 +543,8 @@ class SQLiteCache:
                 params = [min_potential]
 
                 if stack:
-                    query += " AND ? = ANY(stack_suggestions)"
-                    params.append(stack)
+                    query += " AND INSTR(stack_suggestions, ?) > 0"
+                    params.append(f'"{stack}"')
 
                 query += " ORDER BY template_potential DESC, quality_score DESC LIMIT ?"
                 params.append(limit)
@@ -570,7 +572,7 @@ class SQLiteCache:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                expires_at = datetime.now() + timedelta(seconds=ttl_seconds)
+                expires_at = (datetime.now() + timedelta(seconds=ttl_seconds)).timestamp()
 
                 try:
                     cursor.execute("""
@@ -609,8 +611,8 @@ class SQLiteCache:
 
                 cursor.execute("""
                     SELECT results FROM search_results
-                    WHERE query = ? AND stack_filter IS ?
-                      AND expires_at > CURRENT_TIMESTAMP
+                    WHERE query = ? AND stack_filter = ?
+                      AND expires_at > strftime('%s', 'now')
                     ORDER BY created_at DESC LIMIT 1
                 """, (query, stack_filter))
 

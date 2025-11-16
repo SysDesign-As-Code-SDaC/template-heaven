@@ -207,6 +207,15 @@ class GitHubClient:
         Returns:
             Analysis results with template suitability score
         """
+        if repo_data is None:
+            return {
+                "template_potential": 0.0,
+                "quality_score": 0.0,
+                "risks": ["Repository data is None"],
+                "stack_suggestions": [],
+                "analysis": "No repository data available"
+            }
+
         analysis = {
             "repository": repo_data,
             "template_potential": 0.0,
