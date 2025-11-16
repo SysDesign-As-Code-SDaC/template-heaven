@@ -45,7 +45,8 @@ uv run templateheaven init
 # 1. Technology stack selection (24 categories)
 # 2. Template discovery with quality scores
 # 3. Project configuration and customization
-# 4. Professional project scaffolding
+# 4. Architecture & System Design Questionnaire (MANDATORY)
+# 5. Professional project scaffolding with auto-generated architecture docs
 ```
 
 ### API Server Integration

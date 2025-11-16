@@ -39,6 +39,13 @@
 - **Search**: `GET /api/v1/search` - Search templates
 - **Populate**: `POST /api/v1/populate` - Populate database
 
+### Architecture Questionnaire Endpoints (NEW)
+- **Questionnaire Structure**: `GET /api/v1/architecture/questionnaire/structure` - Get all questions
+- **Questions by Category**: `GET /api/v1/architecture/questionnaire/category/{category}` - Filter questions
+- **Question by Key**: `GET /api/v1/architecture/questionnaire/question/{key}` - Get single question
+- **Fill with AI**: `POST /api/v1/architecture/questionnaire/fill` - AI/LLM auto-fill
+- **Validate Answers**: `POST /api/v1/architecture/questionnaire/validate` - Validate questionnaire answers
+
 ### Authentication Endpoints (Optional)
 - **Login**: `POST /api/v1/auth/login`
 - **Register**: `POST /api/v1/auth/register`
@@ -50,7 +57,7 @@
 - **ReDoc**: `http://127.0.0.1:8000/redoc`
 - **OpenAPI JSON**: `http://127.0.0.1:8000/openapi.json`
 
-**Total API Paths**: 41 endpoints defined
+**Total API Paths**: 46 endpoints defined (including 5 new architecture questionnaire endpoints)
 
 ---
 
@@ -211,9 +218,18 @@ ps aux | grep uvicorn
 3. **Code Quality Assurance**: All tests now validate core functionality with proper error handling
 4. **Development Readiness**: Project now has robust testing infrastructure for continued development
 
+**New Features**:
+1. **Architecture Questionnaire System** ✅
+   - 47 comprehensive system design questions
+   - Mandatory during project scaffolding
+   - Auto-generates 7 architecture documents
+   - API endpoints for AI/LLM integration
+   - Prevents architectural drift
+
 **Next Steps**:
 1. Populate database with templates using `/api/v1/populate`
 2. Access Swagger UI at `http://127.0.0.1:8000/docs`
-3. Continue development with confidence using the comprehensive test suite
-4. Monitor test coverage and add new tests for new features
+3. Test architecture questionnaire via `templateheaven init`
+4. Continue development with confidence using the comprehensive test suite
+5. Monitor test coverage and add new tests for new features
 

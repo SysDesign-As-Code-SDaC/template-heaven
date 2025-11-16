@@ -27,6 +27,9 @@ Template Heaven is a comprehensive Python-based template management system featu
 - **24 Technology Stack Categories** from Frontend to Quantum Computing
 - **Interactive CLI** with beautiful Rich terminal interface
 - **Wizard-style project initialization** with guided prompts
+- **Mandatory Architecture Questionnaire** - Comprehensive system design questions to prevent architectural drift
+- **Auto-Generated Architecture Docs** - Roadmaps, feature flags, system design, and prioritization documents
+- **AI/LLM Integration** - API endpoints for intelligent questionnaire auto-filling
 - **GitHub-powered discovery** with live search capabilities
 - **Template validation and quality scoring** system
 - **Automated trend detection** for emerging templates
@@ -98,6 +101,47 @@ uv run uvicorn templateheaven.api.main:app --reload --host 0.0.0.0 --port 8000
 
 # Or use the Makefile
 make run-api
+```
+
+### 🏗️ Architecture Questionnaire System
+
+Template Heaven includes a **mandatory architecture questionnaire** that ensures every scaffolded project has proper system design documentation:
+
+```bash
+# When you run the wizard, you'll be prompted with comprehensive architecture questions
+uv run templateheaven init
+
+# The wizard includes:
+# 1. Stack selection
+# 2. Template selection  
+# 3. Project configuration
+# 4. Architecture & System Design Questionnaire (MANDATORY)
+# 5. Project creation with auto-generated architecture docs
+```
+
+**Generated Documents:**
+- `docs/architecture/ARCHITECTURE.md` - Complete architecture overview
+- `docs/architecture/SYSTEM_DESIGN.md` - Detailed system design
+- `docs/architecture/ROADMAP.md` - Feature roadmap and prioritization
+- `docs/architecture/FEATURE_FLAGS.md` - Feature flagging strategy
+- `docs/architecture/INFRASTRUCTURE.md` - Infrastructure requirements
+- `docs/architecture/SECURITY.md` - Security architecture
+- `docs/architecture/API_DESIGN.md` - API design documentation
+
+**API Integration:**
+```bash
+# Get questionnaire structure
+curl http://localhost:8000/api/v1/architecture/questionnaire/structure
+
+# Fill questionnaire with AI/LLM
+curl -X POST http://localhost:8000/api/v1/architecture/questionnaire/fill \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_name": "my-project",
+    "project_description": "A scalable microservices platform",
+    "llm_provider": "openai"
+  }'
+```
 
 # Access the API documentation
 # - Swagger UI: http://localhost:8000/docs

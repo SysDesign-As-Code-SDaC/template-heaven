@@ -21,11 +21,31 @@ User runs: templateheaven init
     ↓
 4. Project Configuration (Name, Author, License, Package Manager)
     ↓
-5. Confirmation Preview
+5. Architecture & System Design Questionnaire (MANDATORY)
+    - 47 comprehensive questions covering:
+      * Project vision and objectives
+      * Architecture patterns (monolith, microservices, serverless, etc.)
+      * Performance and scalability requirements
+      * Security and compliance needs
+      * Infrastructure and deployment models
+      * API design and integration requirements
+      * Observability and monitoring
+      * Feature flagging and prioritization
+    - Option to use AI/LLM for fast filling
     ↓
-6. Project Creation (Scaffolding with Jinja2)
+6. Confirmation Preview
     ↓
-7. Success Message + Next Steps
+7. Project Creation (Scaffolding with Jinja2)
+    - Auto-generates mandatory architecture documents:
+      * ARCHITECTURE.md - Complete architecture overview
+      * SYSTEM_DESIGN.md - Detailed system design
+      * ROADMAP.md - Feature roadmap and prioritization
+      * FEATURE_FLAGS.md - Feature flagging strategy
+      * INFRASTRUCTURE.md - Infrastructure requirements
+      * SECURITY.md - Security architecture
+      * API_DESIGN.md - API design documentation
+    ↓
+8. Success Message + Next Steps
 ```
 
 ---
@@ -101,7 +121,52 @@ If user selects "Search all templates":
 
 ---
 
-### 4. **Template Selection** (`_select_template`)
+### 4. **Architecture Questionnaire** (`_collect_architecture_answers`) - NEW
+
+**What it does:**
+- Presents comprehensive system design questions
+- Covers 17 categories: project overview, architecture patterns, performance, security, deployment, etc.
+- Option to use AI/LLM for intelligent auto-filling
+- Validates all answers before proceeding
+- Mandatory step to prevent architectural drift
+
+**User sees:**
+```
+Step 4: Architecture & System Design Questionnaire
+
+This questionnaire is MANDATORY to prevent architectural drift
+and ensure your project has proper system design documentation.
+
+The questions cover:
+- Architecture patterns and deployment models
+- Performance, security, and compliance requirements
+- Infrastructure and data architecture
+- API design and integration needs
+- Observability and DevOps practices
+
+Would you like to use AI/LLM to auto-fill? (y/n)
+```
+
+**Questions include:**
+- Project vision and target users
+- Architecture patterns (monolith, microservices, serverless, etc.)
+- Scalability and performance requirements
+- Security level and compliance standards
+- Deployment model (cloud-native, on-premise, hybrid)
+- Infrastructure choices (containers, orchestration, databases)
+- API design (REST, GraphQL, gRPC)
+- Monitoring and observability strategy
+- Feature flagging requirements
+- Must-have vs nice-to-have features
+
+**After completion:**
+- Answers are stored in `ProjectConfig.architecture_answers`
+- Architecture documents are auto-generated during project creation
+- Documents saved to `docs/architecture/` directory
+
+---
+
+### 5. **Template Selection** (`_select_template`)
 
 **What it does:**
 - Gets templates for selected stack
