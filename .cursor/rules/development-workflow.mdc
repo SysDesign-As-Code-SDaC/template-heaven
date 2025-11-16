@@ -222,7 +222,7 @@ type(scope): description
 - **docs**: Documentation updates only
 - **refactor**: Code refactoring without functional changes
 - **test**: Adding or updating tests
-- **ci**: CI/CD pipeline changes
+- **ci**: automation pipeline changes (CI/CD examples disabled)
 - **perf**: Performance improvements
 - **security**: Security-related changes
 
@@ -232,7 +232,7 @@ feat(frontend): add Next.js 14 template with App Router
 
 fix(backend): resolve FastAPI dependency conflict in Python templates
 
-chore(devops): update GitHub Actions workflow for Python 3.12
+chore(automation): update automation workflow for Python 3.12
 
 docs(readme): add installation instructions for new ML templates
 
@@ -519,7 +519,7 @@ class MonitoringService:
 
 ### Quality Assurance Tools
 - **Pre-commit hooks** for immediate feedback
-- **GitHub Actions** for automated validation
+- **Automation** for automated validation (GitHub Actions examples disabled)
 - **Code quality dashboards** for monitoring trends
 - **Automated code review** tools for consistency
 
@@ -591,7 +591,7 @@ class MonitoringService:
 - [ ] **Breaking changes** clearly documented
 
 ### Pre-Release Checklist
-- [ ] **All tests pass** in CI/CD pipeline
+- [ ] **All tests pass** in automation pipeline (CI/CD examples disabled)
 - [ ] **Security scans** pass without critical issues
 - [ ] **Performance benchmarks** meet requirements
 - [ ] **Documentation** is complete and current

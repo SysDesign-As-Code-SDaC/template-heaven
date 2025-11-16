@@ -227,9 +227,9 @@ async def test_integration_workflow(mock_model, temp_output_dir):
 - **Fast execution**: Tests should run quickly to enable frequent execution
 - **Use fixtures**: Reuse common test setup with pytest fixtures
 
-## 🔄 CI/CD Integration
+## 🔄 Automation Integration
 
-### GitHub Actions
+### Automation (GitHub Actions disabled)
 ```yaml
 # .github/workflows/tests.yml
 name: Tests
@@ -281,7 +281,7 @@ repos:
 - [ ] Type checking passes: `mypy ai_benchmarks`
 
 ### Before Merging
-- [ ] Integration tests pass in CI/CD
+- [ ] Integration tests pass in automation pipeline
 - [ ] Performance tests meet benchmarks
 - [ ] Documentation updated for new functionality
 - [ ] Changelog updated with changes

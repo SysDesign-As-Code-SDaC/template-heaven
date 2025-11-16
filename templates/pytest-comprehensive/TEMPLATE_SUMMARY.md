@@ -60,7 +60,7 @@ features for modern Python development.
 - **Coverage Reporting**: HTML and terminal coverage reports
 - **Parallel Execution**: Run tests across multiple CPU cores
 - **Test Selection**: Run specific test categories or markers
-- **CI/CD Ready**: Pre-configured for automated testing pipelines
+- **Automation Ready**: Pre-configured for automated testing pipelines
 
 ## Usage Examples
 
@@ -146,7 +146,7 @@ def test_data_processing_performance(benchmark, faker):
 3. **Mocking Strategy**: Proper use of mocks for external dependencies
 4. **Data Management**: Fake data generation for realistic test scenarios
 5. **Performance Monitoring**: Built-in performance testing capabilities
-6. **CI/CD Integration**: Ready for automated testing pipelines
+- 6. **Automation Integration**: Ready for automated testing pipelines
 7. **Code Coverage**: Comprehensive coverage reporting and analysis
 8. **Parallel Execution**: Optimized for fast test execution
 9. **Error Handling**: Proper error testing and exception handling
@@ -157,7 +157,7 @@ def test_data_processing_performance(benchmark, faker):
 This template integrates seamlessly with modern Python development practices:
 
 - **TDD/BDD**: Supports test-driven and behavior-driven development
-- **CI/CD**: Pre-configured for GitHub Actions, GitLab CI, and other platforms
+- **Automation examples**: Pre-configured for GitHub Actions, GitLab CI, and other platforms (examples disabled)
 - **Code Quality**: Compatible with black, isort, flake8, mypy, and other tools
 - **Documentation**: Generates test reports and coverage documentation
 - **Debugging**: Rich test output with detailed failure information

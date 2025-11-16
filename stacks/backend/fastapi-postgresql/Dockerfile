@@ -121,7 +121,7 @@ CMD ["gunicorn", \
      "--log-level", "info"]
 
 # =============================================================================
-# Testing stage - for CI/CD pipelines
+# Testing stage - for automation pipelines (CI/CD examples disabled)
 # =============================================================================
 FROM dependencies as testing
 

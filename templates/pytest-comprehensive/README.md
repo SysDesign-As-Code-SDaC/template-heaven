@@ -1,6 +1,6 @@
 # pytest-comprehensive
 
-A comprehensive pytest testing framework template with fixtures, mocking, coverage, parallel testing, and CI integration.
+A comprehensive pytest testing framework template with fixtures, mocking, coverage, parallel testing, and automation integration (CI examples disabled).
 
 ## Features
 
@@ -9,7 +9,7 @@ A comprehensive pytest testing framework template with fixtures, mocking, covera
 - **Coverage Reporting**: Detailed coverage analysis with multiple output formats
 - **Parallel Execution**: Speed up tests with pytest-xdist
 - **Async Testing**: Support for async/await test functions
-- **CI Integration**: Ready-to-use GitHub Actions workflow
+- **CI Integration (example)**: GitHub Actions workflow (disabled)
 - **Test Data Generation**: Faker integration for realistic test data
 - **Factory Pattern**: Factory Boy for complex object creation
 - **Property-based Testing**: Hypothesis integration for advanced testing
@@ -223,9 +223,9 @@ def test_memory_usage():
     assert peak < 100 * 1024 * 1024  # Less than 100MB
 ```
 
-## CI/CD Integration
+## Automation Integration
 
-### GitHub Actions
+### GitHub Actions (disabled)
 
 ```yaml
 name: Tests

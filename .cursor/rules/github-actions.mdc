@@ -1,9 +1,9 @@
 ---
 globs: *.yml,*.yaml,.github/**
-description: GitHub Actions and CI/CD workflow standards for Template Heaven
+description: Automation example standards (GitHub Actions disabled) for Template Heaven
 ---
 
-# GitHub Actions & CI/CD Standards
+# Automation example standards (GitHub Actions disabled)
 
 ## 🤖 Workflow Architecture
 

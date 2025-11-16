@@ -594,7 +594,7 @@ jobs:
 
 ### Manual Validation Process
 1. **Template submission** by contributor
-2. **Automated validation** runs in CI/CD pipeline
+2. **Automated validation** runs as part of an automated pipeline
 3. **Manual review** by maintainers for complex issues
 4. **Integration testing** for external service compatibility
 5. **Final approval** and merge to main branch
@@ -687,7 +687,7 @@ __all__ = [
 - **Performance awareness** in resource usage
 - **User experience focus** in documentation and setup
 
-## 🚀 Validation in CI/CD
+## 🚀 Validation in Automated Pipelines
 
 ### Integration Points
 - **Pre-commit hooks** for immediate feedback

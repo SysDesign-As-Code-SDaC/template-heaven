@@ -88,18 +88,15 @@ init:
 list:
 	python -m templateheaven.cli.main list
 
-# CI/CD helpers
+# Automation helpers: Disabled
 ci-install:
-	pip install -e ".[dev]"
+	@echo "Automation helpers disabled by maintainer"
 
 ci-test:
-	pytest tests/ -v --cov=templateheaven --cov-report=xml
+	@echo "Automation tests disabled by maintainer"
 
 ci-lint:
-	flake8 templateheaven tests
-	mypy templateheaven
-	black --check templateheaven tests
-	isort --check-only templateheaven tests
+	@echo "Automation lint disabled by maintainer"
 
 # Template management (for development)
 update-templates:
@@ -155,7 +152,7 @@ test-help:
 	@echo "Testing Commands:"
 	@echo "  make test         - Run tests"
 	@echo "  make test-cov     - Run tests with coverage"
-	@echo "  make ci-test      - Run tests for CI/CD"
+	@echo "  make ci-test      - (disabled)"
 
 lint-help:
 	@echo "Linting Commands:"
@@ -175,6 +172,18 @@ env-info:
 # Quick development cycle
 dev: format lint test
 	@echo "Development cycle complete!"
+
+# Yeoman generator helpers
+generator-install:
+	@echo "Installing Yeoman generator dependencies..."
+	cd generators/templateheaven-generator && npm install
+
+generator-run:
+	@echo "Run the Yeoman generator from the target directory (e.g., mkdir newapp && cd newapp && make generator-run)"
+	@cd generators/templateheaven-generator && ./node_modules/.bin/yo templateheaven
+
+export-stacks-json:
+	@python scripts/export_stacks_json.py
 
 # Full development setup
 dev-setup: clean install-dev format lint test

@@ -189,23 +189,18 @@ benchmark: ## Run performance benchmarks
 benchmark-compare: ## Compare with previous benchmark
 	pytest tests/performance/ --benchmark-compare
 
-# CI/CD helpers
-ci-test: ## Run tests for CI/CD
-	pytest --cov=src --cov-report=xml --cov-report=term-missing --junitxml=test-results.xml
+# Automation helpers: Disabled per maintainer request
+ci-test: ## Run tests (disabled)
+	@echo "Automation tests disabled by maintainer"
 
-ci-lint: ## Run linting for CI/CD
-	black --check src tests
-	isort --check-only src tests
-	flake8 src tests
-	mypy src
+ci-lint: ## Run linting (disabled)
+	@echo "Automation lint disabled by maintainer"
 
-ci-security: ## Run security checks for CI/CD
-	bandit -r src/ -f json -o bandit-report.json
-	safety check --json --output safety-report.json
-	pip-audit --format=json --output=pip-audit-report.json
+ci-security: ## Run security checks (disabled)
+	@echo "Automation security checks disabled by maintainer"
 
-ci-quantum: ## Run quantum-specific CI tests
-	pytest tests/ -k "quantum" --tb=short
+ci-quantum: ## Run quantum-specific automation tests (disabled)
+	@echo "Automation quantum tests disabled by maintainer"
 
 # Development workflow
 setup: install-dev env ## Complete development setup
@@ -216,8 +211,8 @@ setup: install-dev env ## Complete development setup
 check: format-check lint type-check security ## Run all checks
 	@echo "All checks passed! ✅"
 
-ci: ci-lint ci-test ci-security ci-quantum ## Run CI/CD pipeline locally
-	@echo "CI/CD pipeline completed successfully! 🚀"
+ci: ## Automation pipeline disabled
+	@echo "Automation pipeline disabled by repository maintainer"
 
 # Quick development commands
 quick-test: ## Quick test run

@@ -224,7 +224,7 @@ notifications:
 ### Quality Metrics
 - **Documentation**: README quality score
 - **License**: License presence and type
-- **CI/CD**: Automated testing presence
+- **Automation**: Automated testing presence
 - **Code Quality**: Linting and formatting
 
 ### Trend Score Calculation
@@ -289,7 +289,7 @@ python src/trend_monitor.py --config custom_config.yaml
 ```
 
 #### Automated Execution
-The system runs automatically via GitHub Actions:
+Trend detection was previously run via GitHub Actions (now disabled). For local/manual runs, follow:
 
 ```yaml
 # .github/workflows/trend-detection.yml

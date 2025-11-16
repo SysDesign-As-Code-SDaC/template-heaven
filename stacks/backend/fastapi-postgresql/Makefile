@@ -242,23 +242,18 @@ benchmark: ## Run performance benchmarks
 benchmark-compare: ## Compare with previous benchmark
 	pytest tests/performance/ --benchmark-compare
 
-# CI/CD helpers
-ci-test: ## Run tests for CI/CD
-	pytest --cov=src/app --cov-report=xml --cov-report=term-missing --junitxml=test-results.xml
+# Automation helpers: Disabled per maintainers request
+ci-test: ## Run tests (disabled)
+	@echo "Automation tests disabled by maintainer"
 
-ci-lint: ## Run linting for CI/CD
-	black --check src/app tests
-	isort --check-only src/app tests
-	flake8 src/app tests
-	mypy src/app
+ci-lint: ## Run linting (disabled)
+	@echo "Automation lint disabled by maintainer"
 
-ci-security: ## Run security checks for CI/CD
-	bandit -r src/app/ -f json -o bandit-report.json
-	safety check --json --output safety-report.json
-	pip-audit --format=json --output=pip-audit-report.json
+ci-security: ## Run security checks (disabled)
+	@echo "Automation security checks disabled by maintainer"
 
-ci-migrate: ## Run database migrations for CI/CD
-	alembic upgrade head
+ci-migrate: ## Run database migrations (disabled)
+	@echo "Automation migrations disabled by maintainer"
 
 # Development workflow
 setup: install-dev env db-init db-upgrade ## Complete development setup
@@ -269,8 +264,8 @@ setup: install-dev env db-init db-upgrade ## Complete development setup
 check: format-check lint type-check security ## Run all checks
 	@echo "✅ All checks passed!"
 
-ci: ci-lint ci-test ci-security ci-migrate ## Run CI/CD pipeline locally
-	@echo "✅ CI/CD pipeline completed successfully!"
+ci: ## CI pipeline disabled
+	@echo "CI pipeline disabled by repository maintainer"
 
 # Quick development commands
 quick-test: ## Quick test run

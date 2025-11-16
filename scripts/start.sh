@@ -28,12 +28,10 @@ sleep 10
 echo "🔍 Checking API health..."
 curl -f http://localhost:8000/api/v1/health || {
     echo "❌ API health check failed"
-    docker-compose logs templateheaven-api
+    docker-compose logs templateheaven
     exit 1
 }
 
 echo "✅ Template Heaven API is ready!"
 echo "📚 API Documentation: http://localhost:8000/docs"
 echo "🔍 Health Check: http://localhost:8000/api/v1/health"
-echo "📊 Grafana Dashboard: http://localhost:3000"
-echo "🌱 Flower (Celery): http://localhost:5555"

@@ -169,7 +169,7 @@ vscode-ai-ide/
 ├── workflows/                    # Development workflows
 │   ├── agile/                    # Agile development workflow
 │   ├── tdd/                      # Test-driven development
-│   ├── ci-cd/                    # CI/CD workflows
+│   ├── ci-cd/                    # automation workflows
 │   ├── code-review/              # Code review workflows
 │   └── deployment/               # Deployment workflows
 ├── config/                        # Configuration files

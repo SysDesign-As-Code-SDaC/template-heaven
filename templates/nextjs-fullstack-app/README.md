@@ -15,7 +15,7 @@ This template provides a production-ready Next.js fullstack application with:
 - **🧪 Testing** - Jest, Testing Library, and Playwright
 - **📝 ESLint & Prettier** - Code quality and formatting
 - **🐳 Docker** - Containerized development and production
-- **🔄 GitHub Actions** - CI/CD pipeline with quality gates
+-- **🔄 GitHub Actions**: automation examples (disabled)
 - **📱 Responsive Design** - Mobile-first responsive design
 - **♿ Accessibility** - WCAG 2.1 AA compliant
 - **🌐 i18n Ready** - Internationalization support
@@ -127,7 +127,7 @@ docker run -p 3000:3000 {{ project_name }}
 │   └── e2e/
 ├── docs/                        # Documentation
 ├── docker/                      # Docker configurations
-├── .github/                     # GitHub Actions
+├── .github/                     # Automation examples (GitHub Actions disabled)
 ├── package.json                 # Dependencies and scripts
 ├── next.config.js               # Next.js configuration
 ├── tailwind.config.js           # Tailwind configuration

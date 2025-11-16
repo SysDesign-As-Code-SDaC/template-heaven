@@ -45,6 +45,7 @@ class Config:
         "default_author": None,
         "default_license": "MIT",
         "github_token": None,
+        "prefer_github": True,
         "auto_update": True,
         "ui_theme": "dark",
         "log_level": "INFO",

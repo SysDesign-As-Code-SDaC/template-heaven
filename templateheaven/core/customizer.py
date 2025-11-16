@@ -212,6 +212,10 @@ class Customizer:
             
             # Create README
             self._create_readme(project_path, template, variables)
+            # Create LICENSE if missing
+            self._create_license(project_path, template, variables)
+            # Create CONTRIBUTING.md if missing
+            self._create_contributing(project_path, template, variables)
             
             # Create .gitignore if needed
             self._create_gitignore(project_path, template, variables)
@@ -222,6 +226,54 @@ class Customizer:
         except Exception as e:
             logger.error(f"Failed to customize template: {e}")
             # Clean up on failure
+            if project_path.exists():
+                self.file_ops.remove_directory(project_path)
+            raise
+
+    def customize_from_repo_dir(
+        self,
+        source_dir: Path,
+        config: ProjectConfig,
+        output_dir: Path
+    ) -> bool:
+        """
+        Customize and initialize project from a source directory (e.g., a cloned repo).
+
+        This method is similar to `customize` but uses an explicit source directory
+        rather than a template identifier inside the `templates/` directory.
+        """
+        logger.info(f"Customizing from repo directory '{source_dir}' to '{output_dir}'")
+
+        # Validate inputs (reuse existing validation)
+        if not source_dir.exists():
+            raise ValueError(f"Source directory does not exist: {source_dir}")
+
+        # We re-create a minimal Template object for compatibility
+        # There may not be all metadata available; we will attempt to read a template manifest.
+        try:
+            # Create project_dir and copy files
+            project_path = output_dir / config.name
+            if project_path.exists():
+                raise ValueError(f"Project directory already exists: {project_path}")
+
+            self.file_ops.create_directory(project_path)
+            self._copy_directory_recursive(source_dir, project_path, config.get_template_variables())
+
+            # Update package files, README, gitignore as in normal flow
+            template_meta = config.template if hasattr(config, 'template') and config.template else None
+            self._update_package_files(project_path, template_meta, config.get_template_variables())
+            self._create_readme(project_path, template_meta, config.get_template_variables())
+            self._create_license(project_path, template_meta, config.get_template_variables())
+            self._create_contributing(project_path, template_meta, config.get_template_variables())
+            self._create_gitignore(project_path, template_meta, config.get_template_variables())
+
+            logger.info(f"Successfully created project from repo: {project_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to customize from repo: {e}")
+            # Clean up on failure
+            project_path = output_dir / config.name
             if project_path.exists():
                 self.file_ops.remove_directory(project_path)
             raise
@@ -301,7 +353,7 @@ class Customizer:
     def _update_package_files(
         self,
         project_path: Path,
-        template: Template,
+        template: Optional[Template],
         variables: Dict[str, Any]
     ) -> None:
         """
@@ -313,15 +365,16 @@ class Customizer:
             variables: Template variables
         """
         # Create package.json for Node.js projects
-        if any(tag in template.tags for tag in ['nodejs', 'react', 'vue', 'nextjs', 'typescript']):
+        template_tags = template.tags if template else []
+        if any(tag in template_tags for tag in ['nodejs', 'react', 'vue', 'nextjs', 'typescript']):
             self._create_package_json(project_path, template, variables)
-        
+
         # Create pyproject.toml for Python projects
-        if any(tag in template.tags for tag in ['python', 'fastapi', 'django', 'pytorch']):
+        if any(tag in template_tags for tag in ['python', 'fastapi', 'django', 'pytorch']):
             self._create_pyproject_toml(project_path, template, variables)
-        
+
         # Create requirements.txt for Python projects
-        if any(tag in template.tags for tag in ['python', 'fastapi', 'django', 'pytorch']):
+        if any(tag in template_tags for tag in ['python', 'fastapi', 'django', 'pytorch']):
             self._create_requirements_txt(project_path, template, variables)
     
     def _create_package_json(
@@ -652,14 +705,92 @@ logs
         self.file_ops.write_file(gitignore_path, gitignore_content)
         
         logger.debug("Created .gitignore")
+
+    def _create_license(
+        self,
+        project_path: Path,
+        template: Optional[Template],
+        variables: Dict[str, Any]
+    ) -> None:
+        """Create a LICENSE file in the project.
+
+        Uses template LICENSE if provided, otherwise writes a minimal MIT license.
+        """
+        license_path = project_path / 'LICENSE'
+        # If LICENSE already exists, do nothing
+        if license_path.exists():
+            logger.debug("LICENSE already exists; skipping")
+            return
+
+        # Check if template contains a LICENSE
+        template_source = Path(__file__).parent.parent.parent / 'templates' / (template.name if template else '')
+        template_license = template_source / 'LICENSE'
+        if template_license.exists():
+            try:
+                self.file_ops.copy_file(template_license, license_path)
+                logger.debug("Copied template LICENSE into project")
+                return
+            except Exception:
+                logger.debug("Failed to copy template LICENSE; falling back to default")
+
+        # Default MIT license
+        year = variables.get('current_year', '2024')
+        author = variables.get('author', 'Template Heaven')
+        mit_license = f"MIT License\n\nCopyright (c) {year} {author}\n\nPermission is hereby granted, free of charge, to any person obtaining a copy..."
+        self.file_ops.write_file(license_path, mit_license)
+        logger.debug("Created default MIT LICENSE")
+
+    def _create_contributing(
+        self,
+        project_path: Path,
+        template: Optional[Template],
+        variables: Dict[str, Any]
+    ) -> None:
+        """Create a CONTRIBUTING.md file in the project.
+
+        Uses template CONTRIBUTING.md if provided, otherwise writes a small CONTRIBUTING template.
+        """
+        contributing_path = project_path / 'CONTRIBUTING.md'
+        if contributing_path.exists():
+            logger.debug("CONTRIBUTING.md already exists; skipping")
+            return
+
+        # Check for template CONTRIBUTING.md
+        template_source = Path(__file__).parent.parent.parent / 'templates' / (template.name if template else '')
+        template_contrib = template_source / 'CONTRIBUTING.md'
+        if template_contrib.exists():
+            try:
+                self.file_ops.copy_file(template_contrib, contributing_path)
+                logger.debug("Copied template CONTRIBUTING.md into project")
+                return
+            except Exception:
+                logger.debug("Failed to copy template CONTRIBUTING.md; falling back to default")
+
+        contributing_text = (
+            "# Contributing\n\n" 
+            "Thank you for contributing to this project!\n\n" 
+            "Please read the following guidelines before opening a pull request:\n\n" 
+            "1. Fork the repo and create a feature branch.\n"
+            "2. Add tests and update documentation.\n"
+            "3. Run the test suite and linters.\n"
+        )
+
+        self.file_ops.write_file(contributing_path, contributing_text)
+        logger.debug("Created default CONTRIBUTING.md")
     
     def _snake_case_filter(self, text: str) -> str:
         """Convert text to snake_case."""
-        return re.sub(r'[^a-zA-Z0-9]+', '_', text).lower().strip('_')
+        # Insert underscores between camelCase or PascalCase boundaries then normalize
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
+        s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
+        return re.sub(r'[^a-zA-Z0-9]+', '_', s2).lower().strip('_')
     
     def _kebab_case_filter(self, text: str) -> str:
         """Convert text to kebab-case."""
-        return re.sub(r'[^a-zA-Z0-9]+', '-', text).lower().strip('-')
+        # Insert hyphens between camelCase or PascalCase boundaries then normalize
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', text)
+        s2 = re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1)
+        return re.sub(r'[^a-zA-Z0-9]+', '-', s2).lower().strip('-')
     
     def _pascal_case_filter(self, text: str) -> str:
         """Convert text to PascalCase."""
@@ -720,3 +851,7 @@ logs
         })
         
         return variables
+
+    # Backwards-compatible alias used in tests
+    def _get_template_variables(self, config: ProjectConfig) -> Dict[str, Any]:
+        return self.get_template_variables(config)

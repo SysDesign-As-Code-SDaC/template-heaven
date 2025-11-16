@@ -225,7 +225,7 @@ Comprehensive index of all templates available in the ai-ml stack.
 - Performance bottleneck identification
 - Bug pattern recognition
 - Custom rule engine
-- CI/CD pipeline integration
+- Automation pipeline integration (CI/CD examples disabled)
 - Real-time analysis capabilities
 
 **Use Cases:**

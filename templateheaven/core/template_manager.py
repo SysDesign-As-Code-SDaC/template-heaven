@@ -6,6 +6,7 @@ discovery, filtering, and retrieval of templates from bundled data.
 """
 
 import yaml
+import asyncio
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from functools import lru_cache
@@ -56,6 +57,7 @@ class TemplateManager:
         )
         self.stack_config = get_stack_config_manager()
         self.github_search = GitHubSearchService(self.config)
+        self.prefer_github = self.config.get('prefer_github', False) or bool(self.config.get('github_token'))
 
         # Load bundled template data
         self._load_bundled_data()
@@ -121,6 +123,8 @@ class TemplateManager:
         stack: Optional[str] = None,
         tags: Optional[List[str]] = None,
         search: Optional[str] = None
+        , include_archived: bool = False
+        , use_github: Optional[bool] = None
     ) -> List[Template]:
         """
         List available templates with optional filtering.
@@ -133,7 +137,60 @@ class TemplateManager:
         Returns:
             List of matching templates
         """
-        templates = self.bundled_templates.copy()
+        # Prefer GitHub live discovery if configured
+        templates: List[Template] = []
+        if use_github is None:
+            use_github = self.prefer_github
+
+        if use_github and self.github_search.github_available:
+            try:
+                if stack:
+                    github_candidates = asyncio.run(self.github_search.discover_templates_for_stack(stack, limit=50))
+                else:
+                    # If no stack, fall back to local for now
+                    github_candidates = []
+
+                # Convert candidates to Template objects where possible
+                for candidate in github_candidates:
+                    # Candidates may be dicts or objects, handle both
+                    if isinstance(candidate, dict):
+                        repo_data = candidate.get('repository', {})
+                        stack_suggestions = candidate.get('stack_suggestions', []) or candidate.get('repository', {}).get('topics', [])
+                    else:
+                        repo_data = getattr(candidate, 'repository', {}) or {}
+                        # Candidate objects may have a 'repository' attr with topics
+                        stack_suggestions = getattr(candidate, 'stack_suggestions', None) or getattr(repo_data, 'get', lambda k, d: d)('topics', [])
+                    # Attempt to infer stack from candidate
+                    # Some github search candidates include stack suggestions
+                    stack_enum = None
+                    if stack_suggestions:
+                        try:
+                            stack_enum = self._infer_stack_enum(stack_suggestions)
+                        except Exception:
+                            stack_enum = StackCategory.BACKEND
+                    else:
+                        stack_enum = StackCategory.BACKEND
+
+                    template = Template(
+                        name=repo_data.get('name', ''),
+                        stack=stack_enum,
+                        description=repo_data.get('description', ''),
+                        path=f"github:{repo_data.get('full_name', '')}",
+                        tags=repo_data.get('topics', []) or [],
+                        dependencies={}
+                    )
+                    # set archived if repository metadata contains an archived flag
+                    if repo_data.get('archived'):
+                        template.archived = True
+                    templates.append(template)
+
+                # If no discoveries, fallback to bundled templates
+                if len(templates) == 0:
+                    templates = self.bundled_templates.copy()
+            except Exception:
+                templates = self.bundled_templates.copy()
+        else:
+            templates = self.bundled_templates.copy()
         
         # Filter by stack
         if stack:
@@ -152,6 +209,10 @@ class TemplateManager:
                     filtered_templates.append(template)
             templates = filtered_templates
         
+        # Filter out archived templates unless explicitly asked to include them
+        if not include_archived:
+            templates = [t for t in templates if not getattr(t, 'archived', False)]
+
         # Search filter
         if search:
             templates = [t for t in templates if t.matches_search(search)]
@@ -202,8 +263,8 @@ class TemplateManager:
         return {
             'name': stack_data.get('name', StackCategory.get_display_name(stack)),
             'description': stack_data.get('description', StackCategory.get_description(stack)),
-            'template_count': len([t for t in self.bundled_templates if t.stack == stack]),
-            'templates': [t.name for t in self.bundled_templates if t.stack == stack]
+            'template_count': len([t for t in self.bundled_templates if t.stack == stack and not getattr(t, 'archived', False)]),
+            'templates': [t.name for t in self.bundled_templates if t.stack == stack and not getattr(t, 'archived', False)]
         }
     
     def search_templates(
@@ -211,6 +272,7 @@ class TemplateManager:
         query: str,
         limit: int = 20,
         min_score: float = 0.1
+        , use_github: Optional[bool] = None
     ) -> List[TemplateSearchResult]:
         """
         Search templates with relevance scoring.
@@ -224,8 +286,20 @@ class TemplateManager:
             List of search results with scores
         """
         query_lower = query.lower()
+        # Determine whether to use GitHub search
+        if use_github is None:
+            use_github = self.prefer_github
         results = []
         
+        if use_github and self.github_search.github_available:
+            try:
+                github_results = asyncio.run(self.github_search.search_github_templates(query, stack=None, min_stars=50, limit=limit))
+                # Filter by min_score and return
+                return [r for r in github_results if r.score >= min_score][:limit]
+            except Exception:
+                # fall back to local search
+                pass
+
         for template in self.bundled_templates:
             score = self._calculate_relevance_score(template, query_lower)
             
@@ -299,6 +373,53 @@ class TemplateManager:
             return "Stack category match"
         else:
             return "Partial match"
+
+    def _infer_stack_enum(self, suggestions: List[str]) -> StackCategory:
+        """
+        Infer a StackCategory from a list of suggestion strings.
+        """
+        if not suggestions:
+            return StackCategory.BACKEND
+
+        # Common topic to stack category mapping for better inference
+        topic_map = {
+            'nextjs': StackCategory.FULLSTACK,
+            'next.js': StackCategory.FULLSTACK,
+            'next': StackCategory.FULLSTACK,
+            'react': StackCategory.FRONTEND,
+            'vite': StackCategory.FRONTEND,
+            'vue': StackCategory.FRONTEND,
+            'angular': StackCategory.FRONTEND,
+            'fastapi': StackCategory.BACKEND,
+            'flask': StackCategory.BACKEND,
+            'django': StackCategory.BACKEND,
+            'python': StackCategory.BACKEND,
+            'nodejs': StackCategory.BACKEND,
+            'typescript': StackCategory.FRONTEND,
+            'pytorch': StackCategory.AI_ML,
+            'tensorflow': StackCategory.AI_ML,
+            'mlops': StackCategory.AI_ML,
+            'terraform': StackCategory.DEVOPS,
+            'docker': StackCategory.DEVOPS,
+            'kubernetes': StackCategory.DEVOPS,
+            'trpc': StackCategory.FULLSTACK,
+            'prisma': StackCategory.FULLSTACK,
+            'gold-standard': StackCategory.GOLD_STANDARD,
+        }
+        # Normalize suggestions and attempt direct mapping, then topic mapping
+        for s in suggestions:
+            s_lower = s.lower()
+            try:
+                return StackCategory(s_lower)
+            except Exception:
+                pass
+
+            # Try mapping via known topic map
+            if s_lower in topic_map:
+                return topic_map[s_lower]
+
+        return StackCategory.BACKEND
+        return StackCategory.BACKEND
     
     def get_template_stats(self) -> Dict[str, Any]:
         """

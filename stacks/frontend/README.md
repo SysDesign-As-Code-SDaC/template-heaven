@@ -231,7 +231,7 @@ Each template includes comprehensive documentation:
 ### Tools
 - **[Sync Scripts](../../scripts/)** - Template synchronization tools
 - **[Trend Detection](../../tools/trending-flagger/)** - Automated template discovery
-- **[GitHub Actions](../../.github/workflows/)** - Automated workflows
+- **[GitHub Actions examples (disabled)](../../.github/workflows/)** - Automated workflows (examples disabled)
 
 ## 📞 Support
 

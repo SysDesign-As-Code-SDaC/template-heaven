@@ -333,7 +333,7 @@ Before submitting a template, ensure it passes these tests:
 ### Review Process
 
 1. **Automated Checks**
-   - CI/CD pipeline runs
+   - automation pipeline runs
    - Code quality checks
    - Security scans
    - Dependency audits

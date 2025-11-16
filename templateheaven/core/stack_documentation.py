@@ -140,7 +140,7 @@ class StackDocumentationGenerator:
         templates = self._get_stack_templates(stack_name)
 
         # Generate content sections
-        header = self._generate_header_section(stack_name, stack_config, stack_info)
+        header = self._generate_header_section(stack_name, stack_config, stack_info, templates)
         overview = self._generate_overview_section(stack_name, stack_config)
         templates_section = self._generate_templates_section(templates, stack_name)
         quick_start = self._generate_quick_start_section(stack_name, stack_config)
@@ -165,7 +165,7 @@ class StackDocumentationGenerator:
 
         return content
 
-    def _generate_header_section(self, stack_name: str, stack_config: Any, stack_info: Dict) -> str:
+    def _generate_header_section(self, stack_name: str, stack_config: Any, stack_info: Dict, templates: List[Dict]) -> str:
         """Generate the header section."""
         title = stack_info.get("display_name", stack_name.replace("-", " ").title())
         description = stack_config.description
@@ -352,7 +352,7 @@ cd ../my-new-project
 ### Tools
 - **[Sync Scripts](../../scripts/)** - Template synchronization tools
 - **[Trend Detection](../../tools/trending-flagger/)** - Automated template discovery
-- **[GitHub Actions](../../.github/workflows/)** - Automated workflows
+    - **Automation examples**: GitHub Actions examples (disabled) found in `.github/workflows/`
 
 ## 📞 Support
 
@@ -477,7 +477,7 @@ To add new templates to this stack:
             "frontend": "The Frontend Stack provides comprehensive templates for building modern frontend applications using the latest frameworks, tools, and best practices. These templates are designed to get you up and running quickly with optimized development workflows.",
             "backend": "The Backend Stack provides robust templates for building scalable backend services and APIs using modern frameworks and architectures. Focus on performance, security, and maintainability.",
             "ai-ml": "The AI/ML Stack provides templates for machine learning workflows, data science projects, and AI applications using popular frameworks like TensorFlow, PyTorch, and scikit-learn.",
-            "devops": "The DevOps Stack provides templates for infrastructure automation, CI/CD pipelines, containerization, and cloud deployment using tools like Docker, Kubernetes, and Terraform.",
+            "devops": "The DevOps Stack provides templates for infrastructure automation, automation pipeline examples (disabled), containerization, and cloud deployment using tools like Docker, Kubernetes, and Terraform.",
         }
 
         return descriptions.get(stack_name, f"The {stack_name.title()} Stack provides specialized templates for {stack_name} development and deployment.")
@@ -575,11 +575,11 @@ To add new templates to this stack:
 - **Pulumi**: Infrastructure as code SDK
 - **CloudFormation**: AWS infrastructure templates
 
-### CI/CD
-- **GitHub Actions**: Workflow automation
+### Automation
+    - **Workflow automation** (GitHub Actions examples disabled)
 - **Jenkins**: Automation server
-- **GitLab CI**: Integrated CI/CD
-- **CircleCI**: Cloud-based CI/CD
+- **GitLab CI**: Integrated automation workflows
+- **CircleCI**: Cloud-based automation workflows
 """
         }
 

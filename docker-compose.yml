@@ -4,7 +4,7 @@
 version: '3.8'
 
 services:
-  # Main Template Heaven service
+  # Main Template Heaven API service
   templateheaven:
     build:
       context: .
@@ -24,12 +24,13 @@ services:
       # Mount current directory for development (optional)
       - .:/app:ro
     ports:
-      - "8080:8080"  # For future web UI
+      - "8000:8000"  # API service port
     networks:
       - templateheaven_network
     restart: unless-stopped
+    command: ["uvicorn", "templateheaven.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import templateheaven; print('OK')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,19 +54,17 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=DEBUG
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
     volumes:
       # Mount source code for hot reload
       - .:/app
       - templateheaven_cache:/home/templateheaven/.templateheaven/cache
       - templateheaven_config:/home/templateheaven/.templateheaven
     ports:
-      - "8080:8080"
+      - "8000:8000"  # API service port
       - "5678:5678"  # Debug port
     networks:
       - templateheaven_network
-    command: ["python", "-m", "templateheaven.cli.main", "--help"]
+    command: ["uvicorn", "templateheaven.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     profiles:
       - dev
 

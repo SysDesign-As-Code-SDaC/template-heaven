@@ -39,7 +39,7 @@ This directory contains various Bravetto templates to help you get started quick
 - ✅ Linting and formatting
 - ✅ Documentation generation
 - ✅ Docker support
-- ✅ CI/CD configuration
+- ✅ Automation configuration
 
 ### Advanced Features
 - ✅ Authentication & authorization

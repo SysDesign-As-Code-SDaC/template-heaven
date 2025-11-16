@@ -34,10 +34,10 @@ This directory contains comprehensive Cursor Rules for the Template Heaven proje
 - **Purpose**: Defines testing standards, validation requirements, and quality assurance practices
 - **Key Topics**: Test coverage, Python testing framework, template validation, manual validation
 
-### 6. GitHub Actions & CI/CD
+### 6. Automation examples (GitHub Actions disabled)
 **File**: `github-actions.mdc`
 - **Scope**: GitHub workflow files (`*.yml`, `*.yaml`, `.github/**`)
-- **Purpose**: Establishes GitHub Actions standards, security practices, and automation workflows
+- **Purpose**: Establishes automation workflow standards (GitHub Actions examples disabled), security practices, and automation workflow guidelines
 - **Key Topics**: Workflow architecture, security best practices, monitoring, performance optimization
 
 ### 7. Template Management
@@ -86,7 +86,7 @@ This directory contains comprehensive Cursor Rules for the Template Heaven proje
 - **Multi-Branch Workflow**: Applied to documentation and script files
 - **Documentation Standards**: Applied to all documentation files
 - **Testing & Validation**: Applied to test files and Python modules
-- **GitHub Actions**: Applied to CI/CD workflow files
+- **Automation (GitHub Actions examples disabled)**: Applied to automation workflow files
 - **Template Management**: Applied to stack directories and sync scripts
 - **API Integration**: Applied to API layer files for consistent patterns
 - **Database Operations**: Applied to database layer for ORM best practices
@@ -102,7 +102,7 @@ This directory contains comprehensive Cursor Rules for the Template Heaven proje
 - **Workflow Management**: Git practices, branch management, and template synchronization
 - **Documentation**: README standards and technical documentation requirements
 - **Testing**: Comprehensive testing framework and validation requirements
-- **Automation**: GitHub Actions standards and CI/CD best practices
+- **Automation standards**: GitHub Actions examples disabled; follow local automation best practices
 - **Template Management**: Stack organization and template lifecycle management
 - **API Integration**: FastAPI patterns, authentication, and external API handling
 - **Database Operations**: SQLAlchemy ORM patterns and database best practices
@@ -135,7 +135,7 @@ These rules are automatically applied by Cursor based on file types and scope. T
 2. **Code Standards**: Consistent Python coding practices with comprehensive documentation
 3. **Workflow Guidance**: Multi-branch Git practices and template management
 4. **Quality Assurance**: Testing and validation requirements
-5. **Automation Standards**: GitHub Actions and CI/CD best practices
+5. **Automation Standards**: Automation workflow examples (GitHub Actions disabled) and automation best practices
 6. **Template Management**: Stack organization and template lifecycle guidance
 7. **API Development**: FastAPI patterns and integration standards
 8. **Database Operations**: SQLAlchemy ORM patterns and best practices

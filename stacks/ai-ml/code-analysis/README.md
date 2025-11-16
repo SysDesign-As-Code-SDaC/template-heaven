@@ -12,7 +12,7 @@ A comprehensive containerized application for AI-driven code analysis, providing
 - **Code Review Automation**: Intelligent pull request reviews and suggestions
 - **Real-time Analysis**: Live code analysis as you type
 - **Batch Processing**: Analyze entire codebases and generate comprehensive reports
-- **Integration APIs**: RESTful APIs for CI/CD pipeline integration
+- **Integration APIs**: RESTful APIs for automation pipeline integration
 - **Custom Rules**: Extensible rule engine for custom analysis patterns
 - **Containerized**: Full Docker deployment with scalable architecture
 
@@ -109,7 +109,7 @@ code-analysis/
 │   │   │   │   ├── analysis.py   # Analysis endpoints
 │   │   │   │   ├── reports.py    # Report endpoints
 │   │   │   │   ├── rules.py      # Rule management
-│   │   │   │   └── webhooks.py   # CI/CD integration
+│   │   │   │   └── webhooks.py   # automation pipeline integration
 │   │   │   └── models.py         # Pydantic models
 │   │   └── utils/
 │   │       ├── config.py         # Configuration management
@@ -137,7 +137,7 @@ code-analysis/
 │   ├── api.md                    # API documentation
 │   ├── analyzers.md              # Analyzer documentation
 │   ├── rules.md                  # Custom rules guide
-│   └── integration.md            # CI/CD integration
+│   └── integration.md            # automation pipeline integration
 ├── requirements.txt
 ├── pyproject.toml
 ├── docker-compose.yml
@@ -441,9 +441,9 @@ export MKL_NUM_THREADS=8
 export NUMEXPR_NUM_THREADS=8
 ```
 
-## 🔗 CI/CD Integration
+## 🔗 Automation Integration
 
-### GitHub Actions Integration
+### Automation Integration (GitHub Actions disabled)
 
 ```yaml
 # .github/workflows/code-analysis.yml
@@ -480,7 +480,7 @@ jobs:
             // Post analysis results as PR comment
 ```
 
-### Other CI/CD Platforms
+### Other Automation Platforms
 
 ```bash
 # Jenkins pipeline

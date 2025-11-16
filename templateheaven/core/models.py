@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+from datetime import datetime
+from pydantic import BaseModel, Field
 
 
 class StackCategory(Enum):
@@ -117,7 +119,7 @@ class StackCategory(Enum):
             cls.ADVANCED_AI: "Large language models, RAG, and vector databases",
             cls.AGENTIC_AI: "Autonomous systems and AI agents",
             cls.GENERATIVE_AI: "Content creation and generation systems",
-            cls.DEVOPS: "CI/CD, infrastructure, Docker, and Kubernetes",
+            cls.DEVOPS: "Infrastructure automation, Docker, and Kubernetes",
             cls.MICROSERVICES: "Microservices architecture and patterns",
             cls.MONOREPO: "Monorepo build systems and workspaces",
             cls.SERVERLESS: "Serverless and edge computing platforms",
@@ -137,6 +139,21 @@ class StackCategory(Enum):
         return descriptions.get(category, f"Templates for {category.value}")
 
 
+class TemplateStatus(Enum):
+    """
+    Template status enumeration.
+    
+    Used to track the lifecycle and validation state of templates.
+    """
+    ACTIVE = "active"
+    DRAFT = "draft"
+    ARCHIVED = "archived"
+    DEPRECATED = "deprecated"
+    VALIDATED = "validated"
+    PENDING_VALIDATION = "pending_validation"
+    FAILED_VALIDATION = "failed_validation"
+
+
 @dataclass
 class Template:
     """
@@ -152,6 +169,7 @@ class Template:
         path: Path to template files (relative to package data)
         tags: List of tags for searching and filtering
         dependencies: Dictionary of dependencies and versions
+                    "archived": self.archived,
         upstream_url: Original upstream repository URL (optional)
         version: Template version (optional)
         author: Template author (optional)
@@ -178,6 +196,7 @@ class Template:
     features: List[str] = field(default_factory=list)
     min_python_version: Optional[str] = None
     min_node_version: Optional[str] = None
+    archived: bool = False
 
     # Stack-specific validation fields
     stars: int = 0
@@ -250,6 +269,7 @@ class Template:
             "features": self.features,
             "min_python_version": self.min_python_version,
             "min_node_version": self.min_node_version,
+            "archived": self.archived,
         }
     
     @classmethod
@@ -285,6 +305,7 @@ class Template:
             features=data.get("features", []),
             min_python_version=data.get("min_python_version"),
             min_node_version=data.get("min_node_version"),
+            archived=data.get("archived", False),
         )
 
 
@@ -355,6 +376,7 @@ class ProjectConfig:
         variables = {
             "project_name": self.name,
             "project_description": self.description or f"A {self.template.stack.value} project",
+            "description": self.description or f"A {self.template.stack.value} project",
             "author": self.author or "Unknown",
             "license": self.license or "MIT",
             "version": self.version or "0.1.0",
@@ -447,3 +469,100 @@ class TemplateValidationResult:
             warning: Description of the warning
         """
         self.warnings.append(warning)
+
+
+# API Response Models
+class APIResponse(BaseModel):
+    """Standard API response wrapper."""
+    success: bool
+    message: str
+    data: Optional[Any] = None
+    errors: Optional[List[str]] = None
+    request_id: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.now)
+
+
+class PaginatedResponse(BaseModel):
+    """Response model for paginated results."""
+    items: List[Any]
+    total: int
+    page: int
+    per_page: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+
+
+class HealthCheck(BaseModel):
+    """Health check response model."""
+    status: str
+    version: str
+    uptime: float
+    dependencies: Dict[str, str]
+    metrics: Dict[str, Any]
+
+
+class TemplateCreateRequest(BaseModel):
+    """Request model for creating a template."""
+    name: str
+    stack: StackCategory
+    description: str
+    path: str
+    tags: Optional[List[str]] = None
+    dependencies: Optional[Dict[str, str]] = None
+    upstream_url: Optional[str] = None
+    version: Optional[str] = None
+    author: Optional[str] = None
+    license: Optional[str] = None
+    features: Optional[List[str]] = None
+
+
+class TemplateUpdateRequest(BaseModel):
+    """Request model for updating a template."""
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    dependencies: Optional[Dict[str, str]] = None
+    upstream_url: Optional[str] = None
+    version: Optional[str] = None
+    author: Optional[str] = None
+    license: Optional[str] = None
+    features: Optional[List[str]] = None
+    archived: Optional[bool] = None
+
+
+class StackConfiguration(BaseModel):
+    """Stack configuration model for API responses."""
+    name: str
+    category: StackCategory
+    description: str
+    templates_count: int = 0
+    technologies: List[str] = Field(default_factory=list)
+    documentation_url: Optional[str] = None
+    examples: List[str] = Field(default_factory=list)
+
+
+class SearchRequest(BaseModel):
+    """Request model for template search."""
+    query: str
+    stack: Optional[StackCategory] = None
+    tags: Optional[List[str]] = None
+    min_stars: Optional[int] = None
+    limit: int = Field(default=20, ge=1, le=100)
+
+
+class PopulationRequest(BaseModel):
+    """Request model for populating templates."""
+    source: str = Field(description="Source of templates (e.g., 'github', 'local')")
+    stack: Optional[StackCategory] = None
+    force: bool = Field(default=False, description="Force repopulation even if templates exist")
+    filters: Optional[Dict[str, Any]] = None
+
+
+class PopulationResult(BaseModel):
+    """Result model for template population operations."""
+    success: bool
+    templates_added: int = 0
+    templates_updated: int = 0
+    templates_failed: int = 0
+    message: str
+    errors: Optional[List[str]] = None

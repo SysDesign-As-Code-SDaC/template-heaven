@@ -199,20 +199,15 @@ benchmark: ## Run performance benchmarks
 benchmark-compare: ## Compare with previous benchmark
 	pytest tests/performance/ --benchmark-compare
 
-# CI/CD helpers
-ci-test: ## Run tests for CI/CD
-	pytest --cov=app --cov-report=xml --cov-report=term-missing --junitxml=test-results.xml
+# Automation helpers: Disabled per maintainer request
+ci-test: ## Run tests (disabled)
+	@echo "Automation tests disabled by maintainer"
 
-ci-lint: ## Run linting for CI/CD
-	black --check app tests
-	isort --check-only app tests
-	flake8 app tests
-	mypy app
+ci-lint: ## Run linting (disabled)
+	@echo "Automation lint disabled by maintainer"
 
-ci-security: ## Run security checks for CI/CD
-	bandit -r app/ -f json -o bandit-report.json
-	safety check --json --output safety-report.json
-	pip-audit --format=json --output=pip-audit-report.json
+ci-security: ## Run security checks (disabled)
+	@echo "Automation security checks disabled by maintainer"
 
 # Development workflow
 setup: install-dev env ## Complete development setup
@@ -222,8 +217,8 @@ setup: install-dev env ## Complete development setup
 check: format-check lint type-check security ## Run all checks
 	@echo "All checks passed!"
 
-ci: ci-lint ci-test ci-security ## Run CI/CD pipeline locally
-	@echo "CI/CD pipeline completed successfully!"
+ci: ## Automation pipeline disabled
+	@echo "Automation pipeline disabled by repository maintainer"
 
 # Quick development commands
 quick-test: ## Quick test run

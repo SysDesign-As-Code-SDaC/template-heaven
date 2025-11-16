@@ -509,7 +509,7 @@ spec:
 
 ### Cloud Deployment Options
 - **AWS**: ECS/Fargate with Application Load Balancer
-- **GCP**: Cloud Run with Cloud Build CI/CD
+- **GCP**: Cloud Run with Cloud Build automation
 - **Azure**: Container Apps with Azure Functions integration
 
 ## 🧪 Testing

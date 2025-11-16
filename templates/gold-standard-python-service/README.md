@@ -96,7 +96,7 @@ The API will be available at `http://localhost:8000`
 │   ├── e2e/                      # End-to-end tests
 │   └── performance/              # Performance tests
 ├── docs/                         # Complete documentation
-├── .github/workflows/            # CI/CD pipeline
+├── .github/workflows/            # Automation pipeline
 ├── .cursor/rules/                # AI coding agent rules
 ├── k8s/                          # Kubernetes manifests
 ├── alembic/                      # Database migrations

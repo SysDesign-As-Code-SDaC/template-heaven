@@ -250,23 +250,18 @@ build: ## Build package
 dist: ## Create distribution packages
 	python -m build --wheel --sdist
 
-# CI/CD helpers
-ci-test: ## Run tests for CI/CD
-	pytest --cov=src/mcp_middleware --cov-report=xml --cov-report=term-missing --junitxml=test-results.xml
+# Automation helpers: Disabled per maintainer request
+ci-test: ## Run tests (disabled)
+	@echo "Automation tests disabled by maintainer"
 
-ci-lint: ## Run linting for CI/CD
-	black --check src/mcp_middleware tests
-	isort --check-only src/mcp_middleware tests
-	flake8 src/mcp_middleware tests
-	mypy src/mcp_middleware
+ci-lint: ## Run linting (disabled)
+	@echo "Automation lint disabled by maintainer"
 
-ci-security: ## Run security checks for CI/CD
-	bandit -r src/mcp_middleware/ -f json -o bandit-report.json
-	safety check --json --output safety-report.json
-	pip-audit --format=json --output=pip-audit-report.json
+ci-security: ## Run security checks (disabled)
+	@echo "Automation security checks disabled by maintainer"
 
-ci-mcp: ## Run MCP-specific CI tests
-	pytest tests/ -k "mcp" --tb=short
+ci-mcp: ## Run MCP-specific CI tests (disabled)
+	@echo "Automation MCP tests disabled by maintainer"
 
 # Development workflow
 setup: install-dev env db-init db-upgrade ## Complete development setup
@@ -277,8 +272,8 @@ setup: install-dev env db-init db-upgrade ## Complete development setup
 check: format-check lint type-check security ## Run all checks
 	@echo "✅ All checks passed!"
 
-ci: ci-lint ci-test ci-security ci-mcp ## Run CI/CD pipeline locally
-	@echo "✅ CI/CD pipeline completed successfully!"
+ci: ## CI pipeline disabled
+	@echo "CI pipeline disabled by repository maintainer"
 
 # Quick development commands
 quick-test: ## Quick test run

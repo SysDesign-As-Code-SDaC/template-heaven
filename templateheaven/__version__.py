@@ -15,7 +15,8 @@ __version_info__ = tuple(map(int, __version__.split('.')))
 VERSION = __version__
 VERSION_INFO = __version_info__
 
-# Build information (set during CI/CD)
+# Build metadata (optional) - can be populated by a build process or environment variables
+# This is intentionally neutral; it does not assume a CI/CD system is present.
 BUILD_DATE = None
 BUILD_COMMIT = None
 BUILD_BRANCH = None

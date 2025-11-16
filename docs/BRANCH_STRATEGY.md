@@ -14,7 +14,7 @@ The `dev` branch contains only core infrastructure and organizational files:
 - **Documentation**: README, CONTRIBUTING, and organizational docs
 - **Scripts**: Template syncing, branch management, and utility scripts
 - **Tools**: Trend detection and analysis tools
-- **CI/CD**: GitHub Actions workflows and automation
+- **Automation**: Automation examples (GitHub Actions disabled) and local automation scripts
 - **Configuration**: Repository-wide settings and policies
 
 **No actual template files** are stored in the main branch - only references and pointers to stack branches.
@@ -29,7 +29,7 @@ Each major technology category has its own dedicated branch:
 - `stack/advanced-ai` - LLMs, RAG, vector databases
 - `stack/agentic-ai` - Autonomous systems and agents
 - `stack/mobile` - Mobile and desktop applications
-- `stack/devops` - CI/CD, infrastructure, Docker, K8s
+- `stack/devops` - automation, infrastructure, Docker, K8s
 - `stack/web3` - Blockchain and smart contracts
 - `stack/microservices` - Microservices architecture
 - `stack/monorepo` - Monorepo build systems
@@ -131,7 +131,7 @@ The trend detection system is branch-aware:
 ### Performance
 - **Faster Clones**: Smaller branch sizes
 - **Parallel Development**: Independent stack development
-- **Efficient CI/CD**: Targeted builds and tests
+- **Efficient Automation**: Targeted builds and tests
 
 ### Maintenance
 - **Cleaner History**: Stack-specific change tracking
@@ -210,7 +210,7 @@ auto_sync:
 
 ### Performance Metrics
 - Clone times by branch
-- CI/CD execution times
+- automation execution times
 - PR review times
 - Merge frequency
 

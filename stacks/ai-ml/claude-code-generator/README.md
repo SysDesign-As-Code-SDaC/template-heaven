@@ -32,7 +32,7 @@ Claude Code Generator represents a sophisticated AI-powered code development sys
 - **Code Completion**: Intelligent code completion with context awareness
 - **Refactoring Suggestions**: Automated code improvement recommendations
 - **Version Control Integration**: Git workflow assistance and commit message generation
-- **CI/CD Pipeline Generation**: Automated deployment pipeline creation
+- **Automation Pipeline Generation**: Automated deployment pipeline creation
 
 ## 📋 Prerequisites
 
@@ -143,7 +143,7 @@ claude-code-generator/
 │   ├── database_generator.py     # Database code generation
 │   ├── test_generator.py         # Test code generation
 │   ├── docker_generator.py       # Docker configuration generation
-│   └── ci_generator.py           # CI/CD pipeline generation
+│   └── ci_generator.py           # Automation pipeline generation
 ├── analyzers/                    # Code analysis tools
 │   ├── complexity_analyzer.py    # Code complexity analysis
 │   ├── security_analyzer.py      # Security vulnerability detection

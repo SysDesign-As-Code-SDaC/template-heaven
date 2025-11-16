@@ -6,21 +6,25 @@
 
 **Interactive template management for modern software development**
 
-Template Heaven is a comprehensive Python package that provides an interactive CLI and Python API for discovering, customizing, and initializing projects from templates across 24+ technology stacks. Built with the philosophy of "always start with a template," it automates project setup while maintaining best practices.
+Template Heaven is a Python package that provides an interactive CLI and Python API for discovering, customizing, and initializing projects from templates. This simplified repo focuses on a single fullstack starter (Next.js) and interactive discovery via GitHub. The intention is to keep the code lightweight and easy to extend.
 
 ## 🚀 Features
 
+This repo always includes a Gold Standard template (`gold-standard-python-service`) with README, LICENSE, CONTRIBUTING and other best-practice files for new projects; if a user lacks these files, the customizer will add them during scaffolding.
+
 ### MVP (Current)
+
 - **Interactive CLI** with beautiful terminal output using Rich
 - **Wizard-style project initialization** with guided prompts
-- **24+ Technology Stacks** including Frontend, Backend, AI/ML, DevOps, and more
+- **Fullstack (Next.js)** starter template and GitHub discovery-focused features
 - **Local template bundling** with metadata caching
 - **Template search and filtering** by stack, tags, and keywords
-- **Project customization** with Jinja2 templating
+**github-actions-python**: GitHub Actions template example (automation disabled)
 - **Configuration management** with YAML storage
 - **Comprehensive documentation** and type hints
 
 ### Coming Soon (Phase 2+)
+
 - **GitHub live search** for real-time template discovery
 - **Web UI** with Streamlit for visual template browsing
 - **Trend detection integration** for discovering popular templates
@@ -72,12 +76,22 @@ templateheaven init --template react-vite --name my-app
 
 # List available templates
 templateheaven list
+By default, if `prefer_github` is true in your config, the CLI will perform live discovery on GitHub (if a token is present); local bundled templates are used as a fallback.
 
 # List templates by stack
 templateheaven list --stack frontend
 
-# Search templates
+# Force listing from a specific source (auto, github, local)
+templateheaven list --source local
+
+# Include archived local templates in the result
+templateheaven list --include-archived --source local
+
+# Search templates (local)
 templateheaven search "machine learning"
+
+# Search templates on GitHub (live)
+templateheaven search --source github "nextjs"
 
 # Get template information
 templateheaven info react-vite
@@ -86,7 +100,23 @@ templateheaven info react-vite
 templateheaven config set default_author "John Doe"
 ```
 
-### Python API
+### Yeoman Generator (experimental)
+
+There is an experimental Yeoman generator included to provide a simple Node-based scaffolding workflow that reads the same bundled template metadata and copies template files into your directory.
+
+To run the generator locally, install the generator dependencies and link it locally:
+
+```bash
+cd generators/templateheaven-generator
+npm install
+npm link
+yo templateheaven
+```
+
+The generator is a small starter that lists stacks and templates from `templateheaven/data/stacks.yaml` and scaffolds a selected template into the current working directory. It is a simple and user-friendly alternative for quick scaffolds and will remain a companion to the Python CLI and API.
+
+
+### API Examples
 
 ```python
 from templateheaven import TemplateManager, Wizard, Config
@@ -110,66 +140,50 @@ wizard = Wizard(manager, config)
 wizard.run()
 ```
 
-## 🏗️ Technology Stacks
+## 🏗️ Technology stacks
 
-Template Heaven supports 24+ technology stacks organized by category:
+This repository is simplified to focus on an exemplary Fullstack template and GitHub-powered discovery. The canonical bundled template is the Next.js fullstack starter.
 
-### Core Development
-- **Frontend**: React, Vue, Svelte, Angular, Astro, Qwik, SolidJS
-- **Backend**: Express, FastAPI, Django, Go, Rust, Java Spring Boot
-- **Fullstack**: Next.js, T3 Stack, Remix, Django+Vue, FastAPI+React
-- **Mobile**: React Native, Flutter, Electron, Tauri
+### Fullstack
 
-### AI/ML & Data Science
-- **AI/ML**: Traditional ML, PyTorch, TensorFlow, MLOps
-- **Advanced AI**: LLMs, RAG, vector databases, LangChain
-- **Agentic AI**: Autonomous systems, LangGraph, CrewAI
-- **Generative AI**: Content creation, DALL-E, Stable Diffusion
-
-### Infrastructure & DevOps
-- **DevOps**: CI/CD, Docker, Kubernetes, Terraform
-- **Microservices**: Event-driven architecture, service mesh
-- **Monorepo**: Turborepo, Nx, pnpm workspaces
-- **Serverless**: AWS Lambda, Vercel, Cloudflare Workers
-
-### Specialized & Emerging
-- **Web3**: Blockchain, smart contracts, DeFi
-- **Quantum Computing**: Qiskit, Cirq, PennyLane
-- **Scientific Computing**: HPC, CUDA, molecular dynamics
-- **Computational Biology**: Bioinformatics, genomics
-- **Space Technologies**: Satellite systems, orbital computing
-- **6G Wireless**: Next-gen communication systems
-- **Modern Languages**: Rust, Zig, Mojo, Julia
+- **nextjs-fullstack-app**: Next.js fullstack starter with Prisma, tRPC, and NextAuth
 
 ## 📋 Available Templates
 
 ### Frontend Templates
+
 - **react-vite**: React + Vite + TypeScript starter
 - **vue-vite**: Vue 3 + Vite + TypeScript starter
 - **svelte-kit**: SvelteKit full-stack application
 
 ### Backend Templates
+
 - **fastapi**: FastAPI + PostgreSQL + Docker starter
 - **express-typescript**: Express.js + TypeScript + MongoDB
 - **django-rest**: Django REST Framework + PostgreSQL
 
 ### Fullstack Templates
+
 - **nextjs-fullstack**: Next.js 14 + TypeScript + Prisma + PostgreSQL
 - **t3-stack**: T3 Stack - Next.js + tRPC + Prisma + NextAuth
 
 ### AI/ML Templates
+
 - **pytorch-lightning**: PyTorch Lightning + Hydra configuration
 - **cookiecutter-datascience**: Cookiecutter Data Science project
 
 ### DevOps Templates
-- **github-actions-python**: GitHub Actions workflow for Python
+
+- **github-actions-python**: GitHub Actions template example (automation disabled)
 - **docker-compose-stack**: Docker Compose multi-service stack
 
 ### Mobile Templates
+
 - **react-native-expo**: React Native + Expo + TypeScript
 - **flutter-clean**: Flutter clean architecture template
 
 ### Workflow Templates
+
 - **python-package**: Python package with modern tooling
 - **typescript-library**: TypeScript library with modern tooling
 
@@ -194,6 +208,8 @@ package_managers:
 
 # Optional GitHub integration
 github_token: null  # Set for live search (Phase 2)
+  # Whether to prefer GitHub live discovery over local bundled templates
+  prefer_github: true
 
 # UI preferences
 auto_update: true
@@ -347,33 +363,37 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🚧 Roadmap
 
-### Phase 1: MVP ✅
+- ### Phase 1: MVP ✅
+
 - [x] Core CLI with interactive wizard
 - [x] Template management and search
 - [x] Project customization with Jinja2
 - [x] Configuration system
 - [x] Comprehensive testing
 
-### Phase 2: Enhanced Discovery
+- ### Phase 2: Enhanced Discovery
+
 - [ ] GitHub live search integration
 - [ ] Template validation engine
 - [ ] Advanced customization options
 - [ ] Repository handler for git operations
 
-### Phase 3: Advanced Features
+- ### Phase 3: Advanced Features
+
 - [ ] Web UI with Streamlit
 - [ ] Trend detection integration
 - [ ] Custom template management
 - [ ] Analytics and recommendations
 
-### Phase 4: Gold Standard Stack
+- ### Phase 4: Gold Standard Stack
+
 - [ ] Workflows & best practices templates
 - [ ] Repository structure templates
-- [ ] CI/CD and code quality configs
+- [ ] Automation and code quality configs
 - [ ] Documentation and project management templates
 
 ---
 
-**Made with ❤️ by the Template Heaven Team**
+> **Made with ❤️ by the Template Heaven Team**
 
-*Start every project with a template. Build faster, build better.*
+Start every project with a template. Build faster, build better.

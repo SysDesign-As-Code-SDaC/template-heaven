@@ -14,7 +14,7 @@ This template provides a production-ready FastAPI microservice with:
 - **📝 OpenAPI/Swagger** - Auto-generated API documentation
 - **🧪 Pytest** - Comprehensive testing with async support
 - **🐳 Docker** - Containerized development and production
-- **🔄 GitHub Actions** - CI/CD pipeline with quality gates
+- **🔄 GitHub Actions**: automation examples (disabled)
 - **📈 Structured Logging** - JSON logging with correlation IDs
 - **🛡️ Security** - Input validation, CORS, rate limiting
 - **🌐 Async Support** - Full async/await throughout the stack
@@ -139,7 +139,7 @@ docker run -p 8000:8000 {{ project_name }}
 │   ├── Dockerfile
 │   ├── Dockerfile.prod
 │   └── docker-compose.yml
-├── .github/                     # GitHub Actions
+├── .github/                     # Automation examples (GitHub Actions disabled)
 │   └── workflows/
 ├── pyproject.toml              # Project configuration
 ├── requirements.txt            # Dependencies

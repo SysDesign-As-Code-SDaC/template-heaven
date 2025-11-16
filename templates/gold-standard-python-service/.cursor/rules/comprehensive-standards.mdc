@@ -32,12 +32,12 @@ pytest --cov=app --cov-report=html
 pip-licenses --format=html --output-file=licenses.html
 ```
 
-### 🔄 CI/CD Pipeline Standards
+### 🔄 Automation Pipeline Standards
 
-#### 1. **GitHub Actions Workflow**
+#### 1. **Automation Workflow (GitHub Actions example disabled)**
 ```yaml
 # .github/workflows/ci.yml
-name: CI/CD Pipeline
+name: Automation Pipeline
 on: [push, pull_request]
 
 jobs:

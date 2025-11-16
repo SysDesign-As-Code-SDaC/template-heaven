@@ -17,7 +17,7 @@ This template provides a production-ready machine learning pipeline with:
 - **📊 Monitoring** - Model performance monitoring and drift detection
 - **🧪 Testing** - Comprehensive testing with pytest and Great Expectations
 - **📝 Documentation** - Auto-generated docs with Sphinx
-- **🔄 CI/CD** - GitHub Actions with model validation gates
+- **🔄 GitHub Actions**: automation examples (disabled) for model validation and pipelines
 - **🛡️ Security** - Data privacy and model security best practices
 
 ## 🛠️ Tech Stack
@@ -148,7 +148,7 @@ docker run -p 5000:5000 {{ project_name }}
 │   ├── Dockerfile
 │   ├── Dockerfile.gpu
 │   └── docker-compose.yml
-├── .github/                     # GitHub Actions
+├── .github/                     # Automation examples (GitHub Actions disabled)
 │   └── workflows/
 ├── pyproject.toml              # Project configuration
 ├── requirements.txt            # Dependencies

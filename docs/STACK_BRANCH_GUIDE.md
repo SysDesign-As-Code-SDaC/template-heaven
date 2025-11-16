@@ -21,7 +21,7 @@ Stack branches are dedicated branches for specific technology stacks, containing
 - **`stack/generative-ai`** - Content creation and generation
 
 ### Infrastructure Stacks
-- **`stack/devops`** - CI/CD, infrastructure, Docker, Kubernetes
+- **`stack/devops`** - automation, infrastructure, Docker, Kubernetes
 - **`stack/microservices`** - Microservices architecture
 - **`stack/monorepo`** - Monorepo build systems
 - **`stack/serverless`** - Serverless and edge computing
@@ -303,7 +303,7 @@ git push origin stack/frontend
 
 2. **Performance Optimization**
    - Optimize branch size
-   - Review CI/CD performance
+  - Review automation pipeline performance
    - Update automation workflows
 
 ## 📈 Monitoring and Metrics
@@ -332,7 +332,7 @@ python scripts/branch_manager.py report
 
 - **Branch Size**: Size of the stack branch
 - **Clone Time**: Time to clone the stack branch
-- **CI/CD Time**: Time for automated workflows
+- **Automation Time**: Time for automated workflows
 - **Review Time**: Average PR review time
 
 ## 🚨 Troubleshooting

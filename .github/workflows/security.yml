@@ -1,9 +1,7 @@
-# Template Heaven - Security Workflow
-# This workflow runs security scans and dependency checks
+# Workflow intentionally disabled to honor maintainer preference: CI/CD pipelines removed
+name: Disabled - Repository workflows removed
 
-name: Security Scan
-
-on:
+# This workflow is intentionally disabled and will no longer run. Keep for history only.
   schedule:
     # Run daily at 2 AM UTC
     - cron: '0 2 * * *'

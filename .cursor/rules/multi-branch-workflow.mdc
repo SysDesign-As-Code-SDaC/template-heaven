@@ -104,13 +104,13 @@ git push origin stack/frontend
 - **docs**: Documentation updates
 - **refactor**: Code refactoring without functional changes
 - **test**: Adding or updating tests
-- **ci**: CI/CD pipeline changes
+- **ci**: Automation pipeline changes
 
 ### Examples
 ```
 feat(frontend): add Next.js 14 template with App Router
 fix(backend): resolve FastAPI dependency conflict
-chore(devops): update GitHub Actions workflow
+chore(automation): update automation workflow
 docs(readme): add installation instructions for new templates
 refactor(scripts): improve branch manager error handling
 ```
@@ -134,19 +134,19 @@ refactor(scripts): improve branch manager error handling
 - **PowerShell**: [scripts/sync_template.ps1](mdc:scripts/sync_template.ps1)
 - **Purpose**: Synchronize templates from upstream repositories
 
-## 🤖 Automated Workflows
+## 🤖 Automation Examples (disabled)
 
-### GitHub Actions
-- **Trend Detection**: [.github/workflows/trend-detection.yml](mdc:.github/workflows/trend-detection.yml)
-  - Daily automated trend monitoring
+### Automation examples (GitHub Actions disabled)
+-- **Trend Detection**: (GitHub Actions workflow example—disabled in repository)
+  - Daily automated trend monitoring (disabled)
   - GitHub API integration
   - Automated issue creation for high-priority trends
-- **Template Sync**: [.github/workflows/template-sync.yml](mdc:.github/workflows/template-sync.yml)
-  - Weekly automated template syncing
+-- **Template Sync**: (GitHub Actions workflow example—disabled in repository)
+  - Weekly automated template syncing (disabled)
   - Upstream repository monitoring
   - Automated PR creation for significant updates
-- **Branch Sync**: [.github/workflows/branch-sync.yml](mdc:.github/workflows/branch-sync.yml)
-  - Weekly core tools synchronization
+-- **Branch Sync**: (GitHub Actions workflow example—disabled in repository)
+  - Weekly core tools synchronization (disabled)
   - Stack configuration updates
   - Branch validation and health checks
 
@@ -212,4 +212,4 @@ refactor(scripts): improve branch manager error handling
 - **Branch Manager**: Python script for branch operations
 - **Sync Scripts**: Template synchronization utilities
 - **Trend Detector**: Automated trend monitoring system
-- **GitHub Actions**: CI/CD and automation workflows
+- **Automation workflows** (GitHub Actions examples disabled)

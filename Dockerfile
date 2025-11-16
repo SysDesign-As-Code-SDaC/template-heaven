@@ -16,23 +16,27 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # Create non-root user for building
 RUN groupadd -r builder && useradd -r -g builder builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt requirements-dev.txt ./
+# Copy project files
+COPY pyproject.toml ./
+COPY README.md ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Install dependencies using uv
+RUN uv pip install --system --no-cache -e ".[dev]"
 
 # Copy source code
 COPY . .
 
-# Install package in development mode
-RUN pip install --no-cache-dir --user -e ".[dev]"
+# Install package in development mode (already done above, but ensure it's up to date)
+RUN uv pip install --system --no-cache -e ".[dev]"
 
 # Production stage
 FROM python:3.11-slim as production
@@ -40,8 +44,6 @@ FROM python:3.11-slim as production
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PATH="/home/templateheaven/.local/bin:$PATH"
 
 # Install runtime dependencies only
@@ -52,6 +54,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # Create non-root user
 RUN groupadd -r templateheaven && \
     useradd -r -g templateheaven -d /home/templateheaven -s /bin/bash templateheaven
@@ -60,20 +65,20 @@ RUN groupadd -r templateheaven && \
 RUN mkdir -p /app /home/templateheaven/.templateheaven && \
     chown -R templateheaven:templateheaven /app /home/templateheaven
 
-# Switch to non-root user
-USER templateheaven
-
 # Set working directory
 WORKDIR /app
 
-# Copy installed packages from builder stage
-COPY --from=builder --chown=templateheaven:templateheaven /root/.local /home/templateheaven/.local
+# Copy project files
+COPY --chown=templateheaven:templateheaven pyproject.toml README.md ./
 
 # Copy application code
 COPY --chown=templateheaven:templateheaven . .
 
-# Install package
-RUN pip install --no-cache-dir -e .
+# Switch to non-root user
+USER templateheaven
+
+# Install dependencies using uv
+RUN uv pip install --system --no-cache -e .
 
 # Create cache directory
 RUN mkdir -p /home/templateheaven/.templateheaven/cache
@@ -89,8 +94,8 @@ CMD ["--help"]
 # Security: Run as non-root user
 USER templateheaven
 
-# Expose port (if needed for future web UI)
-EXPOSE 8080
+# Expose port for API service
+EXPOSE 8000
 
 # Labels for metadata
 LABEL maintainer="Template Heaven Team" \

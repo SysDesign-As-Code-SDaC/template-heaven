@@ -365,11 +365,11 @@ def test_template_build_process(template_path: Path):
 ### Coverage Reports
 - **HTML coverage reports** generated in `htmlcov/` directory
 - **Terminal coverage** output with missing line numbers
-- **Coverage thresholds** enforced in CI/CD pipeline
+- **Coverage thresholds** enforced in automation pipeline (CI/CD examples disabled)
 - **Coverage trends** tracked over time
 
 ### Test Results
-- **JUnit XML** output for CI/CD integration
+- **JUnit XML** output for automation integration (CI/CD examples disabled)
 - **Test duration** tracking for performance monitoring
 - **Failure analysis** with detailed error messages
 - **Test categorization** by type and importance

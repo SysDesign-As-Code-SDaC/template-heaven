@@ -503,7 +503,7 @@ tests/
 - **Fast**: Unit tests should run quickly
 - **Isolated**: Tests should not depend on each other
 - **Repeatable**: Tests should produce consistent results
-- **Automated**: All tests should run in CI/CD pipeline
+- **Automated**: All tests should run as part of an automated pipeline
 
 Always generate comprehensive tests that follow these standards.
 """

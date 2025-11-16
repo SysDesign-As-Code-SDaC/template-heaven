@@ -1,15 +1,7 @@
-# Template Heaven - Continuous Integration Pipeline
-# This workflow runs on every push and pull request to ensure code quality
+# Workflow intentionally disabled to honor maintainer preference: CI/CD pipelines removed
+name: Disabled - Repository workflows removed
 
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [ main, dev, 'feature/*', 'hotfix/*' ]
-  pull_request:
-    branches: [ main, dev ]
-  release:
-    types: [ published ]
+# The workflow has been removed. This file is kept only for history and can be deleted if desired.
 
 env:
   PYTHON_VERSION: '3.11'
@@ -308,5 +300,5 @@ jobs:
     steps:
     - name: Notify team
       run: |
-        echo "CI/CD pipeline failed. Please check the logs."
+  echo "Automation pipeline failed. Please check the logs."
         # Add actual notification logic here (Slack, email, etc.)

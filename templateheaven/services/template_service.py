@@ -225,12 +225,19 @@ class TemplateService:
         Returns:
             Updated template if found, None otherwise
         """
+        import uuid
         from ..database.connection import db_manager
         async with db_manager.get_session() as session:
+            # Convert template_id to UUID
+            try:
+                template_uuid = uuid.UUID(template_id)
+            except ValueError:
+                return None
+            
             # Get template
             query = select(TemplateModel).options(
                 selectinload(TemplateModel.stack)
-            ).where(TemplateModel.id == template_id)
+            ).where(TemplateModel.id == template_uuid)
             
             result = await session.execute(query)
             template_model = result.scalar_one_or_none()
@@ -260,9 +267,16 @@ class TemplateService:
         Returns:
             True if deleted, False if not found
         """
+        import uuid
         from ..database.connection import db_manager
         async with db_manager.get_session() as session:
-            query = select(TemplateModel).where(TemplateModel.id == template_id)
+            # Convert template_id to UUID
+            try:
+                template_uuid = uuid.UUID(template_id)
+            except ValueError:
+                return False
+            
+            query = select(TemplateModel).where(TemplateModel.id == template_uuid)
             result = await session.execute(query)
             template_model = result.scalar_one_or_none()
             
@@ -363,10 +377,17 @@ class TemplateService:
         Returns:
             Archive bytes if successful, None otherwise
         """
+        import uuid
         from ..database.connection import db_manager
         async with db_manager.get_session() as session:
+            # Convert template_id to UUID
+            try:
+                template_uuid = uuid.UUID(template_id)
+            except ValueError:
+                return None
+            
             # Get template
-            query = select(TemplateModel).where(TemplateModel.id == template_id)
+            query = select(TemplateModel).where(TemplateModel.id == template_uuid)
             result = await session.execute(query)
             template_model = result.scalar_one_or_none()
             
@@ -374,9 +395,16 @@ class TemplateService:
                 return None
             
             # Record download
+            download_user_id = None
+            if user_id:
+                try:
+                    download_user_id = uuid.UUID(user_id)
+                except ValueError:
+                    pass
+            
             download = TemplateDownload(
                 template_id=template_model.id,
-                user_id=user_id,
+                user_id=download_user_id,
                 ip_address=ip_address,
                 user_agent=user_agent,
                 format=format

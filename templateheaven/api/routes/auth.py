@@ -99,8 +99,8 @@ async def refresh_token(
         # Use the imported auth service
         
         # Create new access token
-        access_token = await auth_service.create_access_token(
-            data={"sub": current_user.username, "user_id": current_user.id}
+        access_token = auth_service.create_access_token(
+            data={"sub": current_user.username, "user_id": str(current_user.id)}
         )
         
         logger.info(f"Token refreshed for user {current_user.username}")
@@ -119,7 +119,7 @@ async def refresh_token(
         )
 
 
-@router.get("/auth/me", response_model=User)
+@router.get("/auth/me")
 async def get_current_user_info(
     current_user: User = Depends(require_auth),
     request_id: str = Depends(get_request_id)
@@ -129,7 +129,17 @@ async def get_current_user_info(
     
     Returns detailed information about the currently authenticated user.
     """
-    return current_user
+    return {
+        "id": str(current_user.id),
+        "username": current_user.username,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "is_active": current_user.is_active,
+        "is_superuser": current_user.is_superuser,
+        "roles": [role.role.name for role in current_user.roles],
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+        "updated_at": current_user.updated_at.isoformat() if current_user.updated_at else None
+    }
 
 
 @router.post("/auth/logout")
@@ -242,7 +252,7 @@ async def change_password(
         # Use the imported auth service
         
         # Verify current password
-        if not await auth_service.verify_password(current_password, current_user.password):
+        if not auth_service.verify_password(current_password, current_user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Current password is incorrect"

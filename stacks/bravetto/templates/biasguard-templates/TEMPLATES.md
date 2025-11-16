@@ -193,7 +193,7 @@ All templates are designed to be easily customizable:
 - Copy the template to your workspace
 - Install dependencies and configure environment
 - Set up development tools and IDE
-- Configure version control and CI/CD
+- Configure version control and automation (CI/CD examples disabled)
 
 ### 3. Customization
 - Modify styling and branding

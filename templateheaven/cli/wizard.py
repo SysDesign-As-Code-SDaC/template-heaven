@@ -14,6 +14,9 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
 from rich.prompt import Prompt, Confirm
+import asyncio
+import tempfile
+import subprocess
 
 from ..core.template_manager import TemplateManager
 from ..core.models import Template, ProjectConfig, StackCategory
@@ -163,13 +166,34 @@ Let's get started!
             Stack category of selected template
         """
         query = questionary.text("Enter search query:").ask()
-        
+
         if not query:
             return self._select_stack()  # Fallback to stack selection
-        
-        # Search templates
-        results = self.template_manager.search_templates(query, limit=10)
-        
+
+        # Ask user where to search: local vs GitHub
+        # Default to GitHub if configured to prefer GitHub
+        default_choice = 'github' if self.template_manager.prefer_github else 'local'
+        search_source = questionary.select(
+            "Where should we search?",
+            choices=[('Local templates (bundled)', 'local'), ('GitHub repositories (live search)', 'github')],
+            default=default_choice
+        ).ask()
+
+        results = []
+        if search_source == 'github':
+            try:
+                if not self.template_manager.github_search.github_available:
+                    self.console.print('[yellow]GitHub integration not available or dependencies missing.[/yellow]')
+                    results = self.template_manager.search_templates(query, limit=10)
+                else:
+                    results = asyncio.run(self.template_manager.github_search.search_github_templates(query, limit=10))
+            except Exception as e:
+                self.console.print(f"[red]GitHub search failed: {e}[/red]")
+                results = self.template_manager.search_templates(query, limit=10)
+        else:
+            # Local template search
+            results = self.template_manager.search_templates(query, limit=10)
+
         if not results:
             self.console.print("[yellow]No templates found matching your query.[/yellow]")
             return self._select_stack()  # Fallback to stack selection
@@ -180,15 +204,57 @@ Let's get started!
         # Select from results
         choices = []
         for result in results:
-            choice_text = f"{result.template.name} ({result.template.stack.value}) - {result.template.description[:50]}..."
-            choices.append((choice_text, result.template))
+            if hasattr(result, 'metadata') and result.metadata and 'github_data' in result.metadata:
+                repo = result.metadata['github_data']
+                choice_text = f"{repo.get('full_name')} - {repo.get('description', '')[:50]}..."
+            else:
+                choice_text = f"{result.template.name} ({result.template.stack.value}) - {result.template.description[:50]}..."
+            choices.append((choice_text, result))
         
         selected_template = questionary.select(
             "Choose a template:",
             choices=choices
         ).ask()
-        
-        return selected_template.stack
+
+        # If the selected result is a GitHub candidate, handle cloning and scaffolding
+        if hasattr(selected_template, 'metadata') and selected_template.metadata and 'github_data' in selected_template.metadata:
+            repo = selected_template.metadata['github_data']
+            repo_url = repo.get('html_url') or repo.get('clone_url') or repo.get('ssh_url')
+            clone_confirm = questionary.confirm(f"Scaffold from GitHub repo {repo.get('full_name')}? ").ask()
+            if not clone_confirm:
+                return self._select_stack()
+
+            # Ask for project name
+            pname = questionary.text("Project name to scaffold into:", default='my-app').ask()
+            project_name = pname or 'my-app'
+
+            # Clone and scaffold into the selected output
+            tmp_dir = Path(tempfile.mkdtemp(prefix='th-git-'))
+            try:
+                subprocess.run(['git', 'clone', '--depth', '1', repo_url, str(tmp_dir)], check=True)
+
+                # Build a minimal ProjectConfig and call customizer.customize_from_repo_dir
+                project_config = ProjectConfig(
+                    name=project_name,
+                    directory=str(Path.cwd()),
+                    template=selected_template.template,
+                    author=self.config.get('default_author'),
+                    license=self.config.get('default_license'),
+                    package_manager=self.config.get('package_managers', {}).get('python', 'pip')
+                )
+
+                success = self.customizer.customize_from_repo_dir(tmp_dir, project_config, Path('.'))
+                if success:
+                    self.console.print(f"[green]Scaffolded project {project_name} from GitHub repo {repo_url}[/green]")
+                    return project_config.template.stack
+                else:
+                    self.console.print(f"[red]Failed to scaffold from GitHub repo: {repo_url}[/red]")
+                    return self._select_stack()
+            except Exception as e:
+                self.console.print(f"[red]Failed to clone or scaffold repository: {e}[/red]")
+                return self._select_stack()
+        else:
+            return selected_template.template.stack
     
     def _select_template(self, stack: StackCategory) -> Template:
         """
@@ -204,7 +270,9 @@ Let's get started!
         self.console.print()
         
         # Get templates for the stack
-        templates = self.template_manager.list_templates(stack=stack.value)
+        # Use GitHub discovery by default if configured
+        use_github = self.template_manager.prefer_github
+        templates = self.template_manager.list_templates(stack=stack.value, use_github=use_github)
         
         if not templates:
             self.console.print(f"[red]No templates found for stack: {stack.value}[/red]")

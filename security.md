@@ -13,7 +13,7 @@
 - **Multi-stage builds** to minimize attack surface
 - **Non-root user** execution in containers
 - **Read-only filesystem** where possible
-- **Security scanning** with Trivy in CI/CD
+- **Security scanning** with Trivy (automated scans)
 - **Base image updates** regularly
 
 ### Code Security
@@ -53,7 +53,7 @@ If you discover a security vulnerability, please report it responsibly:
 
 ### Automated Security Scanning
 
-Our CI/CD pipeline includes:
+Automated security scanning includes:
 
 - **Dependency vulnerability scanning** (Safety, pip-audit)
 - **Code security analysis** (Bandit, Semgrep)
@@ -129,16 +129,14 @@ trufflehog filesystem .
 pip-licenses --format=json
 ```
 
-### CI/CD
+### Automated Scanning Example
 
-```yaml
-# Security scanning in GitHub Actions
-- name: Run security scans
-  run: |
-    bandit -r src/
-    safety check
-    pip-audit
-    trufflehog filesystem .
+```bash
+# Security scanning script example
+bandit -r src/
+safety check
+pip-audit
+trufflehog filesystem .
 ```
 
 ### Container Security

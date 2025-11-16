@@ -30,7 +30,7 @@ A comprehensive FastAPI backend template with PostgreSQL, JWT authentication, co
 ### Documentation & Tooling
 - **Auto-generated API Docs**: Swagger UI and ReDoc
 - **Comprehensive Makefile**: 50+ development commands
-- **CI/CD Ready**: GitHub Actions workflows
+- **Automation Ready**: GitHub Actions examples (disabled)
 - **Development Scripts**: Database seeding, user management
 - **Performance Benchmarking**: pytest-benchmark integration
 
@@ -143,7 +143,7 @@ fastapi-postgresql-backend/
 │   ├── docker-compose.yml            # Production setup
 │   ├── docker-compose.dev.yml        # Development setup
 │   └── monitoring/                   # Monitoring configurations
-├── .github/workflows/                # CI/CD workflows
+├── .github/workflows/                # Automation workflows
 ├── alembic/                          # Database migrations
 ├── requirements.txt                  # Production dependencies
 ├── requirements-dev.txt              # Development dependencies

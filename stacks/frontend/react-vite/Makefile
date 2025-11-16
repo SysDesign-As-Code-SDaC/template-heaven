@@ -200,8 +200,8 @@ setup: install-dev env hooks-install ## Complete development setup
 check: format-check lint type-check security ## Run all checks
 	@echo "✅ All checks passed!"
 
-ci: check test-coverage build size-check ## Run CI/CD pipeline locally
-	@echo "✅ CI/CD pipeline completed successfully!"
+ci: check test-coverage build size-check ## Run automation pipeline locally
+	@echo "✅ Automation pipeline completed successfully!"
 
 # Quick development commands
 quick-test: ## Quick test run
@@ -306,18 +306,18 @@ test-debug: ## Debug failing tests
 test-parallel: ## Run tests in parallel
 	npm run test:run -- --run --parallel
 
-# CI helpers
-ci-test: ## Run tests for CI/CD
-	npm run test:run -- --run --coverage --reporter=json --outputFile=test-results.json
+# Automation helpers: Disabled per maintainer request
+ci-test: ## Run tests (disabled)
+	@echo "Automation tests disabled by maintainer"
 
-ci-lint: ## Run linting for CI/CD
-	npm run lint -- --format=json --output-file=lint-results.json
+ci-lint: ## Run linting (disabled)
+	@echo "Automation lint disabled by maintainer"
 
-ci-type: ## Run type checking for CI/CD
-	npm run type-check
+ci-type: ## Run type checking (disabled)
+	@echo "Automation type-check disabled by maintainer"
 
-ci-security: ## Run security checks for CI/CD
-	npm audit --audit-level moderate --json > security-audit.json
+ci-security: ## Run security checks (disabled)
+	@echo "Automation security checks disabled by maintainer"
 
 # Version management
 version: ## Show current version

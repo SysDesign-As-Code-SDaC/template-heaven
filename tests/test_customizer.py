@@ -91,14 +91,14 @@ class TestCustomizer:
 
         # Write YAML content with GitHub Actions syntax
         yaml_content = """
-name: CI/CD Pipeline
+name: Automation Pipeline
 on:
-  push:
-    branches: [ main ]
+    push:
+        branches: [ main ]
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
+    test:
+        runs-on: ubuntu-latest
+        if: ${{ github.event_name == 'push' }}
 """
         source_file.write_text(yaml_content)
 
@@ -111,7 +111,7 @@ jobs:
         assert dest_file.exists()
         content = dest_file.read_text()
         # YAML should be unchanged (no Jinja2 processing)
-        assert "name: CI/CD Pipeline" in content
+        assert "name: Automation Pipeline" in content
         assert "${{ github.event_name == 'push' }}" in content
 
     def test_process_template_file_simple_substitution(self, customizer, tmp_path):
@@ -221,3 +221,32 @@ jobs:
         assert variables['license'] == 'Apache-2.0'
         assert variables['description'] == 'Custom description'
         assert variables['version'] == '1.2.3'
+
+    def test_create_license_and_contributing(self, customizer, tmp_path, sample_template):
+        """Test that license and contributing files are created if missing."""
+        config = ProjectConfig(
+            name="test-project",
+            directory=str(tmp_path),
+            template=sample_template,
+            author="Test Author",
+            license="MIT"
+        )
+
+        # Ensure project path doesn't exist
+        output_dir = tmp_path
+        # Run customize but mock file operations that copy files
+        customizer.file_ops = customizer.file_ops  # use real file ops
+
+        # Create a simple source template directory for copying
+        src_dir = tmp_path / 'template_src'
+        src_dir.mkdir()
+        (src_dir / 'README.md').write_text('# Test')
+
+        # Customize from repo dir (simulate cloning)
+        success = customizer.customize_from_repo_dir(src_dir, config, output_dir)
+        assert success is True
+
+        project_dir = output_dir / config.name
+        # License and contributing should exist
+        assert (project_dir / 'LICENSE').exists()
+        assert (project_dir / 'CONTRIBUTING.md').exists()

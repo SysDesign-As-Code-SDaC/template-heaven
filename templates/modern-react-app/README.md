@@ -14,7 +14,7 @@ This template provides a modern, production-ready React application with:
 - **🔍 ESLint & Prettier** - Code quality and formatting
 - **📦 pnpm** - Fast, disk space efficient package manager
 - **🐳 Docker** - Containerized development and production
-- **🔄 GitHub Actions** - CI/CD pipeline with quality gates
+- **🔄 GitHub Actions**: automation examples (disabled)
 - **📱 PWA Ready** - Progressive Web App capabilities
 - **♿ Accessibility** - WCAG 2.1 AA compliant components
 - **🌐 i18n Ready** - Internationalization support
@@ -95,7 +95,7 @@ docker run -p 3000:3000 {{ project_name }}
 │   ├── utils/                   # Utility tests
 │   └── e2e/                     # End-to-end tests
 ├── docs/                        # Documentation
-├── .github/                     # GitHub Actions
+├── .github/                     # Automation examples (GitHub Actions disabled)
 ├── docker/                      # Docker configurations
 ├── package.json                 # Dependencies and scripts
 ├── vite.config.ts              # Vite configuration

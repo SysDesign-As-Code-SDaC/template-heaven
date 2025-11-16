@@ -9,7 +9,7 @@ import json
 import pickle
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 from datetime import datetime, timedelta
 
 from .logger import get_logger
@@ -295,6 +295,14 @@ class Cache:
             "file_total_size_bytes": total_size,
             "cache_dir": str(self.cache_dir),
             "max_size": self.max_size,
+        })
+
+        # Legacy keys for backward compatibility (non-prefixed)
+        stats.update({
+            "total_entries": total_files,
+            "expired_entries": expired_files,
+            "active_entries": total_files - expired_files,
+            "total_size_bytes": total_size,
         })
 
         return stats

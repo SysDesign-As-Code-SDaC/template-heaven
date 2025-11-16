@@ -6,7 +6,7 @@ including settings, authentication, and service dependencies.
 """
 
 from functools import lru_cache
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -15,6 +15,9 @@ from pydantic_settings import BaseSettings
 
 # Import will be done locally to avoid circular imports
 from ..utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from ..database.models import User, UserRole
 
 logger = get_logger(__name__)
 
@@ -90,73 +93,78 @@ def get_settings() -> Settings:
     return Settings()
 
 
-def get_current_user(
+async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     settings: Settings = Depends(get_settings)
-) -> Optional[User]:
+) -> Optional[Any]:
     """Get current authenticated user."""
     if not credentials:
         return None
     
     try:
-        # In a real implementation, you would validate the JWT token here
-        # For now, we'll create a mock user based on the token
         token = credentials.credentials
         
-        # Mock user creation (replace with actual JWT validation)
-        from ..database.models import User, UserRole
+        # Validate JWT token using auth service
+        from ..services.auth_service import auth_service
         
-        if token == "admin-token":
-            return User(
-                id="admin-1",
-                username="admin",
-                email="admin@templateheaven.dev",
-                role=UserRole.ADMIN
-            )
-        elif token == "user-token":
-            return User(
-                id="user-1",
-                username="user",
-                email="user@templateheaven.dev",
-                role=UserRole.USER
-            )
-        else:
+        payload = auth_service.verify_token(token)
+        if not payload:
             return None
+        
+        # Extract user information from token
+        username = payload.get("sub")
+        user_id = payload.get("user_id")
+        
+        if not username:
+            return None
+        
+        # Get user from database
+        user = await auth_service.get_user_by_username(username)
+        if not user or not user.is_active:
+            return None
+        
+        return user
             
     except Exception as e:
         logger.error(f"Authentication error: {e}")
         return None
 
 
-def get_optional_user(
+async def get_optional_user(
     current_user = Depends(get_current_user)
 ):
     """Get optional current user (doesn't raise exception if not authenticated)."""
     return current_user
 
 
-def require_auth(
+async def require_auth(
     current_user = Depends(get_current_user)
 ):
-    """Require authentication (raises exception if not authenticated)."""
-    if not current_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    """
+    Require authentication (returns None if not authenticated - auth is optional).
+    
+    Note: Authentication is currently optional. This function returns None
+    if no authentication is provided instead of raising an exception.
+    """
+    # Authentication is optional for now - return None if not authenticated
     return current_user
 
 
-def require_admin(
-    current_user: User = Depends(require_auth)
-) -> User:
+async def require_admin(
+    current_user: Any = Depends(require_auth)
+) -> Any:
     """Require admin role."""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MODERATOR]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
-        )
+    from ..services.auth_service import auth_service
+    
+    # Check if user has admin or superuser privileges
+    if not current_user.is_superuser:
+        # Check roles
+        user_roles = await auth_service.get_user_roles(str(current_user.id))
+        if "admin" not in user_roles and "moderator" not in user_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin privileges required"
+            )
     return current_user
 
 

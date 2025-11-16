@@ -1,10 +1,7 @@
-name: Sync Upstream Templates
+name: Disabled - Repository workflows removed
 
-on:
-  schedule:
-    # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+# This workflow is intentionally disabled and has been entirely replaced by maintainer direction.
+# File retained only for historic purposes. Remove the file if you wish to delete history.
     inputs:
       stack_name:
         description: 'Specific stack to sync (leave empty for all)'

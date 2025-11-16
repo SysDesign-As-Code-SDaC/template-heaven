@@ -14,6 +14,7 @@ from ...core.models import (
     APIResponse, StackCategory, StackConfiguration, 
     PaginatedResponse
 )
+from ...core.stack_config import StackConfiguration as StackConfigClass
 from ..dependencies import (
     get_settings, require_auth, require_admin, get_optional_user,
     get_request_id, get_service

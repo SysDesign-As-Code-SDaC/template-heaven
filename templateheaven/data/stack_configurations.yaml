@@ -176,7 +176,7 @@ stacks:
   # DevOps & Infrastructure
   devops:
     name: "DevOps & Infrastructure"
-    description: "Infrastructure automation, CI/CD, and deployment tools"
+    description: "Infrastructure automation and deployment tools"
     category: "infrastructure"
 
     quality_standards:

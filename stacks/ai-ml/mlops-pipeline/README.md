@@ -4,14 +4,14 @@
 
 ## 🌟 Overview
 
-This template provides a complete MLOps pipeline that covers the entire machine learning lifecycle from development to production deployment. It includes experiment tracking, model versioning, continuous integration/deployment, monitoring, and automated retraining.
+This template provides a complete MLOps pipeline that covers the entire machine learning lifecycle from development to production deployment. It includes experiment tracking, model versioning, continuous integration/deployment (automation examples disabled), monitoring, and automated retraining.
 
 ## 🚀 Features
 
 ### Core MLOps Components
 - **Experiment Tracking**: MLflow integration for experiment management
 - **Model Registry**: Version control and lifecycle management for models
-- **CI/CD Pipeline**: Automated testing, building, and deployment
+- **Automation Pipeline examples** (GitHub Actions disabled): Automated testing, building, and deployment
 - **Model Monitoring**: Performance tracking and drift detection
 - **Automated Retraining**: Scheduled model updates and validation
 - **A/B Testing Framework**: Safe model deployment and comparison

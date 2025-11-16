@@ -103,7 +103,7 @@ Dockerfile*
 docker-compose*.yml
 .dockerignore
 
-# CI/CD
+# Automation
 .github/
 .gitlab-ci.yml
 .travis.yml

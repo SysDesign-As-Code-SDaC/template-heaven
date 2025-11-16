@@ -609,7 +609,7 @@ class SecurityService:
 
 ### Secure Deployment Practices
 - **Infrastructure as Code** with security best practices
-- **Automated security testing** in CI/CD pipeline
+- **Automated security testing** in automation pipeline (CI/CD examples disabled)
 - **Secure configuration management** for all environments
 - **Production deployment** security reviews
 

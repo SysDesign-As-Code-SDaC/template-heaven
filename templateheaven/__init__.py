@@ -38,7 +38,6 @@ from .__version__ import __version__
 from .core.template_manager import TemplateManager
 from .core.models import Template, ProjectConfig, StackCategory
 from .config.settings import Config
-from .cli.wizard import Wizard
 
 __all__ = [
     "__version__",
@@ -47,7 +46,6 @@ __all__ = [
     "ProjectConfig", 
     "StackCategory",
     "Config",
-    "Wizard",
 ]
 
 # Package metadata

@@ -32,7 +32,7 @@ This repository uses a hybrid multi-branch architecture:
 | **Advanced AI** | [`stack/advanced-ai`](../../tree/stack/advanced-ai) | LLMs, RAG, vector databases |
 | **Agentic AI** | [`stack/agentic-ai`](../../tree/stack/agentic-ai) | Autonomous systems and agents |
 | **Mobile** | [`stack/mobile`](../../tree/stack/mobile) | Mobile and desktop applications |
-| **DevOps** | [`stack/devops`](../../tree/stack/devops) | CI/CD, infrastructure, Docker, K8s |
+| **DevOps** | [`stack/devops`](../../tree/stack/devops) | automation, infrastructure, Docker, K8s |
 | **Web3** | [`stack/web3`](../../tree/stack/web3) | Blockchain and smart contracts |
 | **Microservices** | [`stack/microservices`](../../tree/stack/microservices) | Microservices architecture |
 | **Monorepo** | [`stack/monorepo`](../../tree/stack/monorepo) | Monorepo build systems |
@@ -124,7 +124,7 @@ This repository uses a hybrid multi-branch architecture:
 - **backend/**: Backend services, APIs, and server applications
 - **ai-ml/**: Machine learning, data science, and AI frameworks
 - **mobile/**: Mobile and desktop application frameworks
-- **devops/**: CI/CD, infrastructure, and deployment tools
+- **devops/**: automation, infrastructure, and deployment tools
 - **vscode-extensions/**: VSCode extension development templates
 - **docs/**: Documentation and community templates
 - **other/**: Specialized templates (monorepo, microservices, etc.)
@@ -171,7 +171,7 @@ echo "Last sync: $(date)" >> stacks/[category]/[template-name]/.upstream-info
    - [ ] Follows our coding standards and conventions
    - [ ] Includes proper TypeScript types and documentation
    - [ ] Has comprehensive docstrings and comments
-   - [ ] Includes appropriate CI/CD configurations
+   - [ ] Includes appropriate automation configurations
    - [ ] Security best practices are followed
 
 ### Testing Checklist

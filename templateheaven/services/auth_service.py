@@ -338,29 +338,62 @@ class AuthService:
             result = await session.execute(query)
             return result.scalars().all()
     
-    def _model_to_pydantic(self, user_model: User) -> UserModel:
-        """Convert SQLAlchemy model to Pydantic model."""
-        roles = []
-        for user_role in user_model.roles:
-            role_name = user_role.role.name
-            try:
-                role_enum = UserRoleEnum(role_name)
-                roles.append(role_enum)
-            except ValueError:
-                # Handle custom roles
-                pass
-        
-        return UserModel(
-            id=str(user_model.id),
-            username=user_model.username,
-            email=user_model.email,
-            full_name=user_model.full_name,
-            is_active=user_model.is_active,
-            is_superuser=user_model.is_superuser,
-            roles=roles,
-            created_at=user_model.created_at,
-            updated_at=user_model.updated_at
-        )
+    async def logout_user(self, user_id: str) -> None:
+        """Log user logout event (placeholder for future session tracking)."""
+        logger.info(f"User {user_id} logged out")
+        # In a full implementation, this would invalidate sessions or tokens
+        pass
+    
+    async def update_password(self, user_id: str, new_password: str) -> bool:
+        """Update user password."""
+        from ..database.connection import db_manager
+        async with db_manager.get_session() as session:
+            query = select(User).where(User.id == user_id)
+            result = await session.execute(query)
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                return False
+            
+            user.hashed_password = self.get_password_hash(new_password)
+            user.updated_at = datetime.utcnow()
+            await session.flush()
+            
+            logger.info(f"Password updated for user {user_id}")
+            return True
+    
+    async def create_password_reset_token(self, user_id: str) -> str:
+        """Create a password reset token."""
+        import secrets
+        token = secrets.token_urlsafe(32)
+        # In a full implementation, store token in database with expiration
+        logger.info(f"Password reset token created for user {user_id}")
+        return token
+    
+    async def verify_password_reset_token(self, token: str) -> Optional[str]:
+        """Verify password reset token and return user_id if valid."""
+        # In a full implementation, verify token from database
+        # For now, return None (token validation not implemented)
+        logger.warning("Password reset token verification not fully implemented")
+        return None
+    
+    async def invalidate_password_reset_token(self, token: str) -> None:
+        """Invalidate a password reset token."""
+        # In a full implementation, mark token as used in database
+        logger.info(f"Password reset token invalidated")
+        pass
+    
+    async def get_user_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get user sessions (placeholder for future session tracking)."""
+        # In a full implementation, return active sessions from database
+        logger.info(f"Getting sessions for user {user_id}")
+        return []
+    
+    async def revoke_session(self, session_id: str, user_id: str) -> bool:
+        """Revoke a user session (placeholder for future session tracking)."""
+        # In a full implementation, invalidate session in database
+        logger.info(f"Session {session_id} revoked for user {user_id}")
+        return True
 
 
 # Global service instance

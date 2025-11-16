@@ -1,4 +1,4 @@
-name: Comprehensive CI/CD Pipeline
+name: Comprehensive Automation Pipeline (disabled)
 
 on:
   push:

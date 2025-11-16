@@ -168,7 +168,7 @@ The scripts automatically detect the appropriate stack branch based on the upstr
 - **generative-ai**: Content creation and generation (DALL-E, GPT, Stable Diffusion)
 
 ### Infrastructure Stacks
-- **devops**: CI/CD, infrastructure, and deployment tools (Docker, Kubernetes, Terraform)
+- **devops**: automation, infrastructure, and deployment tools (Docker, Kubernetes, Terraform)
 - **microservices**: Microservices architecture (Kubernetes, Istio, Event-driven)
 - **monorepo**: Monorepo build systems (Turborepo, Nx, pnpm workspaces)
 - **serverless**: Serverless and edge computing (Vercel, Cloudflare Workers, AWS Lambda)

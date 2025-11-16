@@ -1,6 +1,6 @@
-name: Template Synchronization
-
-on:
+# This workflow is intentionally disabled and has been removed.
+# Name: Template Synchronization (disabled for maintainers request)
+# The following details were removed to prevent execution:
   schedule:
     # Run weekly on Sundays at 3 AM UTC
     - cron: '0 3 * * 0'
@@ -21,6 +21,11 @@ on:
         required: false
         default: 'false'
         type: boolean
+# Workflow intentionally disabled to honor maintainer preference: CI/CD pipelines removed
+name: Disabled - Repository workflows removed
+
+# This workflow is intentionally disabled and will no longer run.
+# It was retained for historic purposes only and can be deleted.
 
 env:
   PYTHON_VERSION: '3.11'

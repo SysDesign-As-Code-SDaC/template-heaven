@@ -547,7 +547,7 @@ cline interactive
 cline> "Create a user authentication system with OAuth2"
 cline> "Add email verification and password reset"
 cline> "Generate comprehensive tests"
-cline> "Set up CI/CD pipeline"
+cline> "Set up automation pipeline (CI/CD examples disabled)"
 
 # Exit interactive mode
 cline> "exit"

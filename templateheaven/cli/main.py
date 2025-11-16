@@ -187,6 +187,17 @@ def init(
     default=50,
     help='Maximum number of results'
 )
+@click.option(
+    '--source',
+    type=click.Choice(['auto', 'github', 'local']),
+    default='auto',
+    help='Source to use for listing: auto, github, or local'
+)
+@click.option(
+    '--include-archived',
+    is_flag=True,
+    help='Include archived local templates in the result'
+)
 @click.pass_context
 def list(
     ctx: click.Context,
@@ -195,6 +206,8 @@ def list(
     search: Optional[str],
     format: str,
     limit: int
+    , source: str = 'auto'
+    , include_archived: bool = False
 ) -> None:
     """
     List available templates.
@@ -214,10 +227,18 @@ def list(
             tag_list = [tag.strip() for tag in tags.split(',')]
         
         # Get templates
+        # Determine use_github from source
+        if source == 'auto':
+            use_github = template_manager.config.get('prefer_github', False) or bool(template_manager.config.get('github_token'))
+        else:
+            use_github = source == 'github'
+
         templates = template_manager.list_templates(
             stack=stack,
             tags=tag_list,
-            search=search
+            search=search,
+            use_github=use_github,
+            include_archived=include_archived
         )
         
         # Limit results
@@ -275,12 +296,19 @@ def info(ctx: click.Context, template_name: str) -> None:
     default=0.1,
     help='Minimum relevance score'
 )
+@click.option(
+    '--source',
+    type=click.Choice(['auto', 'github', 'local']),
+    default='auto',
+    help='Search source: auto, github, or local'
+)
 @click.pass_context
 def search(
     ctx: click.Context,
     query: Optional[str],
     limit: int,
     min_score: float
+    , source: str = 'auto'
 ) -> None:
     """
     Search templates with relevance scoring.
@@ -295,11 +323,26 @@ def search(
         query = click.prompt("Enter search query")
     
     try:
-        results = template_manager.search_templates(
-            query=query,
-            limit=limit,
-            min_score=min_score
-        )
+        # Determine search source
+        if source == 'auto':
+            prefer_github = template_manager.config.get('prefer_github', False) or bool(template_manager.config.get('github_token'))
+            use_github = prefer_github
+        else:
+            use_github = source == 'github'
+
+        if use_github:
+            try:
+                import asyncio
+                results = asyncio.run(template_manager.github_search.search_github_templates(query, limit=limit))
+            except Exception as e:
+                logger.error(f"GitHub search failed: {e}")
+                raise click.ClickException(f"GitHub search error: {e}")
+        else:
+            results = template_manager.search_templates(
+                query=query,
+                limit=limit,
+                min_score=min_score
+            )
         
         if not results:
             click.echo("No templates found matching your query.")

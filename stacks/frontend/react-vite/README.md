@@ -29,7 +29,7 @@ A comprehensive React frontend template with TypeScript, Vite, modern tooling, a
 - **Optimized builds** with code splitting and tree shaking
 - **Progressive Web App** support with service workers
 - **Docker containerization** for consistent deployment
-- **CI/CD pipelines** with GitHub Actions
+- **automation pipelines** examples (GitHub Actions disabled)
 - **Performance monitoring** with Lighthouse
 - **SEO optimization** with React Helmet
 - **Accessibility** compliance (WCAG guidelines)
@@ -130,7 +130,7 @@ react-vite-frontend/
 │   └── manifest.json           # PWA manifest
 ├── docs/                        # Documentation
 ├── scripts/                     # Build and utility scripts
-├── .github/workflows/          # CI/CD pipelines
+├── .github/workflows/          # automation pipelines
 ├── .cursor/rules/              # AI coding agent rules
 ├── package.json                # Dependencies and scripts
 ├── vite.config.ts              # Vite configuration
@@ -488,7 +488,7 @@ make build        # Build for production
 
 # Quality assurance
 make check        # Run all checks
-make ci          # Run CI/CD locally
+make ci          # Run automation pipeline locally
 ```
 
 ## 🤝 Contributing

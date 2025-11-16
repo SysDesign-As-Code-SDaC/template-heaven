@@ -34,20 +34,38 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting Template Heaven API service...")
     
-    # Initialize services
-    settings = get_settings()
-    logger.info(f"📊 Service configuration loaded: {settings.app_name}")
-    
-    # Health check initialization
-    app.state.startup_time = startup_time
-    app.state.health_status = "healthy"
-    
-    logger.info("✅ Template Heaven API service started successfully")
+    try:
+        # Initialize database
+        from ..database.connection import init_database, close_database
+        await init_database()
+        logger.info("✅ Database initialized successfully")
+        
+        # Initialize services
+        settings = get_settings()
+        logger.info(f"📊 Service configuration loaded: {settings.app_name}")
+        
+        # Health check initialization
+        app.state.startup_time = startup_time
+        app.state.health_status = "healthy"
+        
+        logger.info("✅ Template Heaven API service started successfully")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to start service: {e}", exc_info=True)
+        app.state.health_status = "unhealthy"
+        raise
     
     yield
     
     # Shutdown
     logger.info("🛑 Shutting down Template Heaven API service...")
+    try:
+        from ..database.connection import close_database
+        await close_database()
+        logger.info("✅ Database connections closed")
+    except Exception as e:
+        logger.error(f"❌ Error during shutdown: {e}")
+    
     app.state.health_status = "shutting_down"
     logger.info("✅ Template Heaven API service shutdown complete")
 

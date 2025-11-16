@@ -19,7 +19,7 @@ This is a **multi-branch template repository system** that organizes technology 
 - **`scripts/`**: Branch management and template synchronization tools
 - **`tools/trending-flagger/`**: Automated trend detection system
 - **`docs/`**: Comprehensive project documentation
-- **`.github/workflows/`**: GitHub Actions for automation
+- **`.github/workflows/`**: automation workflow examples (GitHub Actions disabled)
 
 ## 📂 Stack Categories
 
@@ -36,7 +36,7 @@ This is a **multi-branch template repository system** that organizes technology 
 - **Generative AI**: Content creation, DALL-E, Stable Diffusion
 
 ### Infrastructure Stacks
-- **DevOps**: CI/CD, Docker, Kubernetes, Terraform
+- **DevOps**: Automation (CI/CD examples disabled), Docker, Kubernetes, Terraform
 - **Microservices**: Event-driven architecture, service mesh
 - **Monorepo**: Turborepo, Nx, pnpm workspaces
 - **Serverless**: AWS Lambda, Vercel, Cloudflare Workers
@@ -59,7 +59,7 @@ This is a **multi-branch template repository system** that organizes technology 
 - **Purpose**: Automated monitoring of trending templates
 - **Components**: Star monitoring, fork tracking, early detection, priority scoring
 
-### GitHub Actions
+### Automation examples (GitHub Actions disabled)
 - **Trend Detection**: Daily automated trend monitoring
 - **Template Sync**: Weekly upstream synchronization
 - **Branch Sync**: Core tools synchronization across branches

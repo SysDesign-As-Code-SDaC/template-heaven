@@ -1,6 +1,7 @@
-name: Trend Detection
+# Workflow intentionally disabled to honor maintainer preference: CI/CD pipelines removed
+name: Disabled - Repository workflows removed
 
-on:
+# This workflow has been removed. This file is kept only for history and can be deleted if desired.
   schedule:
     # Run daily at 2 AM UTC
     - cron: '0 2 * * *'
