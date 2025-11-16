@@ -12,6 +12,7 @@ from typing import Dict, Any, List, Optional, Set
 from jinja2 import Environment, FileSystemLoader, Template, TemplateError
 
 from .models import Template, ProjectConfig
+from .architecture_doc_generator import ArchitectureDocGenerator
 from ..utils.logger import get_logger
 from ..utils.file_ops import FileOperations
 from ..utils.helpers import sanitize_project_name, validate_project_name
@@ -56,6 +57,9 @@ class Customizer:
         self.jinja_env.filters['kebab_case'] = self._kebab_case_filter
         self.jinja_env.filters['pascal_case'] = self._pascal_case_filter
         self.jinja_env.filters['camel_case'] = self._camel_case_filter
+        
+        # Architecture document generator
+        self.arch_doc_generator = ArchitectureDocGenerator()
         
         logger.debug("Customizer initialized")
     
@@ -220,6 +224,19 @@ class Customizer:
             # Create .gitignore if needed
             self._create_gitignore(project_path, template, variables)
             
+            # Generate mandatory architecture documents
+            if config.architecture_answers:
+                try:
+                    self.arch_doc_generator.generate_all_docs(
+                        config.name,
+                        config.architecture_answers,
+                        project_path
+                    )
+                    logger.info("Generated architecture documents")
+                except Exception as e:
+                    logger.warning(f"Failed to generate architecture docs: {e}")
+                    # Don't fail the entire project creation if docs fail
+            
             logger.info(f"Successfully created project: {project_path}")
             return True
             
@@ -266,6 +283,19 @@ class Customizer:
             self._create_license(project_path, template_meta, config.get_template_variables())
             self._create_contributing(project_path, template_meta, config.get_template_variables())
             self._create_gitignore(project_path, template_meta, config.get_template_variables())
+            
+            # Generate mandatory architecture documents
+            if config.architecture_answers:
+                try:
+                    self.arch_doc_generator.generate_all_docs(
+                        config.name,
+                        config.architecture_answers,
+                        project_path
+                    )
+                    logger.info("Generated architecture documents")
+                except Exception as e:
+                    logger.warning(f"Failed to generate architecture docs: {e}")
+                    # Don't fail the entire project creation if docs fail
 
             logger.info(f"Successfully created project from repo: {project_path}")
             return True

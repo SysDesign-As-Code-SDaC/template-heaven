@@ -21,6 +21,11 @@ import subprocess
 from ..core.template_manager import TemplateManager
 from ..core.models import Template, ProjectConfig, StackCategory
 from ..core.customizer import Customizer
+from ..core.architecture_questionnaire import (
+    ArchitectureQuestionnaire, ArchitectureAnswers,
+    ArchitecturePattern, DeploymentModel, ScalabilityRequirement,
+    ArchitectureQuestion
+)
 from ..config.settings import Config
 from ..utils.logger import get_logger
 from ..utils.helpers import validate_project_name, sanitize_project_name
@@ -54,6 +59,7 @@ class Wizard:
         self.config = config
         self.console = Console()
         self.customizer = Customizer()
+        self.architecture_questionnaire = ArchitectureQuestionnaire()
         
         logger.debug("Wizard initialized")
     
@@ -77,7 +83,11 @@ class Wizard:
             # Step 3: Configure project
             project_config = self._configure_project(template, output_dir)
             
-            # Step 4: Confirm and create
+            # Step 4: Architecture questionnaire (mandatory)
+            architecture_answers = self._collect_architecture_answers(project_config)
+            project_config.architecture_answers = architecture_answers
+            
+            # Step 5: Confirm and create
             if self._confirm_creation(project_config):
                 self._create_project(project_config)
             else:
@@ -446,6 +456,233 @@ Let's get started!
         ).ask()
         
         return description or default_desc
+    
+    def _collect_architecture_answers(self, project_config: ProjectConfig) -> ArchitectureAnswers:
+        """
+        Collect architecture questionnaire answers.
+        
+        Args:
+            project_config: Project configuration
+            
+        Returns:
+            ArchitectureAnswers object
+        """
+        self.console.print("[bold cyan]Step 4: Architecture & System Design Questionnaire[/bold cyan]")
+        self.console.print()
+        
+        panel_text = """
+This questionnaire is MANDATORY to prevent architectural drift and ensure
+your project has proper system design documentation.
+
+The questions cover:
+- Architecture patterns and deployment models
+- Performance, security, and compliance requirements
+- Infrastructure and data architecture
+- API design and observability
+- Feature prioritization and roadmap
+- Risk assessment and mitigation
+
+You can:
+1. Answer manually (recommended for first-time users)
+2. Use AI/LLM assistance (fast-fill via API endpoint)
+"""
+        
+        panel = Panel(
+            Text(panel_text.strip(), style="white"),
+            title="Architecture Questionnaire",
+            border_style="yellow"
+        )
+        self.console.print(panel)
+        self.console.print()
+        
+        # Ask if user wants to use AI assistance
+        use_ai = questionary.confirm(
+            "Would you like to use AI/LLM assistance to fill out the questionnaire?",
+            default=False
+        ).ask()
+        
+        if use_ai:
+            return self._collect_answers_with_ai(project_config)
+        else:
+            return self._collect_answers_manually(project_config)
+    
+    def _collect_answers_with_ai(self, project_config: ProjectConfig) -> ArchitectureAnswers:
+        """Collect answers using AI/LLM assistance."""
+        self.console.print("[yellow]AI assistance: Connect to /api/v1/architecture/questionnaire endpoint[/yellow]")
+        self.console.print("[yellow]For now, falling back to manual entry...[/yellow]")
+        self.console.print()
+        return self._collect_answers_manually(project_config)
+    
+    def _collect_answers_manually(self, project_config: ProjectConfig) -> ArchitectureAnswers:
+        """Collect answers manually through interactive prompts."""
+        answers = ArchitectureAnswers()
+        
+        questions_by_category = self.architecture_questionnaire.get_questions_by_category()
+        
+        for category, questions in questions_by_category.items():
+            self.console.print(f"[bold cyan]{category}[/bold cyan]")
+            self.console.print()
+            
+            for question in questions:
+                answer = self._ask_question(question, project_config)
+                
+                # Map answer to ArchitectureAnswers object
+                if question.id == "project_vision":
+                    answers.project_vision = answer
+                elif question.id == "target_users":
+                    answers.target_users = answer
+                elif question.id == "business_objectives":
+                    answers.business_objectives = [obj.strip() for obj in answer.split(",") if obj.strip()]
+                elif question.id == "success_metrics":
+                    answers.success_metrics = [metric.strip() for metric in answer.split(",") if metric.strip()]
+                elif question.id == "architecture_pattern":
+                    try:
+                        answers.architecture_pattern = ArchitecturePattern(answer)
+                    except ValueError:
+                        pass
+                elif question.id == "deployment_model":
+                    try:
+                        answers.deployment_model = DeploymentModel(answer)
+                    except ValueError:
+                        pass
+                elif question.id == "scalability_requirement":
+                    try:
+                        answers.scalability_requirement = ScalabilityRequirement(answer)
+                    except ValueError:
+                        pass
+                elif question.id == "performance_requirements":
+                    try:
+                        import json
+                        answers.performance_requirements = json.loads(answer) if answer else {}
+                    except:
+                        answers.performance_requirements = {}
+                elif question.id == "security_requirements":
+                    answers.security_requirements = [req.strip() for req in answer.split(",") if req.strip()]
+                elif question.id == "compliance_requirements":
+                    answers.compliance_requirements = [req.strip() for req in answer.split(",") if req.strip()]
+                elif question.id == "integration_requirements":
+                    answers.integration_requirements = [req.strip() for req in answer.split(",") if req.strip()]
+                elif question.id == "cloud_provider":
+                    answers.cloud_provider = answer if answer != "none" else None
+                elif question.id == "containerization":
+                    answers.containerization = answer
+                elif question.id == "orchestration_platform":
+                    answers.orchestration_platform = answer if answer != "none" else None
+                elif question.id == "database_requirements":
+                    answers.database_requirements = [db.strip() for db in answer.split(",") if db.strip()]
+                elif question.id == "caching_strategy":
+                    answers.caching_strategy = answer if answer != "none" else None
+                elif question.id == "cdn_required":
+                    answers.cdn_required = answer
+                elif question.id == "data_volume":
+                    answers.data_volume = answer
+                elif question.id == "data_velocity":
+                    answers.data_velocity = answer
+                elif question.id == "data_variety":
+                    answers.data_variety = answer
+                elif question.id == "data_retention_policy":
+                    answers.data_retention_policy = answer
+                elif question.id == "backup_strategy":
+                    answers.backup_strategy = answer
+                elif question.id == "api_style":
+                    answers.api_style = answer
+                elif question.id == "api_versioning_strategy":
+                    answers.api_versioning_strategy = answer
+                elif question.id == "api_security_model":
+                    answers.api_security_model = answer
+                elif question.id == "api_rate_limiting":
+                    answers.api_rate_limiting = answer
+                elif question.id == "logging_strategy":
+                    answers.logging_strategy = answer
+                elif question.id == "monitoring_strategy":
+                    answers.monitoring_strategy = answer
+                elif question.id == "tracing_strategy":
+                    answers.tracing_strategy = answer if answer != "none" else None
+                elif question.id == "alerting_strategy":
+                    answers.alerting_strategy = answer
+                elif question.id == "ci_cd_strategy":
+                    answers.ci_cd_strategy = answer
+                elif question.id == "testing_strategy":
+                    answers.testing_strategy = [test.strip() for test in answer.split(",") if test.strip()]
+                elif question.id == "code_review_process":
+                    answers.code_review_process = answer
+                elif question.id == "deployment_frequency":
+                    answers.deployment_frequency = answer
+                elif question.id == "must_have_features":
+                    answers.must_have_features = [f.strip() for f in answer.split(",") if f.strip()]
+                elif question.id == "nice_to_have_features":
+                    answers.nice_to_have_features = [f.strip() for f in answer.split(",") if f.strip()]
+                elif question.id == "future_features":
+                    answers.future_features = [f.strip() for f in answer.split(",") if f.strip()]
+                elif question.id == "feature_flags_required":
+                    answers.feature_flags_required = answer
+                elif question.id == "technical_constraints":
+                    answers.technical_constraints = [c.strip() for c in answer.split(",") if c.strip()]
+                elif question.id == "business_constraints":
+                    answers.business_constraints = [c.strip() for c in answer.split(",") if c.strip()]
+                elif question.id == "risk_factors":
+                    answers.risk_factors = [r.strip() for r in answer.split(",") if r.strip()]
+                elif question.id == "mitigation_strategies":
+                    answers.mitigation_strategies = [m.strip() for m in answer.split(",") if m.strip()]
+                elif question.id == "team_size":
+                    answers.team_size = int(answer) if answer else None
+                elif question.id == "timeline":
+                    answers.timeline = answer
+                elif question.id == "budget_constraints":
+                    answers.budget_constraints = answer if answer != "none" else None
+                elif question.id == "reference_architectures":
+                    answers.reference_architectures = [ref.strip() for ref in answer.split(",") if ref.strip()]
+                elif question.id == "additional_notes":
+                    answers.additional_notes = answer
+            
+            self.console.print()
+        
+        return answers
+    
+    def _ask_question(self, question: ArchitectureQuestion, project_config: ProjectConfig) -> Any:
+        """Ask a single architecture question."""
+        question_text = question.question
+        if question.help_text:
+            question_text += f"\n  [dim]{question.help_text}[/dim]"
+        
+        if question.question_type == "text":
+            default = question.default or ""
+            answer = questionary.text(
+                question_text,
+                default=default
+            ).ask()
+            return answer or default
+        
+        elif question.question_type == "select":
+            default = question.default or (question.options[0] if question.options else None)
+            answer = questionary.select(
+                question_text,
+                choices=question.options or [],
+                default=default
+            ).ask()
+            return answer
+        
+        elif question.question_type == "boolean":
+            default = question.default if question.default is not None else False
+            answer = questionary.confirm(
+                question_text,
+                default=default
+            ).ask()
+            return answer
+        
+        elif question.question_type == "number":
+            default = str(question.default) if question.default is not None else ""
+            answer = questionary.text(
+                question_text,
+                default=default
+            ).ask()
+            try:
+                return int(answer) if answer else None
+            except ValueError:
+                return None
+        
+        else:
+            return questionary.text(question_text).ask()
     
     def _confirm_creation(self, project_config: ProjectConfig) -> bool:
         """

@@ -7,10 +7,13 @@ including templates, project configurations, and stack categories.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from pathlib import Path
 from datetime import datetime
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from .architecture_questionnaire import ArchitectureAnswers
 
 
 class StackCategory(Enum):
@@ -340,6 +343,7 @@ class ProjectConfig:
     version: Optional[str] = None
     features: List[str] = field(default_factory=list)
     custom_variables: Dict[str, Any] = field(default_factory=dict)
+    architecture_answers: Optional['ArchitectureAnswers'] = None
     
     def __post_init__(self) -> None:
         """Validate project configuration after initialization."""
@@ -408,6 +412,7 @@ class ProjectConfig:
             "version": self.version,
             "features": self.features,
             "custom_variables": self.custom_variables,
+            "architecture_answers": self.architecture_answers.to_dict() if self.architecture_answers else None,
         }
 
 

@@ -138,6 +138,10 @@ def _add_routes(app: FastAPI) -> None:
     app.include_router(search.router, prefix="/api/v1", tags=["search"])
     app.include_router(populate.router, prefix="/api/v1", tags=["population"])
     
+    # Architecture questionnaire routes
+    from .routes import architecture
+    app.include_router(architecture.router, prefix="/api/v1", tags=["architecture"])
+    
     # Root endpoint
     @app.get("/", response_model=APIResponse)
     async def root():
