@@ -212,10 +212,12 @@ class ADRManager:
 
     def _slugify(self, title: str) -> str:
         """Convert title to URL-friendly slug."""
+        import re
         slug = title.lower()
-        # Replace spaces and special chars with hyphens
-        slug = "".join(c if c.isalnum() or c == " " else "-" for c in slug)
-        slug = "-".join(slug.split())
+        # Replace non-alphanumeric characters with a hyphen
+        slug = re.sub(r'[^a-z0-9]+', '-', slug)
+        # Remove leading/trailing hyphens
+        slug = slug.strip('-')
         return slug[:50]  # Limit length
 
     def _parse_adr_metadata(self, adr_path: Path) -> Dict[str, any]:
