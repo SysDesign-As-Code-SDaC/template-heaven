@@ -1,0 +1,38 @@
+# RFC-{{ number_formatted }}: {{ title }}
+
+## Status
+
+{{ status }}
+
+## Summary
+
+{{ summary }}
+
+## Motivation
+
+{{ motivation }}
+
+## Detailed Design
+
+{{ design }}
+
+{% if alternatives %}
+## Alternatives
+
+{% for alternative in alternatives %}
+- {{ alternative }}
+{% endfor %}
+{% endif %}
+
+{% if open_questions %}
+## Open Questions
+
+{% for question in open_questions %}
+- {{ question }}
+{% endfor %}
+{% endif %}
+
+---
+
+**Date:** {{ date }}
+

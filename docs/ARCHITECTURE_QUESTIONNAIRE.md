@@ -11,6 +11,10 @@ Template Heaven includes a **mandatory architecture questionnaire system** that 
 - **Mandatory During Scaffolding** - Cannot skip to prevent drift
 - **AI/LLM Integration** - API endpoints for intelligent auto-filling
 - **Auto-Generated Documentation** - 7 architecture documents created automatically
+- **C4 Model Diagrams** - Automatically generated Mermaid diagrams (System Context, Container, Component)
+- **Architecture Decision Records (ADRs)** - Track architectural decisions
+- **Request for Comments (RFCs)** - Propose and document major changes
+- **Planning Templates** - Project Charter, Technical Design, Sprint Planning templates
 - **Validation** - Ensures all required fields are answered
 
 ## 📋 Question Categories
@@ -166,6 +170,14 @@ API design documentation (if API style specified):
 - Error handling
 - Documentation standards
 
+### 8. Architecture Diagrams
+C4 model diagrams automatically generated in `docs/architecture/diagrams/`:
+- **system_context.mmd** - System and its relationships with users and external systems
+- **container.mmd** - High-level technical building blocks and interactions
+- **component.mmd** - Components within containers
+
+Diagrams are embedded in `ARCHITECTURE.md` and `SYSTEM_DESIGN.md` as Mermaid code blocks, which render automatically on GitHub and GitLab.
+
 ## 🔧 Implementation Details
 
 ### Architecture Questionnaire Module
@@ -223,14 +235,52 @@ All tests passing ✅
 
 - [Wizard Explanation](../WIZARD_EXPLANATION.md) - How the wizard works
 - [CLI Usage Guide](../CLI_USAGE_GUIDE.md) - CLI commands and usage
+- [Planning Guide](./PLANNING_GUIDE.md) - Guide to using ADRs, RFCs, and planning templates
 - [API Documentation](http://localhost:8000/docs) - Full API reference
 
 ## 🎯 Benefits
 
 1. **Prevents Architectural Drift** - Mandatory questions ensure decisions are made upfront
 2. **Comprehensive Documentation** - Auto-generated docs save time
-3. **Team Alignment** - Shared understanding of architecture decisions
-4. **Onboarding** - New team members can quickly understand the system
-5. **Compliance** - Documents help meet compliance requirements
-6. **Roadmap Planning** - Prioritization helps plan feature development
+3. **Visual Architecture** - C4 model diagrams provide clear visual representation
+4. **Decision Tracking** - ADRs document why decisions were made
+5. **Change Management** - RFCs provide structured process for major changes
+6. **Team Alignment** - Shared understanding of architecture decisions
+7. **Onboarding** - New team members can quickly understand the system
+8. **Compliance** - Documents help meet compliance requirements
+9. **Roadmap Planning** - Prioritization helps plan feature development
+
+## 📊 Architecture Diagrams
+
+The architecture questionnaire automatically generates C4 model diagrams using Mermaid syntax:
+
+- **System Context Diagram**: Shows the system and its relationships with users and external systems
+- **Container Diagram**: Shows high-level technical building blocks (applications, databases, services)
+- **Component Diagram**: Shows components within containers
+
+Diagrams are:
+- Saved as `.mmd` files in `docs/architecture/diagrams/`
+- Embedded in `ARCHITECTURE.md` and `SYSTEM_DESIGN.md`
+- Rendered automatically on GitHub, GitLab, and other platforms that support Mermaid
+
+## 📝 Planning Tools
+
+Template Heaven provides additional planning tools:
+
+### Architecture Decision Records (ADRs)
+
+Document important architectural decisions in `docs/adr/`. Use the `ADRManager` class or copy templates from `docs/templates/ADR_TEMPLATE.md`.
+
+### Request for Comments (RFCs)
+
+Propose major changes using RFCs in `docs/rfc/`. Use the `RFCManager` class or copy templates from `docs/templates/RFC_TEMPLATE.md`.
+
+### Planning Templates
+
+Use planning templates for:
+- **Project Charter** (`docs/templates/PROJECT_CHARTER.md`) - Define project objectives and scope
+- **Technical Design** (`docs/templates/TECHNICAL_DESIGN.md`) - Document detailed technical designs
+- **Sprint Plan** (`docs/templates/SPRINT_PLAN.md`) - Plan sprint backlogs and track progress
+
+See [Planning Guide](./PLANNING_GUIDE.md) for detailed usage instructions.
 
