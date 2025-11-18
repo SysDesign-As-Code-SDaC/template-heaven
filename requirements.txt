@@ -1,6 +1,14 @@
 # Template Heaven - Core Dependencies
-# This file contains the core dependencies required to run Template Heaven
-# Note: This file is kept for compatibility. Primary source of truth is pyproject.toml
+# This file is DEPRECATED. All dependencies are now managed in pyproject.toml
+#
+# To install dependencies, use:
+#   uv sync --no-dev  # for production
+#   uv sync           # for development
+#
+# For traditional pip installation:
+#   pip install -e .
+#
+# Primary source of truth: pyproject.toml
 
 # CLI Framework
 click>=8.0

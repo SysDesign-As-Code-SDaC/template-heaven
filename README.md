@@ -80,6 +80,8 @@ pip install -e ".[dev]"
 make install-dev
 ```
 
+**Note**: uv is recommended for faster installation and better dependency management.
+
 ### Docker Deployment
 
 ```bash
@@ -96,7 +98,7 @@ docker run -p 8000:8000 templateheaven
 ### 🚀 Start the API Server
 
 ```bash
-# Start the FastAPI server with uv
+# Start the FastAPI server with uv (recommended)
 uv run uvicorn templateheaven.api.main:app --reload --host 0.0.0.0 --port 8000
 
 # Or use the Makefile
@@ -152,7 +154,7 @@ curl -X POST http://localhost:8000/api/v1/architecture/questionnaire/fill \
 ### 💻 Interactive CLI (Wizard)
 
 ```bash
-# Launch the interactive wizard
+# Launch the interactive wizard with uv (recommended)
 uv run templateheaven init
 
 # The wizard will guide you through:
@@ -165,7 +167,7 @@ uv run templateheaven init
 ### 🖥️ CLI Command Mode
 
 ```bash
-# Initialize with specific template
+# Initialize with specific template using uv
 uv run templateheaven init --template react-vite --name my-app
 
 # List available templates with filtering
@@ -614,7 +616,7 @@ uv run python -c "import templateheaven; print('✅ Template Heaven ready!')"
 
 #### **Traditional Setup**
 ```bash
-# Install with pip
+# Install with pip (alternative)
 pip install -e ".[dev]"
 
 # Or use Makefile
@@ -625,7 +627,7 @@ make setup
 
 #### **Running Tests**
 ```bash
-# Run all tests with uv
+# Run all tests with uv (recommended)
 uv run python -m pytest
 
 # Run with coverage report
@@ -651,7 +653,7 @@ uv run python -m pytest -n auto
 
 #### **Formatting & Linting**
 ```bash
-# Format code with Black
+# Format code with Black using uv
 uv run black templateheaven tests
 
 # Sort imports with isort
@@ -701,7 +703,7 @@ docker-compose -f docker-compose.prod.yml up -d
 
 #### **API Server Development**
 ```bash
-# Start API server with hot reload
+# Start API server with hot reload using uv
 uv run uvicorn templateheaven.api.main:app --reload --host 0.0.0.0 --port 8000
 
 # Start with production settings
@@ -754,7 +756,7 @@ template = manager.get_template('react-vite')
 
 #### **Advanced Search**
 ```python
-# Search across sources
+# Search across sources with uv-managed environment
 results = manager.search_templates(
     query='nextjs typescript',
     stack='frontend',
