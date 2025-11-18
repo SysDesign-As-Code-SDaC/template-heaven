@@ -170,7 +170,7 @@ class TestADRManager:
 
         content = adr_path.read_text()
         # Should not have alternatives section if none provided
-        assert "Alternatives Considered" not in content or len(adr_manager.list_adrs()) == 1
+        assert "Alternatives Considered" not in content
 
     def test_slugify_title(self, adr_manager):
         """Test title slugification."""
