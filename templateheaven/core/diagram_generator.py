@@ -192,15 +192,12 @@ class DiagramGenerator:
 
     def _extract_users(self, target_users: str) -> List[str]:
         """Extract user types from target_users string."""
+        import re
         if not target_users:
             return ["End Users"]
 
-        # Simple extraction - split by common separators
-        users = []
-        for separator in [",", "and", "&"]:
-            if separator in target_users:
-                users = [u.strip() for u in target_users.split(separator)]
-                break
+        # Split by comma, 'and', or '&', with optional surrounding whitespace
+        users = [u.strip() for u in re.split(r'[,&]|\s+and\s+', target_users) if u.strip()]
 
         if not users:
             users = [target_users.strip()]
