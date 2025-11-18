@@ -22,30 +22,30 @@ help:
 
 # Installation
 install:
-	pip install -e .
+	uv sync --no-dev
 
 install-dev:
-	pip install -e ".[dev]"
+	uv sync
 
 # Testing
 test:
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 test-cov:
-	pytest tests/ -v --cov=templateheaven --cov-report=html --cov-report=term-missing
+	uv run pytest tests/ -v --cov=templateheaven --cov-report=html --cov-report=term-missing
 
 # Linting and formatting
 lint:
-	flake8 templateheaven tests
-	mypy templateheaven
+	uv run flake8 templateheaven tests
+	uv run mypy templateheaven
 
 format:
-	black templateheaven tests
-	isort templateheaven tests
+	uv run black templateheaven tests
+	uv run isort templateheaven tests
 
 format-check:
-	black --check templateheaven tests
-	isort --check-only templateheaven tests
+	uv run black --check templateheaven tests
+	uv run isort --check-only templateheaven tests
 
 # Code quality checks
 check: format-check lint test
@@ -64,7 +64,7 @@ clean:
 
 # Build and publish
 build: clean
-	python -m build
+	uv build
 
 publish: build
 	twine upload dist/*
@@ -79,14 +79,14 @@ setup: install-dev
 
 # Run the CLI
 run:
-	python -m templateheaven.cli.main
+	uv run templateheaven
 
 # Run with specific command
 init:
-	python -m templateheaven.cli.main init
+	uv run templateheaven init
 
 list:
-	python -m templateheaven.cli.main list
+	uv run templateheaven list
 
 # Automation helpers: Disabled
 ci-install:
@@ -107,15 +107,15 @@ validate-templates:
 
 # Cache management
 clear-cache:
-	python -c "from templateheaven.config.settings import Config; Config().get_cache_dir().rmdir() if Config().get_cache_dir().exists() else None; print('Cache cleared')"
+	uv run python -c "from templateheaven.config.settings import Config; Config().get_cache_dir().rmdir() if Config().get_cache_dir().exists() else None; print('Cache cleared')"
 
 # Version management
 version:
-	@python -c "from templateheaven import __version__; print(__version__)"
+	@uv run python -c "from templateheaven import __version__; print(__version__)"
 
 # Security checks
 security:
-	bandit -r templateheaven/
+	uv run bandit -r templateheaven/
 	safety check
 
 # Performance testing
@@ -132,7 +132,7 @@ docker-test:
 # Release helpers
 release-check:
 	@echo "Checking release readiness..."
-	@python -c "import templateheaven; print(f'Version: {templateheaven.__version__}')"
+	@uv run python -c "import templateheaven; print(f'Version: {templateheaven.__version__}')"
 	@echo "Running tests..."
 	@make test
 	@echo "Running linting..."
@@ -164,10 +164,10 @@ lint-help:
 # Environment info
 env-info:
 	@echo "Environment Information:"
-	@echo "Python version: $(shell python --version)"
-	@echo "Pip version: $(shell pip --version)"
+	@echo "Python version: $(shell uv run python --version)"
+	@echo "uv version: $(shell uv --version)"
 	@echo "Current directory: $(shell pwd)"
-	@echo "Package version: $(shell python -c 'from templateheaven import __version__; print(__version__)')"
+	@echo "Package version: $(shell uv run python -c 'from templateheaven import __version__; print(__version__)')"
 
 # Quick development cycle
 dev: format lint test
@@ -183,7 +183,7 @@ generator-run:
 	@cd generators/templateheaven-generator && ./node_modules/.bin/yo templateheaven
 
 export-stacks-json:
-	@python scripts/export_stacks_json.py
+	@uv run python scripts/export_stacks_json.py
 
 # Full development setup
 dev-setup: clean install-dev format lint test

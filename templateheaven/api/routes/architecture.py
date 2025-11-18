@@ -9,7 +9,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ...core.models import APIResponse, ProjectConfig
 from ...core.architecture_questionnaire import (
@@ -26,7 +26,7 @@ router = APIRouter()
 
 class QuestionnaireFillRequest(BaseModel):
     """Request model for AI/LLM questionnaire filling."""
-    project_name: str
+    project_name: str = Field(..., min_length=1, description="Project name (required, cannot be empty)")
     project_description: Optional[str] = None
     template_stack: Optional[str] = None
     context: Optional[Dict[str, Any]] = None  # Additional context for LLM

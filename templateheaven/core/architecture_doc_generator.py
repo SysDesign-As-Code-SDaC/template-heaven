@@ -11,6 +11,7 @@ from datetime import datetime
 from jinja2 import Template
 
 from .architecture_questionnaire import ArchitectureAnswers
+from .diagram_generator import DiagramGenerator
 from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,6 +23,7 @@ class ArchitectureDocGenerator:
     def __init__(self):
         """Initialize the generator."""
         self.logger = logger
+        self.diagram_generator = DiagramGenerator()
     
     def generate_all_docs(
         self,
@@ -44,14 +46,26 @@ class ArchitectureDocGenerator:
         docs_dir = output_dir / "docs" / "architecture"
         docs_dir.mkdir(parents=True, exist_ok=True)
         
+        # Create diagrams directory
+        diagrams_dir = docs_dir / "diagrams"
+        diagrams_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate diagrams
+        diagrams = self.diagram_generator.generate_all_diagrams(project_name, answers)
+        
+        # Save diagram files
+        for diagram_name, diagram_content in diagrams.items():
+            diagram_path = diagrams_dir / f"{diagram_name}.mmd"
+            diagram_path.write_text(diagram_content, encoding="utf-8")
+        
         generated_docs = {}
         
-        # Generate main architecture document
-        arch_doc_path = self._generate_architecture_doc(project_name, answers, docs_dir)
+        # Generate main architecture document (with diagrams)
+        arch_doc_path = self._generate_architecture_doc(project_name, answers, docs_dir, diagrams)
         generated_docs["architecture"] = arch_doc_path
         
-        # Generate system design document
-        system_doc_path = self._generate_system_design_doc(project_name, answers, docs_dir)
+        # Generate system design document (with diagrams)
+        system_doc_path = self._generate_system_design_doc(project_name, answers, docs_dir, diagrams)
         generated_docs["system_design"] = system_doc_path
         
         # Generate roadmap
@@ -84,9 +98,13 @@ class ArchitectureDocGenerator:
         self,
         project_name: str,
         answers: ArchitectureAnswers,
-        output_dir: Path
+        output_dir: Path,
+        diagrams: Dict[str, str] = None
     ) -> Path:
         """Generate main architecture document."""
+        if diagrams is None:
+            diagrams = {}
+            
         template_content = """# {{ project_name }} - Architecture Document
 
 **Generated:** {{ timestamp }}  
@@ -95,15 +113,16 @@ class ArchitectureDocGenerator:
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
-2. [Architecture Pattern](#architecture-pattern)
-3. [System Components](#system-components)
-4. [Data Architecture](#data-architecture)
-5. [API Design](#api-design)
-6. [Infrastructure](#infrastructure)
-7. [Security](#security)
-8. [Observability](#observability)
-9. [Deployment](#deployment)
-10. [Risk & Constraints](#risk--constraints)
+2. [System Context](#system-context)
+3. [Architecture Pattern](#architecture-pattern)
+4. [System Components](#system-components)
+5. [Data Architecture](#data-architecture)
+6. [API Design](#api-design)
+7. [Infrastructure](#infrastructure)
+8. [Security](#security)
+9. [Observability](#observability)
+10. [Deployment](#deployment)
+11. [Risk & Constraints](#risk--constraints)
 
 ---
 
@@ -124,6 +143,18 @@ class ArchitectureDocGenerator:
 {% for metric in success_metrics %}
 - {{ metric }}
 {% endfor %}
+
+---
+
+## System Context
+
+### System Context Diagram
+
+The following diagram shows the system and its relationships with users and external systems:
+
+```mermaid
+{{ system_context_diagram }}
+```
 
 ---
 
@@ -362,12 +393,15 @@ The {{ architecture_pattern|title if architecture_pattern else "architecture" }}
 """
         
         template = Template(template_content)
-        content = template.render(
-            project_name=project_name,
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            next_review_date=(datetime.now().replace(day=1).replace(month=datetime.now().month + 1)).strftime("%Y-%m-%d"),
-            **answers.to_dict()
-        )
+        render_vars = answers.to_dict()
+        render_vars.update({
+            "project_name": project_name,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "next_review_date": (datetime.now().replace(day=1).replace(month=datetime.now().month + 1)).strftime("%Y-%m-%d"),
+            "system_context_diagram": diagrams.get("system_context", ""),
+            "container_diagram": diagrams.get("container", ""),
+        })
+        content = template.render(**render_vars)
         
         file_path = output_dir / "ARCHITECTURE.md"
         file_path.write_text(content, encoding="utf-8")
@@ -378,9 +412,13 @@ The {{ architecture_pattern|title if architecture_pattern else "architecture" }}
         self,
         project_name: str,
         answers: ArchitectureAnswers,
-        output_dir: Path
+        output_dir: Path,
+        diagrams: Dict[str, str] = None
     ) -> Path:
         """Generate system design document."""
+        if diagrams is None:
+            diagrams = {}
+            
         template_content = """# {{ project_name }} - System Design Document
 
 **Generated:** {{ timestamp }}
@@ -400,13 +438,20 @@ This document describes the high-level system design for {{ project_name }}.
 ### Scalability
 **Requirement:** {{ scalability_requirement|title if scalability_requirement else "Not specified" }}
 
+## Container Diagram
+
+The following diagram shows the high-level technical building blocks and how they interact:
+
+```mermaid
+{{ container_diagram }}
+```
+
 ## Component Diagram
 
-```
-[Client] --> [API Gateway] --> [Services] --> [Databases]
-                |                    |
-                v                    v
-           [Auth Service]      [Cache Layer]
+The following diagram shows the components within the main container:
+
+```mermaid
+{{ component_diagram }}
 ```
 
 ## Data Flow
@@ -455,11 +500,14 @@ Not specified
 """
         
         template = Template(template_content)
-        content = template.render(
-            project_name=project_name,
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            **answers.to_dict()
-        )
+        render_vars = answers.to_dict()
+        render_vars.update({
+            "project_name": project_name,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "container_diagram": diagrams.get("container", ""),
+            "component_diagram": diagrams.get("component", ""),
+        })
+        content = template.render(**render_vars)
         
         file_path = output_dir / "SYSTEM_DESIGN.md"
         file_path.write_text(content, encoding="utf-8")

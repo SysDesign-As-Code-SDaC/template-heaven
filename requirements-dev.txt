@@ -1,5 +1,13 @@
 # Template Heaven - Development Dependencies
-# This file contains development dependencies for testing, linting, and building
+# This file is DEPRECATED. All dependencies are now managed in pyproject.toml
+#
+# To install development dependencies, use:
+#   uv sync  # installs all dependencies including dev
+#
+# For traditional pip installation:
+#   pip install -e ".[dev]"
+#
+# Primary source of truth: pyproject.toml
 
 # Include core dependencies
 -r requirements.txt
