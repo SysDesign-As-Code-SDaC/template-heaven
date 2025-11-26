@@ -318,11 +318,17 @@ class ArchitectureAnswers:
 
 class ArchitectureQuestionnaire:
     """Comprehensive architecture questionnaire system."""
-    
-    def __init__(self):
-        """Initialize the questionnaire."""
+
+    def __init__(self, quick_mode: bool = False):
+        """
+        Initialize the questionnaire.
+
+        Args:
+            quick_mode: If True, only ask essential questions (~10 instead of 47)
+        """
+        self.quick_mode = quick_mode
         self.questions = self._build_questionnaire()
-        logger.debug(f"Initialized architecture questionnaire with {len(self.questions)} questions")
+        logger.debug(f"Initialized architecture questionnaire with {len(self.questions)} questions (quick_mode={quick_mode})")
     
     def _build_questionnaire(self) -> List[ArchitectureQuestion]:
         """Build the comprehensive questionnaire."""
@@ -780,7 +786,30 @@ class ArchitectureQuestionnaire:
                 help_text="Any other information relevant to architecture decisions"
             ),
         ])
-        
+
+        # Quick mode: return only essential questions (~10 instead of 47)
+        if self.quick_mode:
+            essential_question_ids = [
+                "project_vision",           # What is the project?
+                "target_users",             # Who is it for?
+                "architecture_pattern",     # What architecture pattern?
+                "scalability_requirement",  # How much scale needed?
+                "security_level",           # What security level?
+                "cloud_provider",           # Where to deploy?
+                "database_requirements",    # What data store?
+                "api_style",               # What API style?
+                "must_have_features",      # What features are critical?
+                "team_size",               # Team context
+            ]
+
+            essential_questions = [
+                q for q in questions
+                if q.id in essential_question_ids
+            ]
+
+            logger.info(f"Quick mode enabled: returning {len(essential_questions)} essential questions out of {len(questions)} total")
+            return essential_questions
+
         return questions
     
     def get_all_questions(self) -> List[ArchitectureQuestion]:

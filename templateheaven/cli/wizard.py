@@ -481,12 +481,8 @@ The questions cover:
 - API design and observability
 - Feature prioritization and roadmap
 - Risk assessment and mitigation
-
-You can:
-1. Answer manually (recommended for first-time users)
-2. Use AI/LLM assistance (fast-fill via API endpoint)
 """
-        
+
         panel = Panel(
             Text(panel_text.strip(), style="white"),
             title="Architecture Questionnaire",
@@ -494,7 +490,33 @@ You can:
         )
         self.console.print(panel)
         self.console.print()
-        
+
+        # Ask user to choose between quick mode and comprehensive mode
+        mode_choice = questionary.select(
+            "Choose questionnaire mode:",
+            choices=[
+                questionary.Choice(
+                    title="Quick Mode (10 essential questions - recommended for getting started)",
+                    value="quick"
+                ),
+                questionary.Choice(
+                    title="Comprehensive Mode (47 detailed questions - thorough architecture planning)",
+                    value="comprehensive"
+                )
+            ],
+            default="quick"
+        ).ask()
+
+        # Reinitialize questionnaire with selected mode
+        quick_mode = (mode_choice == "quick")
+        self.architecture_questionnaire = ArchitectureQuestionnaire(quick_mode=quick_mode)
+
+        if quick_mode:
+            self.console.print("[green]Quick mode selected: 10 essential questions[/green]")
+        else:
+            self.console.print("[yellow]Comprehensive mode selected: 47 detailed questions[/yellow]")
+        self.console.print()
+
         # Ask if user wants to use AI assistance
         use_ai = questionary.confirm(
             "Would you like to use AI/LLM assistance to fill out the questionnaire?",
