@@ -398,3 +398,280 @@ def _generate_intelligent_defaults(
     
     return answers
 
+
+# ============================================================================
+# Conversation Management Endpoints
+# ============================================================================
+
+class ConversationStartRequest(BaseModel):
+    """Request to start a conversation."""
+    project_name: str
+    project_description: Optional[str] = None
+    template_stack: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+    llm_provider: Optional[str] = "openai"
+    llm_model: Optional[str] = None
+    llm_api_key: Optional[str] = None
+
+
+class ConversationMessageRequest(BaseModel):
+    """Request to send a message in conversation."""
+    session_id: str
+    message: str
+    stream: bool = False
+
+
+class ConversationAnalyzeReposRequest(BaseModel):
+    """Request to analyze repositories."""
+    session_id: str
+    requirement: str
+    technology_stack: Optional[List[str]] = None
+    max_repos: int = 5
+
+
+@router.post("/architecture/conversation/start", response_model=APIResponse)
+async def start_conversation(
+    request: ConversationStartRequest = Body(...),
+    current_user: Optional[Any] = Depends(get_optional_user),
+    request_id: str = Depends(get_request_id)
+):
+    """Start a new system design conversation."""
+    try:
+        from ...core.llm import get_llm_provider, ConversationManager, SystemDesignAgent, SystemDesignContext
+        
+        # Get LLM provider
+        llm_config = {
+            "api_key": request.llm_api_key,
+            "model": request.llm_model
+        }
+        llm_provider = get_llm_provider(request.llm_provider or "openai", llm_config)
+        
+        # Create conversation manager and agent
+        conversation_manager = ConversationManager()
+        agent = SystemDesignAgent(llm_provider, conversation_manager)
+        
+        # Create context
+        context = SystemDesignContext(
+            project_name=request.project_name,
+            project_description=request.project_description,
+            template_stack=request.template_stack,
+            additional_context=request.context or {}
+        )
+        
+        # Start conversation
+        state = await agent.start_conversation(context)
+        
+        return APIResponse(
+            success=True,
+            message="Conversation started successfully",
+            data={
+                "session_id": state.session_id,
+                "greeting": state.messages[-1]["content"] if state.messages else "",
+                "conversation_state": state.to_dict()
+            },
+            request_id=request_id
+        )
+    except Exception as e:
+        logger.error(f"Error starting conversation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start conversation: {str(e)}"
+        )
+
+
+@router.post("/architecture/conversation/message", response_model=APIResponse)
+async def send_conversation_message(
+    request: ConversationMessageRequest = Body(...),
+    current_user: Optional[Any] = Depends(get_optional_user),
+    request_id: str = Depends(get_request_id)
+):
+    """Send a message in an active conversation."""
+    try:
+        from ...core.llm import ConversationManager, SystemDesignAgent
+        from ...core.llm.providers import get_llm_provider
+        
+        # Get conversation manager
+        conversation_manager = ConversationManager()
+        state = conversation_manager.get_session(request.session_id)
+        
+        if not state:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Conversation session {request.session_id} not found"
+            )
+        
+        # Get LLM provider from context or use default
+        llm_provider = get_llm_provider("openai", {})
+        agent = SystemDesignAgent(llm_provider, conversation_manager)
+        
+        # Send message
+        response = await agent.continue_conversation(
+            request.session_id,
+            request.message,
+            stream=request.stream
+        )
+        
+        if request.stream:
+            # For streaming, we'd need WebSocket - return instruction for now
+            return APIResponse(
+                success=True,
+                message="Use WebSocket endpoint for streaming",
+                data={"session_id": request.session_id},
+                request_id=request_id
+            )
+        else:
+            return APIResponse(
+                success=True,
+                message="Message processed",
+                data={
+                    "session_id": request.session_id,
+                    "response": response,
+                    "conversation_state": state.to_dict()
+                },
+                request_id=request_id
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process message: {str(e)}"
+        )
+
+
+@router.get("/architecture/conversation/{session_id}", response_model=APIResponse)
+async def get_conversation(
+    session_id: str,
+    current_user: Optional[Any] = Depends(get_optional_user),
+    request_id: str = Depends(get_request_id)
+):
+    """Get conversation state and history."""
+    try:
+        from ...core.llm import ConversationManager
+        
+        conversation_manager = ConversationManager()
+        state = conversation_manager.get_session(session_id)
+        
+        if not state:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Conversation session {session_id} not found"
+            )
+        
+        return APIResponse(
+            success=True,
+            message="Conversation retrieved",
+            data=state.to_dict(),
+            request_id=request_id
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving conversation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve conversation: {str(e)}"
+        )
+
+
+@router.post("/architecture/conversation/analyze-repos", response_model=APIResponse)
+async def analyze_repositories(
+    request: ConversationAnalyzeReposRequest = Body(...),
+    current_user: Optional[Any] = Depends(get_optional_user),
+    request_id: str = Depends(get_request_id)
+):
+    """Analyze repositories based on requirements and provide integration recommendations."""
+    try:
+        from ...core.llm import ConversationManager, SystemDesignAgent
+        from ...core.llm.providers import get_llm_provider
+        from ...core.github_client import GitHubClient
+        from ...core.repo_analyzer import RepositoryAnalyzer, IntegrationRecommender
+        
+        # Get conversation state
+        conversation_manager = ConversationManager()
+        state = conversation_manager.get_session(request.session_id)
+        
+        if not state:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Conversation session {request.session_id} not found"
+            )
+        
+        # Search for repositories and analyze
+        github_client = GitHubClient()
+        analyzer = RepositoryAnalyzer()
+        recommender = IntegrationRecommender()
+        
+        requirements = {
+            "use_case": request.requirement,
+            "technology_stack": request.technology_stack or []
+        }
+        
+        recommendations = []
+        async with github_client:
+            # Search repositories
+            repos = await github_client.search_repositories(
+                query=request.requirement,
+                language=request.technology_stack[0] if request.technology_stack else None,
+                min_stars=50,
+                per_page=request.max_repos
+            )
+            
+            # Analyze repositories (keep session open for fetching code if needed)
+            for repo in repos[:request.max_repos]:
+                try:
+                    owner = repo["owner"]["login"]
+                    repo_name = repo["name"]
+                    
+                    # Fetch repository contents for analysis
+                    code_contents = await github_client.get_repository_contents(
+                        owner, repo_name, max_files=20
+                    )
+                    
+                    # Perform deep analysis
+                    analysis = await analyzer.analyze_repository(
+                        repo_url=repo["html_url"],
+                        repo_data=repo,
+                        code_contents=code_contents if code_contents else None
+                    )
+                
+                # Generate recommendation
+                recommendation = recommender.recommend_integration(
+                    analysis,
+                    requirements,
+                    repo
+                )
+                
+                recommendations.append(recommendation.to_dict())
+            except Exception as e:
+                logger.warning(f"Failed to analyze repository {repo.get('full_name')}: {e}")
+                continue
+        
+        # Add recommendations to conversation
+        for rec in recommendations:
+            conversation_manager.add_recommendation(
+                request.session_id,
+                "repository",
+                rec
+            )
+        
+        return APIResponse(
+            success=True,
+            message=f"Analyzed {len(recommendations)} repositories",
+            data={
+                "session_id": request.session_id,
+                "recommendations": recommendations,
+                "count": len(recommendations)
+            },
+            request_id=request_id
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing repositories: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze repositories: {str(e)}"
+        )
+

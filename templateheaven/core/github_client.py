@@ -369,3 +369,140 @@ class GitHubClient:
             }
 
         return {"error": "Could not fetch rate limit status"}
+    
+    async def get_repository_contents(
+        self,
+        owner: str,
+        repo: str,
+        path: str = "",
+        max_files: int = 100
+    ) -> Dict[str, str]:
+        """
+        Get repository file contents for analysis.
+        
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            path: Path in repository (empty for root)
+            max_files: Maximum number of files to fetch
+            
+        Returns:
+            Dictionary mapping file paths to file contents
+        """
+        contents = {}
+        url = f"{self.base_url}/repos/{owner}/{repo}/contents/{path}"
+        
+        try:
+            response_data = await self._make_request(url)
+            if not response_data:
+                return contents
+            
+            # Handle both single file and directory responses
+            if isinstance(response_data, dict):
+                if response_data.get("type") == "file":
+                    # Single file
+                    if response_data.get("content"):
+                        import base64
+                        file_content = base64.b64decode(response_data["content"]).decode("utf-8", errors="ignore")
+                        contents[response_data["path"]] = file_content
+                elif response_data.get("type") == "dir":
+                    # Directory - recursively fetch contents
+                    items = response_data if isinstance(response_data, list) else [response_data]
+                    for item in items:
+                        if len(contents) >= max_files:
+                            break
+                        
+                        if item.get("type") == "file":
+                            # Fetch file content
+                            file_url = f"{self.base_url}/repos/{owner}/{repo}/contents/{item['path']}"
+                            file_data = await self._make_request(file_url)
+                            if file_data and file_data.get("content"):
+                                import base64
+                                file_content = base64.b64decode(file_data["content"]).decode("utf-8", errors="ignore")
+                                contents[item["path"]] = file_content
+                        elif item.get("type") == "dir":
+                            # Recursively fetch directory (limit depth)
+                            if path.count("/") < 3:  # Limit recursion depth
+                                sub_contents = await self.get_repository_contents(
+                                    owner, repo, item["path"], max_files - len(contents)
+                                )
+                                contents.update(sub_contents)
+            
+            elif isinstance(response_data, list):
+                # Directory listing
+                for item in response_data:
+                    if len(contents) >= max_files:
+                        break
+                    
+                    if item.get("type") == "file":
+                        # Fetch file content
+                        file_url = f"{self.base_url}/repos/{owner}/{repo}/contents/{item['path']}"
+                        file_data = await self._make_request(file_url)
+                        if file_data and file_data.get("content"):
+                            import base64
+                            file_content = base64.b64decode(file_data["content"]).decode("utf-8", errors="ignore")
+                            contents[item["path"]] = file_content
+                    elif item.get("type") == "dir":
+                        # Recursively fetch directory (limit depth)
+                        if path.count("/") < 3:  # Limit recursion depth
+                            sub_contents = await self.get_repository_contents(
+                                owner, repo, item["path"], max_files - len(contents)
+                            )
+                            contents.update(sub_contents)
+        
+        except Exception as e:
+            logger.error(f"Error fetching repository contents: {e}")
+        
+        return contents
+    
+    async def analyze_repository_deep(
+        self,
+        owner: str,
+        repo: str,
+        requirements: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Perform deep analysis of a repository including code structure.
+        
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            requirements: Optional requirements for relevance matching
+            
+        Returns:
+            Comprehensive analysis including code analysis
+        """
+        from ..repo_analyzer import RepositoryAnalyzer
+        
+        # Get repository metadata
+        repo_data = await self.get_repository_details(owner, repo)
+        if not repo_data:
+            return {"error": "Repository not found"}
+        
+        # Get repository contents (limited to key files)
+        key_files = [
+            "package.json", "requirements.txt", "pyproject.toml", "Cargo.toml",
+            "go.mod", "pom.xml", "build.gradle", "README.md", "Dockerfile",
+            "docker-compose.yml", ".gitignore"
+        ]
+        
+        contents = {}
+        for file_name in key_files:
+            try:
+                file_contents = await self.get_repository_contents(owner, repo, file_name, max_files=1)
+                contents.update(file_contents)
+            except Exception:
+                continue
+        
+        # Perform analysis
+        analyzer = RepositoryAnalyzer()
+        analysis = await analyzer.analyze_repository(
+            repo_url=f"https://github.com/{owner}/{repo}",
+            repo_data=repo_data,
+            code_contents=contents if contents else None
+        )
+        
+        return {
+            "repository": repo_data,
+            "analysis": analysis.to_dict()
+        }

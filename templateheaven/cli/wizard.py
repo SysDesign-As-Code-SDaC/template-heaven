@@ -528,12 +528,157 @@ The questions cover:
         else:
             return self._collect_answers_manually(project_config)
     
-    def _collect_answers_with_ai(self, project_config: ProjectConfig) -> ArchitectureAnswers:
-        """Collect answers using AI/LLM assistance."""
-        self.console.print("[yellow]AI assistance: Connect to /api/v1/architecture/questionnaire endpoint[/yellow]")
-        self.console.print("[yellow]For now, falling back to manual entry...[/yellow]")
+    async def _collect_answers_with_ai(self, project_config: ProjectConfig) -> ArchitectureAnswers:
+        """Collect answers using AI/LLM assistance with multi-turn conversation."""
+        from ..core.llm import get_llm_provider, ConversationManager, SystemDesignAgent, SystemDesignContext
+        from ..core.architecture_questionnaire import ArchitectureQuestionnaire
+        
+        self.console.print("[bold cyan]🤖 Starting AI-Powered System Design Consultation[/bold cyan]")
         self.console.print()
-        return self._collect_answers_manually(project_config)
+        
+        # Check for LLM configuration
+        llm_provider_name = self.config.get('llm.provider', 'openai')
+        llm_api_key = self.config.get('llm.api_key') or os.getenv('OPENAI_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
+        
+        if not llm_api_key:
+            self.console.print("[yellow]⚠️  No LLM API key found. Please set OPENAI_API_KEY or ANTHROPIC_API_KEY environment variable.[/yellow]")
+            self.console.print("[yellow]Falling back to manual entry...[/yellow]")
+            self.console.print()
+            return self._collect_answers_manually(project_config)
+        
+        try:
+            # Initialize LLM provider
+            llm_config = {
+                "api_key": llm_api_key,
+                "model": self.config.get('llm.model'),
+                "temperature": self.config.get('llm.temperature', 0.7)
+            }
+            llm_provider = get_llm_provider(llm_provider_name, llm_config)
+            
+            # Create conversation manager and agent
+            conversation_manager = ConversationManager()
+            agent = SystemDesignAgent(llm_provider, conversation_manager, self.architecture_questionnaire)
+            
+            # Create context
+            context = SystemDesignContext(
+                project_name=project_config.name,
+                project_description=project_config.description,
+                template_stack=project_config.stack if hasattr(project_config, 'stack') else None,
+                current_answers={}
+            )
+            
+            # Start conversation
+            state = await agent.start_conversation(context)
+            session_id = state.session_id
+            
+            self.console.print(f"[green]✅ Conversation started (Session: {session_id[:8]}...)[/green]")
+            self.console.print()
+            
+            # Display greeting
+            if state.messages:
+                greeting = state.messages[-1]["content"]
+                self.console.print(f"[cyan]Assistant:[/cyan] {greeting}")
+                self.console.print()
+            
+            # Interactive conversation loop
+            answers = ArchitectureAnswers()
+            questions_answered = set()
+            
+            # Get questions by category
+            questions_by_category = self.architecture_questionnaire.get_questions_by_category()
+            
+            for category, questions in questions_by_category.items():
+                if not questions:
+                    continue
+                
+                self.console.print(f"[bold yellow]📋 {category}[/bold yellow]")
+                self.console.print()
+                
+                for question in questions:
+                    if question.id in questions_answered:
+                        continue
+                    
+                    # Ask question via LLM
+                    question_text = await agent.ask_question(session_id, question, {
+                        "project_name": project_config.name,
+                        "category": category
+                    })
+                    
+                    self.console.print(f"[cyan]🤖 {question_text}[/cyan]")
+                    self.console.print()
+                    
+                    # Get user response
+                    user_response = questionary.text(
+                        "Your answer:",
+                        default=""
+                    ).ask()
+                    
+                    if not user_response:
+                        continue
+                    
+                    # Continue conversation with user response
+                    llm_response = await agent.continue_conversation(session_id, user_response, stream=False)
+                    
+                    # Display LLM response if it provides guidance
+                    if llm_response and len(llm_response) > 50:
+                        self.console.print(f"[green]💡 {llm_response[:200]}...[/green]")
+                        self.console.print()
+                    
+                    # Map answer to ArchitectureAnswers (reuse existing mapping logic)
+                    self._map_answer_to_answers(answers, question, user_response)
+                    questions_answered.add(question.id)
+                    
+                    # Ask if user wants to search for open-source solutions
+                    if question.category in ["Integration", "Infrastructure", "API Design"]:
+                        search_decision = questionary.confirm(
+                            "Would you like me to search for existing open-source solutions?",
+                            default=False
+                        ).ask()
+                        
+                        if search_decision:
+                            # Trigger repository search
+                            recommendation = await agent.suggest_repository_search(
+                                session_id,
+                                user_response,
+                                answers.technology_stack if hasattr(answers, 'technology_stack') else None
+                            )
+                            
+                            self.console.print(f"[blue]🔍 Searching for solutions...[/blue]")
+                            self.console.print()
+                            
+                            # Note: Actual repo analysis would happen via API endpoint
+                            # For now, just show the suggestion
+                            if "search_strategy" in recommendation:
+                                self.console.print(f"[green]💡 {recommendation['search_strategy'][:200]}...[/green]")
+                                self.console.print()
+            
+            # Get final architecture recommendations
+            requirements = {
+                "project_name": project_config.name,
+                "architecture_pattern": answers.architecture_pattern.value if answers.architecture_pattern else None,
+                "scalability": answers.scalability_requirement.value if answers.scalability_requirement else None
+            }
+            
+            # Get architecture recommendation
+            recommendation = await agent.suggest_architecture_pattern(session_id, requirements)
+            
+            self.console.print()
+            self.console.print("[bold green]✅ Architecture consultation complete![/bold green]")
+            self.console.print()
+            
+            # Export conversation for documentation
+            conversation_export = conversation_manager.export_conversation(session_id)
+            answers.reference_architectures = [f"Conversation: {session_id}"]
+            answers.additional_notes = f"AI consultation session: {session_id}\n\n{conversation_export.get('messages', [])[-1].get('content', '') if conversation_export.get('messages') else ''}"
+            
+            return answers
+            
+        except Exception as e:
+            logger.error(f"Error in AI conversation: {e}")
+            self.console.print(f"[red]❌ Error in AI conversation: {e}[/red]")
+            self.console.print("[yellow]Falling back to manual entry...[/yellow]")
+            self.console.print()
+            return self._collect_answers_manually(project_config)
     
     def _collect_answers_manually(self, project_config: ProjectConfig) -> ArchitectureAnswers:
         """Collect answers manually through interactive prompts."""

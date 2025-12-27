@@ -65,6 +65,20 @@ class Config:
             "include_license": True,
             "include_contributing": False,
         },
+        "llm": {
+            "provider": "openai",  # "openai", "anthropic", "local"
+            "model": None,  # Will use provider default if None
+            "api_key": None,  # Set via environment variable or config
+            "temperature": 0.7,
+            "max_tokens": 2000,
+            "enable_streaming": True,
+        },
+        "repo_analysis": {
+            "max_repos_per_query": 10,
+            "min_stars": 50,
+            "analysis_depth": "deep",  # "shallow", "medium", "deep"
+            "enable_code_parsing": True,
+        },
     }
     
     def __init__(self, config_dir: Optional[Union[str, Path]] = None):

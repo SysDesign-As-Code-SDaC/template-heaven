@@ -5,7 +5,7 @@ Generates mandatory architecture and system design documents from
 questionnaire answers to prevent architectural drift.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pathlib import Path
 from datetime import datetime
 from jinja2 import Template
@@ -29,7 +29,8 @@ class ArchitectureDocGenerator:
         self,
         project_name: str,
         answers: ArchitectureAnswers,
-        output_dir: Path
+        output_dir: Path,
+        conversation_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Path]:
         """
         Generate all architecture documents.
@@ -60,8 +61,8 @@ class ArchitectureDocGenerator:
         
         generated_docs = {}
         
-        # Generate main architecture document (with diagrams)
-        arch_doc_path = self._generate_architecture_doc(project_name, answers, docs_dir, diagrams)
+        # Generate main architecture document (with diagrams and conversation data)
+        arch_doc_path = self._generate_architecture_doc(project_name, answers, docs_dir, diagrams, conversation_data)
         generated_docs["architecture"] = arch_doc_path
         
         # Generate system design document (with diagrams)
@@ -99,7 +100,8 @@ class ArchitectureDocGenerator:
         project_name: str,
         answers: ArchitectureAnswers,
         output_dir: Path,
-        diagrams: Dict[str, str] = None
+        diagrams: Dict[str, str] = None,
+        conversation_data: Optional[Dict[str, Any]] = None
     ) -> Path:
         """Generate main architecture document."""
         if diagrams is None:
@@ -381,6 +383,73 @@ The {{ architecture_pattern|title if architecture_pattern else "architecture" }}
 
 ---
 
+## AI Consultation Summary
+
+{% if conversation_session_id %}
+**Consultation Session:** {{ conversation_session_id }}
+
+This architecture was designed with the assistance of an AI system design consultant. The consultation process involved:
+
+- Multi-turn conversation to understand requirements
+- Architecture pattern recommendations
+- Open-source solution analysis
+- Integration strategy suggestions
+
+### Key Insights from Consultation
+
+{% if consultation_insights %}
+{{ consultation_insights }}
+{% else %}
+Consultation insights are available in the conversation session.
+{% endif %}
+
+### Recommended Open-Source Integrations
+
+{% if repo_recommendations %}
+{% for rec in repo_recommendations %}
+#### {{ rec.repository.name }}
+
+- **Repository:** [{{ rec.repository.name }}]({{ rec.repository.url }})
+- **Use Case:** {{ rec.use_case }}
+- **Integration Approach:** {{ rec.integration_approach|title }}
+- **Effort:** {{ rec.effort|title }}
+- **Compatibility Score:** {{ (rec.compatibility * 100)|int }}%
+- **Relevance Score:** {{ (rec.relevance_score * 100)|int }}%
+
+**Pros:**
+{% for pro in rec.pros %}
+- {{ pro }}
+{% endfor %}
+
+**Cons:**
+{% for con in rec.cons %}
+- {{ con }}
+{% endfor %}
+
+**Integration Steps:**
+{% for step in rec.integration_steps %}
+1. {{ step }}
+{% endfor %}
+
+{% if rec.code_example %}
+**Code Example:**
+```python
+{{ rec.code_example }}
+```
+{% endif %}
+
+---
+{% endfor %}
+{% else %}
+No specific open-source integrations were recommended during the consultation.
+{% endif %}
+
+{% else %}
+This architecture was designed without AI consultation assistance.
+{% endif %}
+
+---
+
 ## Additional Notes
 
 {{ additional_notes if additional_notes else "None" }}
@@ -393,6 +462,33 @@ The {{ architecture_pattern|title if architecture_pattern else "architecture" }}
 """
         
         template = Template(template_content)
+        
+        # Extract conversation data
+        conversation_session_id = None
+        consultation_insights = None
+        repo_recommendations = []
+        
+        if conversation_data:
+            conversation_session_id = conversation_data.get("session_id")
+            
+            # Extract insights from conversation messages
+            messages = conversation_data.get("messages", [])
+            if messages:
+                # Get last assistant message as insight summary
+                assistant_messages = [m for m in messages if m.get("role") == "assistant"]
+                if assistant_messages:
+                    consultation_insights = assistant_messages[-1].get("content", "")[:500]  # First 500 chars
+            
+            # Extract repository recommendations
+            repo_recommendations = conversation_data.get("repo_recommendations", [])
+        
+        # Also check answers for conversation reference
+        if not conversation_session_id and answers.reference_architectures:
+            for ref in answers.reference_architectures:
+                if "Conversation:" in ref:
+                    conversation_session_id = ref.split("Conversation:")[-1].strip()
+                    break
+        
         render_vars = answers.to_dict()
         render_vars.update({
             "project_name": project_name,
@@ -400,6 +496,9 @@ The {{ architecture_pattern|title if architecture_pattern else "architecture" }}
             "next_review_date": (datetime.now().replace(day=1).replace(month=datetime.now().month + 1)).strftime("%Y-%m-%d"),
             "system_context_diagram": diagrams.get("system_context", ""),
             "container_diagram": diagrams.get("container", ""),
+            "conversation_session_id": conversation_session_id,
+            "consultation_insights": consultation_insights,
+            "repo_recommendations": repo_recommendations,
         })
         content = template.render(**render_vars)
         
