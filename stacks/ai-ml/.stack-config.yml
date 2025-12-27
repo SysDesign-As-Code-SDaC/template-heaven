@@ -1,0 +1,65 @@
+﻿# Stack Configuration
+stack_name: ai-ml
+description: Traditional ML and data science workflows
+version: 1.0.0
+created: 2025-10-13
+
+# Categories for template organization
+categories:
+  - name: getting-started
+    description: Beginner-friendly templates
+  - name: advanced
+    description: Advanced templates for experienced developers
+  - name: specialized
+    description: Specialized use-case templates
+
+# Automation settings
+automation:
+  # Monitor these organizations/repositories for new templates
+  watch_repos: []
+  
+  # Update frequency (in days)
+  update_frequency: 7
+  
+  # Auto-create PRs for trending templates
+  auto_pr: true
+  
+  # Minimum stars for auto-detection
+  min_stars: 100
+
+# Quality standards
+quality:
+  # Require README
+  require_readme: true
+  
+  # Require LICENSE file
+  require_license: true
+  
+  # Require examples
+  require_examples: false
+  
+  # Minimum test coverage (if applicable)
+  min_test_coverage: 0
+
+# Validation rules
+validation:
+  # File patterns to exclude
+  exclude_patterns:
+    - node_modules/
+    - .git/
+    - dist/
+    - build/
+    - __pycache__/
+    - .venv/
+    - .env
+    - "*.log"
+  
+  # Required files
+  required_files:
+    - README.md
+
+# Metadata
+metadata:
+  maintainer: Template Team
+  contact: template-team@organization.com
+  documentation: ../../docs/

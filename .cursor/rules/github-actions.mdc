@@ -1,0 +1,401 @@
+---
+globs: *.yml,*.yaml,.github/**
+description: Automation example standards (GitHub Actions disabled) for Template Heaven
+---
+
+# Automation example standards (GitHub Actions disabled)
+
+## 🤖 Workflow Architecture
+
+### Core Workflows
+- **Trend Detection**: [.github/workflows/trend-detection.yml](mdc:.github/workflows/trend-detection.yml)
+  - Daily automated trend monitoring
+  - GitHub API integration with rate limiting
+  - PostgreSQL and Redis setup
+  - Automated issue creation for high-priority trends
+  - Slack and email notifications
+- **Template Synchronization**: [.github/workflows/template-sync.yml](mdc:.github/workflows/template-sync.yml)
+  - Weekly automated template syncing
+  - Upstream repository monitoring
+  - Automated PR creation for significant updates
+  - Template validation and testing
+- **Branch Synchronization**: [.github/workflows/branch-sync.yml](mdc:.github/workflows/branch-sync.yml)
+  - Weekly core tools synchronization
+  - Stack configuration updates
+  - Branch validation and health checks
+
+### Workflow Standards
+- **Consistent naming** with descriptive workflow names
+- **Proper error handling** with meaningful failure messages
+- **Resource optimization** with appropriate runner types
+- **Security best practices** with secret management
+- **Comprehensive logging** for debugging and monitoring
+
+## 🔧 Workflow Template Structure
+
+### Basic Workflow Template
+```yaml
+name: Workflow Name
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches: [dev]
+    paths:
+      - 'path/to/monitor/**'
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.9'
+  POSTGRES_VERSION: '14'
+  REDIS_VERSION: '7'
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for trend analysis
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=${{ runner.os }}-${{ hashFiles('**/requirements.txt', '**/package-lock.json') }}" >> $GITHUB_OUTPUT
+
+  database-setup:
+    name: Setup Database
+    runs-on: ubuntu-latest
+    needs: setup
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: templateheaven
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+  main-job:
+    name: Main Job
+    runs-on: ubuntu-latest
+    needs: [setup, database-setup]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tools/trending-flagger/trend-detector/requirements.txt
+      
+      - name: Run main process
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/templateheaven
+          REDIS_URL: redis://localhost:6379/0
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          EMAIL_SMTP: ${{ secrets.EMAIL_SMTP }}
+        run: |
+          python tools/trending-flagger/trend-detector/src/trend_monitor.py
+      
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: workflow-logs
+          path: |
+            logs/
+            *.log
+          retention-days: 30
+      
+      - name: Notify on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+```
+
+## 🔐 Security Best Practices
+
+### Secret Management
+```yaml
+env:
+  # Use secrets for sensitive data
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  REDIS_URL: ${{ secrets.REDIS_URL }}
+  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+  EMAIL_SMTP: ${{ secrets.EMAIL_SMTP }}
+  API_KEYS: ${{ secrets.API_KEYS }}
+```
+
+### Permission Controls
+```yaml
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+  security-events: write
+```
+
+### Security Scanning
+```yaml
+- name: Run security scan
+  uses: github/super-linter@v4
+  env:
+    DEFAULT_BRANCH: dev
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    VALIDATE_ALL_CODEBASE: true
+    VALIDATE_PYTHON_BLACK: true
+    VALIDATE_PYTHON_FLAKE8: true
+    VALIDATE_PYTHON_ISORT: true
+    VALIDATE_YAML: true
+    VALIDATE_JSON: true
+    VALIDATE_MARKDOWN: true
+```
+
+## 📊 Monitoring and Alerting
+
+### Workflow Status Monitoring
+```yaml
+- name: Notify on success
+  if: success()
+  uses: 8398a7/action-slack@v3
+  with:
+    status: success
+    channel: '#notifications'
+    webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+    fields: repo,message,commit,author,action,eventName,ref,workflow
+
+- name: Notify on failure
+  if: failure()
+  uses: 8398a7/action-slack@v3
+  with:
+    status: failure
+    channel: '#alerts'
+    webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+    fields: repo,message,commit,author,action,eventName,ref,workflow
+```
+
+### Performance Monitoring
+```yaml
+- name: Record workflow duration
+  if: always()
+  run: |
+    echo "Workflow completed in ${{ job.duration }}"
+    echo "duration=${{ job.duration }}" >> $GITHUB_OUTPUT
+```
+
+## 🔄 Template Synchronization Workflow
+
+### Upstream Monitoring
+```yaml
+- name: Check upstream repositories
+  run: |
+    python scripts/check_upstream.py \
+      --config config/upstream_repos.yaml \
+      --output upstream_changes.json
+    
+- name: Create PR for significant updates
+  if: steps.check-upstream.outputs.has_updates == 'true'
+  uses: peter-evans/create-pull-request@v5
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+    commit-message: 'chore: sync templates from upstream'
+    title: 'Automated Template Sync - ${{ github.run_number }}'
+    body: |
+      This PR contains automated template updates from upstream repositories.
+      
+      **Changes:**
+      - Updated templates: ${{ steps.check-upstream.outputs.updated_templates }}
+      - New templates: ${{ steps.check-upstream.outputs.new_templates }}
+      
+      **Review Required:**
+      - [ ] Validate template functionality
+      - [ ] Check for breaking changes
+      - [ ] Update documentation if needed
+    branch: automated-sync-${{ github.run_number }}
+    delete-branch: true
+```
+
+## 🌿 Branch Management Workflow
+
+### Stack Branch Operations
+```yaml
+- name: Sync core tools to stack branches
+  run: |
+    python scripts/branch_manager.py sync-all
+    
+- name: Validate stack branch health
+  run: |
+    python scripts/branch_manager.py validate-all
+    
+- name: Generate stack report
+  run: |
+    python scripts/branch_manager.py report > stack_report.md
+    
+- name: Upload stack report
+  uses: actions/upload-artifact@v3
+  with:
+    name: stack-report
+    path: stack_report.md
+```
+
+## 🧪 Testing Integration
+
+### Template Testing
+```yaml
+- name: Test all templates
+  strategy:
+    matrix:
+      stack: [frontend, backend, ai-ml, devops]
+  run: |
+    git checkout stack/${{ matrix.stack }}
+    python scripts/test_templates.py --stack ${{ matrix.stack }}
+    
+- name: Upload test results
+  uses: actions/upload-artifact@v3
+  with:
+    name: test-results-${{ matrix.stack }}
+    path: test-results/
+```
+
+### Code Quality Checks
+```yaml
+- name: Run linting
+  run: |
+    flake8 scripts/ tools/
+    black --check scripts/ tools/
+    isort --check-only scripts/ tools/
+    
+- name: Run type checking
+  run: |
+    mypy scripts/ tools/
+    
+- name: Run security scan
+  run: |
+    bandit -r scripts/ tools/
+    safety check
+```
+
+## 📈 Performance Optimization
+
+### Caching Strategies
+```yaml
+- name: Cache dependencies
+  uses: actions/cache@v3
+  with:
+    path: |
+      ~/.cache/pip
+      ~/.npm
+      node_modules
+    key: ${{ runner.os }}-deps-${{ hashFiles('**/requirements.txt', '**/package-lock.json') }}
+    restore-keys: |
+      ${{ runner.os }}-deps-
+```
+
+### Resource Management
+```yaml
+- name: Set resource limits
+  run: |
+    # Limit memory usage
+    ulimit -v 2097152  # 2GB
+    # Limit CPU usage
+    nice -n 10 python script.py
+```
+
+## 🚨 Error Handling
+
+### Graceful Degradation
+```yaml
+- name: Handle API rate limits
+  run: |
+    python scripts/trend_monitor.py --max-retries 3 --backoff-factor 2
+    
+- name: Fallback notification
+  if: failure()
+  run: |
+    # Send email if Slack fails
+    python scripts/send_email.py --subject "Workflow Failed" --body "Check logs"
+```
+
+### Retry Logic
+```yaml
+- name: Retry failed operations
+  uses: nick-invision/retry@v2
+  with:
+    timeout_minutes: 10
+    max_attempts: 3
+    command: python scripts/critical_operation.py
+```
+
+## 📋 Workflow Checklist
+
+### Pre-Deployment
+- [ ] **Secrets configured** in repository settings
+- [ ] **Permissions set** appropriately
+- [ ] **Dependencies cached** for performance
+- [ ] **Error handling** implemented
+- [ ] **Notifications configured** for alerts
+
+### Post-Deployment
+- [ ] **Workflow runs successfully** on schedule
+- [ ] **Notifications working** for success/failure
+- [ ] **Artifacts uploaded** correctly
+- [ ] **Performance acceptable** within time limits
+- [ ] **Security scanning** passes
+
+### Maintenance
+- [ ] **Dependencies updated** regularly
+- [ ] **Workflow performance** monitored
+- [ ] **Error rates tracked** and addressed
+- [ ] **Documentation updated** with changes
+- [ ] **Backup procedures** in place

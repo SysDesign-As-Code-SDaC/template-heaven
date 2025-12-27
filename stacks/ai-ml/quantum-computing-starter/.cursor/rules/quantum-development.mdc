@@ -1,0 +1,337 @@
+---
+description: "Quantum computing development best practices and AI-assisted coding guidelines"
+globs: ["src/**/*.py", "tests/**/*.py", "notebooks/**/*.ipynb"]
+---
+
+# Quantum Computing Development Standards
+
+## 🔬 Quantum Code Quality Requirements
+
+### Circuit Design Standards
+- **Gate decomposition**: Use optimal gate decompositions for quantum circuits
+- **Circuit depth minimization**: Minimize circuit depth to reduce noise and errors
+- **Qubit allocation**: Efficient qubit allocation strategies for NISQ devices
+- **Error mitigation**: Implement error mitigation techniques for noisy quantum hardware
+
+### Algorithm Implementation
+- **Mathematical correctness**: Verify quantum algorithm implementations against known results
+- **Complexity analysis**: Include computational complexity analysis for quantum algorithms
+- **Resource estimation**: Estimate qubit and gate requirements for quantum algorithms
+- **Classical preprocessing**: Optimize classical preprocessing steps in hybrid algorithms
+
+### Testing Standards
+- **Unitary verification**: Test quantum circuits against known unitary matrices
+- **Statistical validation**: Use statistical tests for quantum measurement outcomes
+- **Framework compatibility**: Ensure code works across Qiskit, Cirq, and PennyLane
+- **Hardware simulation**: Test circuits on multiple quantum simulators
+
+## ⚛️ Quantum-Specific Patterns
+
+### Circuit Construction
+```python
+# ✅ Good: Well-documented circuit construction
+def create_quantum_oracle(problem_size: int) -> QuantumCircuit:
+    """
+    Create quantum oracle for search problems.
+
+    Args:
+        problem_size: Size of the search space (2^problem_size)
+
+    Returns:
+        Quantum circuit implementing the oracle
+    """
+    qc = QuantumCircuit(problem_size + 1)  # +1 for ancilla qubit
+
+    # Implement oracle logic with proper documentation
+    # ...
+
+    return qc
+
+# ❌ Bad: Undocumented quantum operations
+def oracle(n):
+    qc = QuantumCircuit(n+1)
+    qc.x(n)  # What does this do?
+    return qc
+```
+
+### Algorithm Documentation
+```python
+# ✅ Good: Comprehensive algorithm documentation
+class ShorAlgorithm:
+    """
+    Shor's quantum factoring algorithm.
+
+    This implementation uses quantum period finding to factorize
+    large composite numbers exponentially faster than classical methods.
+
+    Complexity: O((log N)^2 log log N) vs O(2^(N/2)) classical
+    Space: O(log N) qubits required
+
+    Args:
+        N: Composite number to factorize
+        a: Random base for period finding (auto-selected if None)
+
+    Returns:
+        Tuple of prime factors or None if factoring fails
+    """
+
+    def __init__(self, N: int, a: Optional[int] = None):
+        self.N = N
+        self.a = a or self._choose_base()
+
+    def factorize(self) -> Optional[Tuple[int, int]]:
+        """Execute Shor's algorithm."""
+        # Implementation with detailed comments
+        pass
+```
+
+### Error Handling
+```python
+# ✅ Good: Comprehensive error handling for quantum operations
+def execute_quantum_circuit(circuit: QuantumCircuit, backend, shots: int = 1024):
+    """
+    Execute quantum circuit with comprehensive error handling.
+
+    Handles:
+    - Backend connectivity issues
+    - Circuit compilation errors
+    - Job execution failures
+    - Result retrieval timeouts
+    """
+    try:
+        # Validate circuit before execution
+        if not circuit.num_qubits:
+            raise ValueError("Circuit must have at least one qubit")
+
+        # Execute with timeout handling
+        job = backend.run(circuit, shots=shots)
+
+        # Wait for completion with progress monitoring
+        result = job.result(timeout=300)  # 5 minute timeout
+
+        return result
+
+    except BackendUnavailableError:
+        logger.error("Quantum backend unavailable")
+        # Fallback to simulator
+        return execute_on_simulator(circuit, shots)
+
+    except CircuitCompilationError as e:
+        logger.error(f"Circuit compilation failed: {e}")
+        # Attempt circuit optimization
+        optimized_circuit = optimize_circuit(circuit)
+        return execute_quantum_circuit(optimized_circuit, backend, shots)
+
+    except JobTimeoutError:
+        logger.warning("Job execution timed out")
+        # Retry with exponential backoff
+        return retry_execution(circuit, backend, shots)
+```
+
+## 🧪 Testing Requirements
+
+### Quantum Circuit Testing
+```python
+def test_bell_state_entanglement():
+    """Test that Bell state exhibits quantum entanglement."""
+
+    # Create Bell state
+    qc = create_bell_state('qiskit')
+    qc.measure_all()
+
+    # Execute on simulator
+    backend = Aer.get_backend('qasm_simulator')
+    result = execute(qc, backend, shots=8192).result()
+    counts = result.get_counts()
+
+    # Statistical test for entanglement
+    # Bell states should show strong correlation between qubits
+    p_00 = counts.get('00', 0) / 8192
+    p_11 = counts.get('11', 0) / 8192
+    p_01 = counts.get('01', 0) / 8192
+    p_10 = counts.get('10', 0) / 8192
+
+    # Entangled states have high correlation
+    correlation = abs((p_00 + p_11) - (p_01 + p_10))
+
+    assert correlation > 0.8, f"Low entanglement correlation: {correlation}"
+    assert p_01 + p_10 < 0.1, f"Unexpected anti-correlated outcomes: {p_01 + p_10}"
+```
+
+### Algorithm Correctness Testing
+```python
+def test_shor_algorithm_correctness():
+    """Test Shor's algorithm on small, known factorizations."""
+
+    test_cases = [
+        (15, [3, 5]),
+        (21, [3, 7]),
+        (35, [5, 7]),
+        (51, [3, 17]),
+    ]
+
+    for N, expected_factors in test_cases:
+        factors = shor_factorize_classical(N)  # Use classical for testing
+
+        # Verify factorization
+        product = 1
+        for factor in factors:
+            product *= factor
+            assert is_prime(factor), f"Factor {factor} is not prime"
+
+        assert product == N, f"Incorrect factorization: {factors} != {N}"
+
+        # Check against expected (may be in different order)
+        assert sorted(factors) == sorted(expected_factors)
+```
+
+## 📊 Performance Monitoring
+
+### Circuit Complexity Analysis
+```python
+def analyze_circuit_complexity(circuit: QuantumCircuit) -> Dict[str, Any]:
+    """
+    Analyze quantum circuit complexity metrics.
+
+    Returns:
+        Dictionary with complexity metrics:
+        - depth: Circuit depth
+        - gate_count: Total gate count
+        - qubit_count: Number of qubits used
+        - two_qubit_gates: Number of two-qubit gates
+        - t_gates: Number of T gates (for error correction)
+    """
+    return {
+        'depth': circuit.depth(),
+        'gate_count': len(circuit.data),
+        'qubit_count': circuit.num_qubits,
+        'two_qubit_gates': count_two_qubit_gates(circuit),
+        't_gates': count_t_gates(circuit),
+        'connectivity': analyze_qubit_connectivity(circuit)
+    }
+```
+
+### Benchmarking Standards
+```python
+def benchmark_quantum_algorithm(algorithm_func, *args, **kwargs) -> Dict[str, Any]:
+    """
+    Benchmark quantum algorithm performance.
+
+    Measures:
+    - Execution time
+    - Circuit complexity
+    - Success rate
+    - Resource usage
+    """
+    import time
+    from memory_profiler import memory_usage
+
+    start_time = time.time()
+    start_memory = memory_usage()[0]
+
+    try:
+        result = algorithm_func(*args, **kwargs)
+
+        end_time = time.time()
+        end_memory = memory_usage()[0]
+
+        return {
+            'execution_time': end_time - start_time,
+            'memory_usage': end_memory - start_memory,
+            'success': True,
+            'result': result,
+            'error': None
+        }
+
+    except Exception as e:
+        end_time = time.time()
+
+        return {
+            'execution_time': end_time - start_time,
+            'memory_usage': 0,
+            'success': False,
+            'result': None,
+            'error': str(e)
+        }
+```
+
+## 🔐 Security Considerations
+
+### Quantum-Safe Cryptography
+```python
+# ✅ Good: Use quantum-resistant algorithms
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+
+def quantum_safe_signing(message: bytes, private_key) -> bytes:
+    """Sign message using quantum-resistant signature scheme."""
+    signature = private_key.sign(
+        message,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+# ❌ Bad: Use classical cryptography vulnerable to quantum attacks
+# Avoid SHA-1, MD5, and small RSA keys
+```
+
+### Secure Quantum Communication
+```python
+def secure_quantum_key_distribution(sender_bits: List[int], receiver_bases: List[int]) -> bytes:
+    """
+    Implement BB84 quantum key distribution protocol.
+
+    Args:
+        sender_bits: Random bits to encode
+        receiver_bases: Random bases for measurement
+
+    Returns:
+        Shared secret key
+    """
+    # Implement quantum key distribution
+    # This is a conceptual implementation
+    shared_key = []
+
+    for bit, basis in zip(sender_bits, receiver_bases):
+        # Quantum measurement simulation
+        if basis == bit:  # Correct basis
+            shared_key.append(bit)
+
+    # Error correction and privacy amplification would follow
+    return bytes(shared_key)
+```
+
+## 🎯 AI Coding Agent Guidelines
+
+### Code Generation Rules
+- **Type hints**: Always include type hints for quantum functions
+- **Documentation**: Comprehensive docstrings with complexity analysis
+- **Error handling**: Robust error handling for quantum operations
+- **Testing**: Generate unit tests for quantum algorithms
+- **Performance**: Include performance analysis in generated code
+
+### Review Checklist
+- [ ] **Quantum correctness**: Algorithm implements correct quantum operations
+- [ ] **Complexity analysis**: Time and space complexity properly analyzed
+- [ ] **Resource estimation**: Qubit and gate counts estimated
+- [ ] **Error handling**: Comprehensive error handling for quantum failures
+- [ ] **Documentation**: Mathematical background and algorithm explanation
+- [ ] **Testing**: Statistical tests for quantum measurement outcomes
+- [ ] **Security**: No quantum vulnerabilities in cryptographic implementations
+
+### Common Issues to Flag
+- **Incorrect gate ordering**: Quantum gates are order-dependent
+- **Missing measurements**: Quantum states must be measured to get classical results
+- **Noisy operations**: NISQ devices require error mitigation
+- **Resource constraints**: Check qubit and gate limits for target hardware
+- **Classical preprocessing**: Optimize classical parts of hybrid algorithms
+
+### Suggested Improvements
+- **Circuit optimization**: Suggest gate decompositions and optimizations
+- **Error correction**: Recommend error correction codes for algorithms
+- **Hardware mapping**: Suggest optimal qubit mappings for specific devices
+- **Hybrid approaches**: Combine classical and quantum computing effectively

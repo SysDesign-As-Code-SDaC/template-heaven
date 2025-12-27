@@ -1,0 +1,312 @@
+# Branch-Aware Trend Detection Configuration
+# This configuration supports the multi-branch stack architecture
+
+# Global settings
+global:
+  github:
+    api_token: YOUR_GITHUB_API_TOKEN
+    base_repo: "your-org/template-heaven"
+    main_branch: "dev"
+  
+  redis:
+    host: localhost
+    port: 6379
+  
+  postgresql:
+    host: localhost
+    port: 5432
+    user: user
+    password: password
+    database: templateheaven
+  
+  # Global thresholds
+  star_threshold: 1000
+  fork_threshold: 100
+  growth_rate_threshold: 0.1
+  trend_score_threshold: 0.7
+  
+  # Monitoring intervals (seconds)
+  monitor_interval: 300
+  early_detection_interval: 600
+  review_interval: 1800
+  alert_interval: 3600
+
+# Stack-specific configurations
+stacks:
+  fullstack:
+    branch: "stack/fullstack"
+    keywords:
+      - "fullstack"
+      - "full-stack"
+      - "nextjs"
+      - "t3-stack"
+      - "remix"
+      - "nuxt"
+      - "sveltekit"
+    exclude_keywords:
+      - "tutorial"
+      - "example"
+    min_stars: 500
+    min_forks: 50
+    growth_rate_threshold: 0.05
+    auto_create_pr: true
+    maintainers:
+      - "@fullstack-team"
+  
+  frontend:
+    branch: "stack/frontend"
+    keywords:
+      - "react"
+      - "vue"
+      - "svelte"
+      - "frontend"
+      - "vite"
+      - "webpack"
+      - "rollup"
+    exclude_keywords:
+      - "tutorial"
+      - "boilerplate"
+    min_stars: 300
+    min_forks: 30
+    growth_rate_threshold: 0.08
+    auto_create_pr: true
+    maintainers:
+      - "@frontend-team"
+  
+  backend:
+    branch: "stack/backend"
+    keywords:
+      - "api"
+      - "backend"
+      - "server"
+      - "express"
+      - "fastapi"
+      - "django"
+      - "flask"
+      - "gin"
+      - "actix"
+    exclude_keywords:
+      - "tutorial"
+      - "example"
+    min_stars: 400
+    min_forks: 40
+    growth_rate_threshold: 0.06
+    auto_create_pr: true
+    maintainers:
+      - "@backend-team"
+  
+  ai-ml:
+    branch: "stack/ai-ml"
+    keywords:
+      - "machine-learning"
+      - "ml"
+      - "ai"
+      - "data-science"
+      - "pytorch"
+      - "tensorflow"
+      - "scikit-learn"
+      - "pandas"
+      - "numpy"
+    exclude_keywords:
+      - "tutorial"
+      - "notebook"
+    min_stars: 800
+    min_forks: 80
+    growth_rate_threshold: 0.04
+    auto_create_pr: true
+    maintainers:
+      - "@ai-ml-team"
+  
+  advanced-ai:
+    branch: "stack/advanced-ai"
+    keywords:
+      - "llm"
+      - "rag"
+      - "vector-database"
+      - "langchain"
+      - "llamaindex"
+      - "chromadb"
+      - "pinecone"
+      - "openai"
+      - "anthropic"
+    exclude_keywords:
+      - "tutorial"
+      - "demo"
+    min_stars: 1000
+    min_forks: 100
+    growth_rate_threshold: 0.03
+    auto_create_pr: true
+    maintainers:
+      - "@advanced-ai-team"
+  
+  agentic-ai:
+    branch: "stack/agentic-ai"
+    keywords:
+      - "agent"
+      - "autonomous"
+      - "langgraph"
+      - "crewai"
+      - "autogen"
+      - "multi-agent"
+      - "workflow"
+    exclude_keywords:
+      - "tutorial"
+      - "example"
+    min_stars: 1200
+    min_forks: 120
+    growth_rate_threshold: 0.02
+    auto_create_pr: true
+    maintainers:
+      - "@agentic-ai-team"
+  
+  mobile:
+    branch: "stack/mobile"
+    keywords:
+      - "mobile"
+      - "react-native"
+      - "flutter"
+      - "electron"
+      - "ionic"
+      - "cordova"
+      - "xamarin"
+    exclude_keywords:
+      - "tutorial"
+      - "example"
+    min_stars: 600
+    min_forks: 60
+    growth_rate_threshold: 0.05
+    auto_create_pr: true
+    maintainers:
+      - "@mobile-team"
+  
+  devops:
+    branch: "stack/devops"
+    keywords:
+      - "devops"
+      - "ci-cd"
+      - "docker"
+      - "kubernetes"
+      - "terraform"
+      - "ansible"
+      - "github-actions"
+      - "gitlab-ci"
+    exclude_keywords:
+      - "tutorial"
+      - "example"
+    min_stars: 400
+    min_forks: 40
+    growth_rate_threshold: 0.06
+    auto_create_pr: true
+    maintainers:
+      - "@devops-team"
+  
+  web3:
+    branch: "stack/web3"
+    keywords:
+      - "web3"
+      - "blockchain"
+      - "ethereum"
+      - "solidity"
+      - "hardhat"
+      - "foundry"
+      - "defi"
+      - "nft"
+    exclude_keywords:
+      - "tutorial"
+      - "example"
+    min_stars: 800
+    min_forks: 80
+    growth_rate_threshold: 0.04
+    auto_create_pr: true
+    maintainers:
+      - "@web3-team"
+  
+  workflows:
+    branch: "stack/workflows"
+    keywords:
+      - "workflow"
+      - "github-actions"
+      - "gitlab-ci"
+      - "template"
+      - "boilerplate"
+      - "starter"
+      - "best-practices"
+    exclude_keywords:
+      - "tutorial"
+      - "example"
+    min_stars: 200
+    min_forks: 20
+    growth_rate_threshold: 0.1
+    auto_create_pr: true
+    maintainers:
+      - "@workflows-team"
+
+# Branch management settings
+branch_management:
+  # Auto-create stack branches if they don't exist
+  auto_create_branches: true
+  
+  # Sync core tools to stack branches
+  sync_core_tools: true
+  
+  # Create PRs to stack branches instead of main
+  create_stack_prs: true
+  
+  # Merge strategy for stack branches
+  merge_strategy: "squash"
+  
+  # Required reviewers for stack branches
+  required_reviewers: 1
+
+# Notification settings
+notifications:
+  # Slack webhook for notifications
+  slack_webhook: "YOUR_SLACK_WEBHOOK_URL"
+  
+  # Email notifications
+  email:
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "your-email@gmail.com"
+    password: "your-app-password"
+    to_addresses:
+      - "team@your-org.com"
+  
+  # GitHub notifications
+  github:
+    create_issues: true
+    create_prs: true
+    mention_maintainers: true
+
+# Trend detection algorithms
+algorithms:
+  # Star growth rate calculation
+  star_growth:
+    window_days: 7
+    min_stars: 100
+    growth_threshold: 0.1
+  
+  # Fork growth rate calculation
+  fork_growth:
+    window_days: 7
+    min_forks: 10
+    growth_threshold: 0.15
+  
+  # Combined trend score
+  trend_score:
+    star_weight: 0.4
+    fork_weight: 0.3
+    growth_weight: 0.3
+    min_score: 0.7
+
+# Database settings
+database:
+  # Trend history retention (days)
+  history_retention_days: 365
+  
+  # Cache settings
+  cache_ttl: 3600
+  
+  # Batch processing
+  batch_size: 100
+  batch_interval: 300

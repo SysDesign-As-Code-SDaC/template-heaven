@@ -1,0 +1,36 @@
+{
+  "name": "basic-bravetto-app",
+  "version": "1.0.0",
+  "description": "A minimal Bravetto application template",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "bravetto dev",
+    "build": "bravetto build",
+    "start": "bravetto start",
+    "test": "bravetto test",
+    "lint": "bravetto lint",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "bravetto",
+    "template",
+    "typescript",
+    "web-app"
+  ],
+  "author": "Bravetto Team",
+  "license": "MIT",
+  "dependencies": {
+    "@bravetto/core": "^1.0.0",
+    "@bravetto/runtime": "^1.0.0",
+    "@bravetto/router": "^1.0.0"
+  },
+  "devDependencies": {
+    "@bravetto/cli": "^1.0.0",
+    "@bravetto/types": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

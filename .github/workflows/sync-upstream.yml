@@ -1,0 +1,234 @@
+name: Disabled - Repository workflows removed
+
+# This workflow is intentionally disabled and has been entirely replaced by maintainer direction.
+# File retained only for historic purposes. Remove the file if you wish to delete history.
+    inputs:
+      stack_name:
+        description: 'Specific stack to sync (leave empty for all)'
+        required: false
+        type: string
+      force_sync:
+        description: 'Force sync even if no changes detected'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  detect-upstream-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      stacks-to-sync: ${{ steps.detect.outputs.stacks }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml requests
+
+      - name: Detect upstream changes
+        id: detect
+        run: |
+          python << 'EOF'
+          import os
+          import yaml
+          import requests
+          import json
+          from pathlib import Path
+          
+          def get_stack_branches():
+              """Get all stack branches from the repository."""
+              result = os.popen('git branch -r --format=%(refname:short)').read()
+              stack_branches = [
+                  branch.replace('origin/', '') for branch in result.strip().split('\n')
+                  if branch.startswith('origin/stack/')
+              ]
+              return stack_branches
+          
+          def check_upstream_changes(stack_name):
+              """Check if upstream templates have changes."""
+              stack_path = f"stacks/{stack_name}"
+              if not os.path.exists(stack_path):
+                  return False
+              
+              config_file = f"{stack_path}/.stack-config.yml"
+              if not os.path.exists(config_file):
+                  return False
+              
+              try:
+                  with open(config_file, 'r') as f:
+                      config = yaml.safe_load(f)
+                  
+                  upstream_sources = config.get('upstream_sources', [])
+                  if not upstream_sources:
+                      return False
+                  
+                  # Check each upstream source for changes
+                  for source in upstream_sources:
+                      if 'github.com' in source:
+                          # Extract repo info and check latest commit
+                          repo_path = source.replace('https://github.com/', '')
+                          api_url = f"https://api.github.com/repos/{repo_path}/commits/main"
+                          
+                          try:
+                              response = requests.get(api_url, timeout=10)
+                              if response.status_code == 200:
+                                  latest_commit = response.json()
+                                  # For now, always return True to trigger sync
+                                  # In a real implementation, you'd compare with stored commit hash
+                                  return True
+                          except Exception as e:
+                              print(f"Error checking {source}: {e}")
+                              continue
+                  
+              except Exception as e:
+                  print(f"Error reading config for {stack_name}: {e}")
+              
+              return False
+          
+          # Get stacks to check
+          if os.getenv('INPUT_STACK_NAME'):
+              stacks_to_check = [os.getenv('INPUT_STACK_NAME')]
+          else:
+              stacks_to_check = [branch.replace('stack/', '') for branch in get_stack_branches()]
+          
+          # Check each stack for upstream changes
+          stacks_to_sync = []
+          for stack in stacks_to_check:
+              if check_upstream_changes(stack):
+                  stacks_to_sync.append(stack)
+          
+          # Output results
+          print(f"Stacks to sync: {stacks_to_sync}")
+          print(f"stacks={json.dumps(stacks_to_sync)}" >> $GITHUB_OUTPUT)
+          EOF
+
+  sync-templates:
+    needs: detect-upstream-changes
+    if: needs.detect-upstream-changes.outputs.stacks-to-sync != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stack: ${{ fromJson(needs.detect-upstream-changes.outputs.stacks-to-sync) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml requests
+
+      - name: Sync stack templates
+        run: |
+          python << 'EOF'
+          import os
+          import yaml
+          import subprocess
+          import json
+          from pathlib import Path
+          
+          def sync_stack_templates(stack_name):
+              """Sync templates for a specific stack."""
+              stack_path = f"stacks/{stack_name}"
+              if not os.path.exists(stack_path):
+                  print(f"Stack path not found: {stack_path}")
+                  return False
+              
+              config_file = f"{stack_path}/.stack-config.yml"
+              if not os.path.exists(config_file):
+                  print(f"Config file not found: {config_file}")
+                  return False
+              
+              try:
+                  with open(config_file, 'r') as f:
+                      config = yaml.safe_load(f)
+                  
+                  upstream_sources = config.get('upstream_sources', [])
+                  if not upstream_sources:
+                      print(f"No upstream sources configured for {stack_name}")
+                      return False
+                  
+                  # For each upstream source, try to sync templates
+                  for source in upstream_sources:
+                      if 'github.com' in source:
+                          # Extract template name from URL
+                          template_name = source.split('/')[-1]
+                          if template_name.endswith('.git'):
+                              template_name = template_name[:-4]
+                          
+                          print(f"Syncing {template_name} from {source} to {stack_name}")
+                          
+                          # Use the sync script
+                          cmd = [
+                              'bash', 'scripts/sync_to_branch.sh',
+                              template_name, source, stack_name,
+                              '--create-pr'
+                          ]
+                          
+                          try:
+                              result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                              if result.returncode == 0:
+                                  print(f"Successfully synced {template_name}")
+                              else:
+                                  print(f"Failed to sync {template_name}: {result.stderr}")
+                          except subprocess.TimeoutExpired:
+                              print(f"Timeout syncing {template_name}")
+                          except Exception as e:
+                              print(f"Error syncing {template_name}: {e}")
+                  
+                  return True
+                  
+              except Exception as e:
+                  print(f"Error processing {stack_name}: {e}")
+                  return False
+          
+          # Sync the specified stack
+          stack_name = os.getenv('STACK_NAME', '${{ matrix.stack }}')
+          success = sync_stack_templates(stack_name)
+          
+          if not success:
+              exit(1)
+          EOF
+        env:
+          STACK_NAME: ${{ matrix.stack }}
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## Sync Summary for ${{ matrix.stack }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Stack: ${{ matrix.stack }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY
+
+  notify-completion:
+    needs: [detect-upstream-changes, sync-templates]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify completion
+        run: |
+          echo "## Upstream Sync Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Stacks checked: ${{ needs.detect-upstream-changes.outputs.stacks-to-sync }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Sync jobs: ${{ needs.sync-templates.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY

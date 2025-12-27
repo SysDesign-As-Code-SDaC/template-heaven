@@ -1,0 +1,183 @@
+version: '3.8'
+
+services:
+  mcp-middleware:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - LOG_LEVEL=WARNING
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://mcp:${POSTGRES_PASSWORD}@postgres:5432/mcp_db
+      - ALLOWED_ORIGINS=https://yourdomain.com
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - mcp_data:/app/data
+      - mcp_logs:/app/logs
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=mcp_db
+      - POSTGRES_USER=mcp
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp -d mcp_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  # PostgreSQL metrics exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://mcp:${POSTGRES_PASSWORD}@postgres:5432/mcp_db?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - mcp-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Redis metrics exporter
+  redis-exporter:
+    image: oliver006/redis_exporter
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "9121:9121"
+    networks:
+      - mcp-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Log aggregation
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+
+  # Log shipping
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - mcp_logs:/var/log/mcp:ro
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+
+  # Backup service
+  backup:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=mcp_db
+      - POSTGRES_USER=mcp
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:ro
+      - backup_data:/backup
+    networks:
+      - mcp-network
+    restart: "no"
+    command: >
+      bash -c "
+      pg_dump -U mcp -d mcp_db > /backup/mcp_backup_$(date +%Y%m%d_%H%M%S).sql &&
+      find /backup -name '*.sql' -mtime +7 -delete
+      "
+
+networks:
+  mcp-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  mcp_data:
+    driver: local
+  mcp_logs:
+    driver: local
+  loki_data:
+    driver: local
+  backup_data:
+    driver: local

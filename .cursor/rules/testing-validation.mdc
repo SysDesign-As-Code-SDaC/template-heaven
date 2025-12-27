@@ -1,0 +1,392 @@
+---
+globs: *.py,test_*.py,*_test.py,*.spec.js,*.test.js
+description: Testing and validation requirements for Template Heaven
+---
+
+# Testing & Validation Requirements
+
+## 🧪 Testing Standards
+
+### Comprehensive Testing Strategy
+- **Unit tests** for all Python modules and functions
+- **Integration tests** for external system interactions
+- **Template validation** for all technology stack templates
+- **End-to-end tests** for critical workflows
+- **Performance tests** for trend detection and sync operations
+
+### Test Coverage Requirements
+- **Minimum 80% code coverage** for Python modules
+- **100% coverage** for critical business logic
+- **All public APIs** must have comprehensive tests
+- **Error conditions** and edge cases must be tested
+- **Configuration validation** must be thoroughly tested
+
+## 🐍 Python Testing Framework
+
+### Test Structure
+```python
+#!/usr/bin/env python3
+"""
+Test module for [module_name].
+
+This module contains comprehensive tests for [module_name] functionality,
+including unit tests, integration tests, and error condition tests.
+"""
+
+import pytest
+import asyncio
+from unittest.mock import Mock, patch, AsyncMock
+from typing import Dict, List
+
+from src.module_name import ClassName
+from src.utils.database import Database
+from src.utils.cache import Cache
+
+
+class TestClassName:
+    """Test suite for ClassName functionality."""
+    
+    @pytest.fixture
+    def mock_config(self) -> Dict:
+        """Provide mock configuration for tests."""
+        return {
+            'database_url': 'postgresql://test:test@localhost/test',
+            'redis_url': 'redis://localhost:6379/0',
+            'api_key': 'test-api-key',
+            'timeout': 30
+        }
+    
+    @pytest.fixture
+    def mock_database(self) -> Mock:
+        """Provide mock database instance."""
+        db = Mock(spec=Database)
+        db.connect.return_value = True
+        db.execute.return_value = {'rows': []}
+        return db
+    
+    @pytest.fixture
+    def instance(self, mock_config: Dict, mock_database: Mock) -> ClassName:
+        """Provide ClassName instance for testing."""
+        with patch('src.module_name.Database', return_value=mock_database):
+            return ClassName(mock_config)
+    
+    def test_initialization_success(self, mock_config: Dict, mock_database: Mock):
+        """Test successful initialization of ClassName."""
+        with patch('src.module_name.Database', return_value=mock_database):
+            instance = ClassName(mock_config)
+            
+            assert instance.config == mock_config
+            assert instance.db == mock_database
+            assert instance.logger is not None
+    
+    def test_initialization_missing_config(self, mock_database: Mock):
+        """Test initialization with missing configuration."""
+        invalid_config = {'database_url': 'test'}
+        
+        with patch('src.module_name.Database', return_value=mock_database):
+            with pytest.raises(ValueError, match="Missing required configuration keys"):
+                ClassName(invalid_config)
+    
+    def test_process_data_success(self, instance: ClassName):
+        """Test successful data processing."""
+        test_data = [
+            {'id': 1, 'name': 'test1'},
+            {'id': 2, 'name': 'test2'}
+        ]
+        
+        result = instance.process_data(test_data)
+        
+        assert result[0] == 2  # processed_count
+        assert len(result[1]) == 0  # no errors
+    
+    def test_process_data_empty_list(self, instance: ClassName):
+        """Test data processing with empty list."""
+        with pytest.raises(ValueError, match="Data list cannot be empty"):
+            instance.process_data([])
+    
+    def test_process_data_invalid_format(self, instance: ClassName):
+        """Test data processing with invalid data format."""
+        invalid_data = [{'invalid': 'data'}]
+        
+        result = instance.process_data(invalid_data)
+        
+        assert result[0] == 0  # no items processed
+        assert len(result[1]) > 0  # errors occurred
+    
+    @pytest.mark.asyncio
+    async def test_async_operation_success(self, instance: ClassName):
+        """Test successful async operation."""
+        with patch('src.module_name.external_api_call', new_callable=AsyncMock) as mock_api:
+            mock_api.return_value = {'status': 'success'}
+            
+            result = await instance.async_operation('test-input')
+            
+            assert result['status'] == 'success'
+            mock_api.assert_called_once_with('test-input')
+    
+    @pytest.mark.asyncio
+    async def test_async_operation_timeout(self, instance: ClassName):
+        """Test async operation timeout handling."""
+        with patch('src.module_name.external_api_call', new_callable=AsyncMock) as mock_api:
+            mock_api.side_effect = asyncio.TimeoutError()
+            
+            with pytest.raises(asyncio.TimeoutError):
+                await instance.async_operation('test-input')
+    
+    def test_database_error_handling(self, mock_config: Dict):
+        """Test database error handling."""
+        mock_db = Mock(spec=Database)
+        mock_db.connect.side_effect = ConnectionError("Database connection failed")
+        
+        with patch('src.module_name.Database', return_value=mock_db):
+            with pytest.raises(ConnectionError, match="Database connection failed"):
+                ClassName(mock_config)
+    
+    def test_configuration_validation(self, mock_database: Mock):
+        """Test configuration validation logic."""
+        test_cases = [
+            ({}, ["database_url", "redis_url", "api_key"]),
+            ({"database_url": "test"}, ["redis_url", "api_key"]),
+            ({"database_url": "test", "redis_url": "test"}, ["api_key"]),
+        ]
+        
+        for config, expected_missing in test_cases:
+            with patch('src.module_name.Database', return_value=mock_database):
+                with pytest.raises(ValueError) as exc_info:
+                    ClassName(config)
+                
+                for missing_key in expected_missing:
+                    assert missing_key in str(exc_info.value)
+
+
+class TestIntegration:
+    """Integration tests for external system interactions."""
+    
+    @pytest.fixture
+    def real_config(self) -> Dict:
+        """Provide real configuration for integration tests."""
+        return {
+            'database_url': os.getenv('TEST_DATABASE_URL', 'postgresql://test:test@localhost/test'),
+            'redis_url': os.getenv('TEST_REDIS_URL', 'redis://localhost:6379/0'),
+            'api_key': os.getenv('TEST_API_KEY', 'test-key')
+        }
+    
+    @pytest.mark.integration
+    def test_database_connection(self, real_config: Dict):
+        """Test actual database connection."""
+        instance = ClassName(real_config)
+        
+        # Test database operations
+        result = instance.db.execute("SELECT 1")
+        assert result is not None
+    
+    @pytest.mark.integration
+    def test_redis_connection(self, real_config: Dict):
+        """Test actual Redis connection."""
+        instance = ClassName(real_config)
+        
+        # Test cache operations
+        instance.cache.set('test-key', 'test-value')
+        value = instance.cache.get('test-key')
+        assert value == 'test-value'
+    
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_external_api_integration(self, real_config: Dict):
+        """Test external API integration."""
+        instance = ClassName(real_config)
+        
+        # Test actual API call
+        result = await instance.external_api_call('test-endpoint')
+        assert result is not None
+
+
+class TestTemplateValidation:
+    """Test suite for template validation functionality."""
+    
+    def test_template_structure_validation(self):
+        """Test template directory structure validation."""
+        # Test valid template structure
+        valid_template = {
+            'README.md': 'Template documentation',
+            'package.json': 'Dependencies and scripts',
+            'src/': 'Source code directory',
+            'tests/': 'Test files'
+        }
+        
+        assert self.validate_template_structure(valid_template) == True
+    
+    def test_template_dependencies_validation(self):
+        """Test template dependencies validation."""
+        # Test valid dependencies
+        valid_deps = {
+            'dependencies': {
+                'react': '^18.0.0',
+                'typescript': '^4.9.0'
+            },
+            'devDependencies': {
+                'jest': '^29.0.0',
+                'eslint': '^8.0.0'
+            }
+        }
+        
+        assert self.validate_dependencies(valid_deps) == True
+    
+    def test_template_build_validation(self):
+        """Test template build process validation."""
+        # Test build commands
+        build_commands = [
+            'npm install',
+            'npm run build',
+            'npm test'
+        ]
+        
+        for command in build_commands:
+            result = self.validate_build_command(command)
+            assert result['success'] == True
+```
+
+## 🔧 Test Configuration
+
+### pytest.ini Configuration
+```ini
+[tool:pytest]
+testpaths = tests
+python_files = test_*.py *_test.py
+python_classes = Test*
+python_functions = test_*
+addopts = 
+    --verbose
+    --tb=short
+    --cov=src
+    --cov-report=html
+    --cov-report=term-missing
+    --cov-fail-under=80
+markers =
+    integration: marks tests as integration tests
+    slow: marks tests as slow running
+    external: marks tests that require external services
+```
+
+### Test Dependencies
+```python
+# requirements-test.txt
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+pytest-cov>=4.0.0
+pytest-xdist>=3.0.0
+httpx>=0.24.0
+faker>=18.0.0
+```
+
+## 🚀 Template Validation
+
+### Template Structure Validation
+```python
+def validate_template_structure(template_path: Path) -> Dict:
+    """
+    Validate template directory structure and files.
+    
+    Args:
+        template_path: Path to template directory
+        
+    Returns:
+        Dictionary with validation results
+    """
+    required_files = ['README.md', 'package.json', 'src/']
+    validation_results = {
+        'valid': True,
+        'errors': [],
+        'warnings': []
+    }
+    
+    for required_file in required_files:
+        file_path = template_path / required_file
+        if not file_path.exists():
+            validation_results['valid'] = False
+            validation_results['errors'].append(f"Missing required file: {required_file}")
+    
+    return validation_results
+```
+
+### Template Functionality Testing
+```python
+def test_template_build_process(template_path: Path):
+    """Test that template can be built successfully."""
+    # Change to template directory
+    original_cwd = os.getcwd()
+    os.chdir(template_path)
+    
+    try:
+        # Test installation
+        result = subprocess.run(['npm', 'install'], capture_output=True, text=True)
+        assert result.returncode == 0, f"Installation failed: {result.stderr}"
+        
+        # Test build
+        result = subprocess.run(['npm', 'run', 'build'], capture_output=True, text=True)
+        assert result.returncode == 0, f"Build failed: {result.stderr}"
+        
+        # Test tests
+        result = subprocess.run(['npm', 'test'], capture_output=True, text=True)
+        assert result.returncode == 0, f"Tests failed: {result.stderr}"
+        
+    finally:
+        os.chdir(original_cwd)
+```
+
+## 🔍 Manual Validation Requirements
+
+### Pre-Commit Validation
+- **Test all functionality** manually before committing
+- **Verify error handling** with invalid inputs
+- **Check logging output** for proper information
+- **Validate configuration** with different settings
+- **Test integration** with external systems
+
+### Template Validation Checklist
+- [ ] **Template builds successfully** without errors
+- [ ] **All dependencies install** correctly
+- [ ] **Tests pass** with good coverage
+- [ ] **Documentation is complete** and accurate
+- [ ] **Configuration works** with default settings
+- [ ] **Error handling** works for common failure cases
+- [ ] **Performance is acceptable** for intended use case
+
+### Integration Testing
+- [ ] **Database connections** work correctly
+- [ ] **External API calls** handle errors gracefully
+- [ ] **File operations** work across different platforms
+- [ ] **Configuration loading** works with various formats
+- [ ] **Logging output** is appropriate and helpful
+
+## 📊 Test Reporting
+
+### Coverage Reports
+- **HTML coverage reports** generated in `htmlcov/` directory
+- **Terminal coverage** output with missing line numbers
+- **Coverage thresholds** enforced in automation pipeline (CI/CD examples disabled)
+- **Coverage trends** tracked over time
+
+### Test Results
+- **JUnit XML** output for automation integration (CI/CD examples disabled)
+- **Test duration** tracking for performance monitoring
+- **Failure analysis** with detailed error messages
+- **Test categorization** by type and importance
+
+## 🚨 Testing Anti-Patterns
+
+### Avoid These
+- **Tests that don't actually test anything** (empty test methods)
+- **Tests that depend on external services** without mocking
+- **Tests that are too slow** for regular execution
+- **Tests that are flaky** or non-deterministic
+- **Tests without proper cleanup** of resources
+
+### Best Practices
+- **Mock external dependencies** in unit tests
+- **Use fixtures** for common test setup
+- **Test error conditions** and edge cases
+- **Keep tests fast** and independent
+- **Use descriptive test names** that explain the scenario
+- **Clean up resources** in teardown methods

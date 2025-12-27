@@ -1,0 +1,90 @@
+# Development and Testing Dependencies
+# Following the gold standard for comprehensive development tooling
+
+# Testing Framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.12.0
+pytest-cov>=4.1.0
+pytest-benchmark>=4.0.0
+pytest-xdist>=3.5.0
+pytest-html>=4.1.0
+pytest-json-report>=1.5.0
+hypothesis>=6.75.0
+
+# Code Quality and Formatting
+black>=23.11.0
+isort>=5.12.0
+flake8>=6.1.0
+mypy>=1.7.0
+pre-commit>=3.6.0
+
+# Security Scanning
+bandit>=1.7.5
+safety>=2.3.0
+pip-audit>=2.6.0
+
+# Documentation
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0
+sphinx-autodoc-typehints>=1.24.0
+myst-parser>=2.0.0
+
+# Testing Utilities
+factory-boy>=3.3.0
+faker>=20.1.0
+freezegun>=1.2.0
+responses>=0.24.0
+
+# HTTP Testing
+httpx>=0.25.0
+
+# Development Tools
+watchdog>=3.0.0
+tox>=4.0.0
+
+# Type Stubs
+types-passlib>=1.7.0
+types-redis>=4.6.0
+types-python-dateutil>=2.8.0
+
+# Build Tools
+build>=1.0.0
+twine>=4.0.0
+wheel>=0.41.0
+
+# Git and Version Control
+gitpython>=3.1.40
+
+# Additional Development Utilities
+rich>=13.0.0
+click>=8.0.0
+tqdm>=4.64.0
+colorama>=0.4.6
+
+# MCP-specific development tools
+websockets>=11.0.0
+aiohttp>=3.9.0
+requests>=2.31.0
+
+# Performance monitoring
+memory-profiler>=0.61.0
+line-profiler>=4.1.0
+coverage>=7.3.0
+
+# API documentation
+fastapi[all]>=0.104.0
+
+# Database development
+alembic>=1.12.0
+psycopg2-binary>=2.9.0
+
+# Redis development
+redis>=5.0.0
+
+# Monitoring and observability
+prometheus-client>=0.19.0
+structlog>=23.2.0
+
+# Container development
+docker>=6.1.0

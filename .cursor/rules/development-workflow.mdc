@@ -1,0 +1,674 @@
+---
+globs: *.md,*.yml,*.yaml,scripts/**,docs/**,CONTRIBUTING.md
+description: Development workflow standards for Template Heaven contribution and maintenance
+---
+
+# Development Workflow Standards
+
+## 🌱 Contribution Process
+
+### Contributor Journey
+1. **Project Understanding** - Read project documentation and understand architecture
+2. **Environment Setup** - Configure development environment with required tools
+3. **Template Discovery** - Identify trending templates for potential inclusion
+4. **Template Evaluation** - Assess template quality and compatibility
+5. **Template Integration** - Add template using sync scripts and validation
+6. **Testing & Validation** - Ensure template works correctly and passes all checks
+7. **Documentation** - Update relevant documentation and README files
+8. **Pull Request** - Submit changes for review and approval
+
+### Getting Started as a Contributor
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-org/template-heaven.git
+cd template-heaven
+
+# 2. Set up development environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements-dev.txt
+
+# 3. Understand the project structure
+cat README.md
+cat STACK_CATALOG.md
+cat docs/BRANCH_STRATEGY.md
+
+# 4. Explore existing templates
+git checkout stack/frontend
+ls stacks/frontend/
+cat stacks/frontend/react-vite/README.md
+
+# 5. Set up your IDE with Cursor Rules
+# Cursor Rules are automatically applied based on file types
+```
+
+## 🔍 Template Discovery Process
+
+### Trend Detection Workflow
+1. **Monitor GitHub trends** using automated tools
+2. **Evaluate template popularity** based on stars, forks, and activity
+3. **Assess template quality** through code review and testing
+4. **Check license compatibility** with project requirements
+5. **Verify maintenance status** and community support
+
+### Template Evaluation Criteria
+- **GitHub Stars**: Minimum threshold for consideration (typically 100+)
+- **Recent Activity**: Active development within last 6 months
+- **Maintenance Status**: Not archived or abandoned
+- **License Compatibility**: Compatible with project license requirements
+- **Security Audit**: No known security vulnerabilities
+- **Documentation Quality**: Comprehensive README and setup instructions
+- **Community Engagement**: Active issue resolution and contributions
+
+### Discovery Tools Integration
+```python
+# tools/trending-flagger/trend-detector/github_monitor.py
+import asyncio
+from typing import List, Dict, Optional
+from datetime import datetime, timedelta
+import logging
+
+class GitHubTrendMonitor:
+    """Monitor GitHub for trending templates."""
+
+    def __init__(self, github_token: str):
+        self.github_token = github_token
+        self.base_url = "https://api.github.com"
+        self.session = None
+
+    async def monitor_trending_templates(self) -> List[Dict]:
+        """
+        Monitor trending repositories for potential templates.
+
+        Returns:
+            List of trending template candidates
+        """
+        # Search for repositories matching template criteria
+        query = "template stars:>100 language:javascript archived:false"
+        repositories = await self._search_repositories(query)
+
+        # Filter and score candidates
+        candidates = []
+        for repo in repositories:
+            score = self._calculate_template_score(repo)
+            if score >= self.min_candidate_score:
+                candidates.append({
+                    "repository": repo,
+                    "score": score,
+                    "evaluation_date": datetime.utcnow()
+                })
+
+        return sorted(candidates, key=lambda x: x["score"], reverse=True)
+
+    def _calculate_template_score(self, repo: Dict) -> float:
+        """Calculate template suitability score."""
+        score = 0.0
+
+        # Star count scoring (0-40 points)
+        stars = repo.get("stargazers_count", 0)
+        score += min(stars / 10, 40)  # Max 40 points for 400+ stars
+
+        # Recent activity scoring (0-30 points)
+        updated_at = repo.get("updated_at")
+        if updated_at:
+            days_since_update = (datetime.utcnow() - datetime.fromisoformat(updated_at.replace('Z', '+00:00'))).days
+            if days_since_update < 30:
+                score += 30
+            elif days_since_update < 90:
+                score += 20
+            elif days_since_update < 180:
+                score += 10
+
+        # Fork count scoring (0-15 points)
+        forks = repo.get("forks_count", 0)
+        score += min(forks / 2, 15)  # Max 15 points for 30+ forks
+
+        # Issue resolution scoring (0-15 points)
+        open_issues = repo.get("open_issues_count", 0)
+        total_issues = open_issues + (repo.get("closed_issues_count", 0) or 0)
+        if total_issues > 0:
+            resolution_rate = 1 - (open_issues / total_issues)
+            score += resolution_rate * 15
+
+        return score
+```
+
+## 🛠️ Development Environment
+
+### Required Tools
+- **Python 3.11+** with virtual environment
+- **Git** with proper configuration
+- **Docker** for containerized development
+- **PostgreSQL** for local database development
+- **Redis** for caching and session management
+- **Node.js/npm** for frontend template development
+
+### Environment Setup Script
+```bash
+#!/bin/bash
+# scripts/setup_dev_env.sh
+
+echo "Setting up Template Heaven development environment..."
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install Python dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Set up pre-commit hooks
+pre-commit install
+
+# Create development database
+createdb templateheaven_dev
+
+# Set up environment variables
+cp env.example .env
+echo "Please edit .env file with your development settings"
+
+# Run initial migrations
+python -m alembic upgrade head
+
+# Start development services
+docker-compose -f docker-compose.dev.yml up -d
+
+echo "Development environment setup complete!"
+echo "Run 'python scripts/start_dev.py' to start the development server"
+```
+
+## 🔄 Branch Management Workflow
+
+### Branch Strategy
+- **`dev`**: Main development branch with core infrastructure
+- **`stack/*`**: Dedicated branches for each technology stack
+- **`feature/*`**: Feature branches for new development
+- **`hotfix/*`**: Emergency fixes requiring immediate attention
+
+### Branch Operations
+```bash
+# Create new stack branch
+git checkout dev
+git checkout -b stack/new-stack-category
+
+# Create feature branch from stack
+git checkout stack/frontend
+git checkout -b feature/add-vue-templates
+
+# Sync core tools to stack branch
+python scripts/branch_manager.py sync stack/frontend
+
+# Create hotfix branch
+git checkout dev
+git checkout -b hotfix/fix-security-issue
+```
+
+## 📝 Code Contribution Standards
+
+### Commit Message Format
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+### Commit Types
+- **feat**: New feature or template addition
+- **fix**: Bug fix or template correction
+- **chore**: Maintenance, updates, or configuration changes
+- **docs**: Documentation updates only
+- **refactor**: Code refactoring without functional changes
+- **test**: Adding or updating tests
+- **ci**: automation pipeline changes (CI/CD examples disabled)
+- **perf**: Performance improvements
+- **security**: Security-related changes
+
+### Commit Message Examples
+```
+feat(frontend): add Next.js 14 template with App Router
+
+fix(backend): resolve FastAPI dependency conflict in Python templates
+
+chore(automation): update automation workflow for Python 3.12
+
+docs(readme): add installation instructions for new ML templates
+
+refactor(scripts): improve branch manager error handling
+
+test(validation): add comprehensive template validation tests
+
+ci(workflows): update trend detection workflow schedule
+
+perf(api): optimize database queries in template endpoints
+
+security(templates): remove hardcoded secrets from example configs
+```
+
+## 🧪 Testing Requirements
+
+### Test Categories
+- **Unit Tests**: Individual function and method testing
+- **Integration Tests**: Component interaction testing
+- **End-to-End Tests**: Complete workflow testing
+- **Performance Tests**: Load and stress testing
+- **Security Tests**: Vulnerability and penetration testing
+
+### Testing Best Practices
+```python
+# tests/test_template_integration.py
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+class TestTemplateIntegration:
+    """Integration tests for template functionality."""
+
+    def test_template_creation_workflow(self, client: TestClient, db: Session):
+        """Test complete template creation workflow."""
+        # Arrange
+        template_data = {
+            "name": "test-template",
+            "description": "Test template for integration testing",
+            "stack_category": "frontend",
+            "template_path": "/test/path"
+        }
+
+        # Act
+        response = client.post("/api/templates/", json=template_data)
+
+        # Assert
+        assert response.status_code == 201
+        data = response.json()
+        assert data["name"] == "test-template"
+        assert data["stack_category"] == "frontend"
+
+        # Verify in database
+        template_id = data["id"]
+        db_template = db.query(Template).filter(Template.id == template_id).first()
+        assert db_template is not None
+        assert db_template.name == "test-template"
+
+    def test_template_search_functionality(self, client: TestClient):
+        """Test template search across multiple criteria."""
+        # Test search by name
+        response = client.get("/api/templates/?search=react")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["items"]) > 0
+
+        # Test search by stack category
+        response = client.get("/api/templates/?stack=frontend")
+        assert response.status_code == 200
+        data = response.json()
+        assert all(item["stack_category"] == "frontend" for item in data["items"])
+
+    def test_template_error_handling(self, client: TestClient):
+        """Test error handling for invalid requests."""
+        # Test 404 for non-existent template
+        response = client.get("/api/templates/99999")
+        assert response.status_code == 404
+
+        # Test validation error for invalid data
+        invalid_data = {"name": ""}  # Empty name should fail validation
+        response = client.post("/api/templates/", json=invalid_data)
+        assert response.status_code == 422
+```
+
+## 🔀 Pull Request Process
+
+### PR Creation Guidelines
+1. **Descriptive Title**: Clear, concise description of changes
+2. **Comprehensive Description**: What, why, and how of the changes
+3. **Related Issues**: Link to any related issues or discussions
+4. **Testing Evidence**: Results of manual and automated testing
+5. **Screenshots/Demos**: Visual evidence for UI changes
+6. **Breaking Changes**: Clearly document any breaking changes
+
+### PR Template
+```markdown
+## Description
+[Brief description of what this PR accomplishes]
+
+## Changes Made
+- [Specific change 1]
+- [Specific change 2]
+- [Specific change 3]
+
+## Testing Performed
+- [ ] Unit tests added/updated
+- [ ] Integration tests pass
+- [ ] Manual testing completed
+- [ ] Template validation passes
+- [ ] Security scan passes
+
+## Related Issues
+- Closes #[issue_number]
+- Related to #[related_issue_number]
+
+## Screenshots
+[If applicable, add screenshots or demos]
+
+## Breaking Changes
+[Document any breaking changes and migration guide]
+
+## Additional Notes
+[Any additional context or considerations]
+```
+
+## 👀 Code Review Process
+
+### Review Responsibilities
+- **Maintainers**: Overall code quality and project alignment
+- **Security Team**: Security implications and best practices
+- **DevOps Team**: Infrastructure and deployment considerations
+- **Domain Experts**: Template-specific functionality and accuracy
+
+### Review Checklist
+- [ ] **Code Quality**: Follows project coding standards
+- [ ] **Documentation**: Comprehensive docstrings and comments
+- [ ] **Testing**: Adequate test coverage for new functionality
+- [ ] **Security**: No security vulnerabilities introduced
+- [ ] **Performance**: No performance regressions
+- [ ] **Dependencies**: Compatible and up-to-date dependencies
+- [ ] **Validation**: Passes all automated validation checks
+
+## 🚀 Release Management
+
+### Release Process
+1. **Version Planning**: Determine scope and timeline for release
+2. **Branch Preparation**: Ensure all features are merged and tested
+3. **Release Branch**: Create release branch from dev
+4. **Final Testing**: Comprehensive testing of release candidate
+5. **Documentation Update**: Update changelogs and release notes
+6. **Tagging**: Create Git tag for release version
+7. **Deployment**: Deploy to production environment
+8. **Monitoring**: Monitor for issues post-deployment
+
+### Versioning Strategy
+- **Semantic Versioning**: MAJOR.MINOR.PATCH format
+- **Major**: Breaking changes or significant new features
+- **Minor**: New features that are backward compatible
+- **Patch**: Bug fixes and security updates
+
+## 📚 Documentation Updates
+
+### Documentation Maintenance
+- **README Updates**: Keep project overview current
+- **Stack Catalogs**: Update when new templates are added
+- **API Documentation**: Maintain current API reference
+- **Contributing Guide**: Update processes and guidelines
+- **Changelog**: Document all changes and releases
+
+### Documentation Standards
+- **Clear Structure**: Logical organization and navigation
+- **Current Information**: Up-to-date with latest changes
+- **Comprehensive Coverage**: All features and functionality documented
+- **Practical Examples**: Real-world usage examples
+- **Troubleshooting**: Common issues and solutions
+
+## 🔧 Maintenance Tasks
+
+### Daily Maintenance
+- **Monitor system health** and performance metrics
+- **Review security logs** for suspicious activity
+- **Check dependency alerts** for security updates
+- **Validate backup integrity** and test restoration
+
+### Weekly Maintenance
+- **Review template usage statistics** and trends
+- **Update dependencies** for security patches
+- **Run comprehensive tests** across all components
+- **Clean up old branches** and merge requests
+
+### Monthly Maintenance
+- **Security assessments** and vulnerability scanning
+- **Performance optimization** reviews and improvements
+- **Capacity planning** based on usage trends
+- **Team training** on new tools and processes
+
+## 🚨 Issue Management
+
+### Issue Categories
+- **Bug Reports**: Functional problems or errors
+- **Feature Requests**: New functionality suggestions
+- **Template Requests**: Requests for specific templates
+- **Documentation Issues**: Outdated or incorrect documentation
+- **Security Concerns**: Security vulnerabilities or concerns
+
+### Issue Response Process
+1. **Triage**: Categorize and prioritize incoming issues
+2. **Assignment**: Assign to appropriate team member
+3. **Investigation**: Gather information and reproduce issue
+4. **Resolution**: Implement fix or provide workaround
+5. **Verification**: Test fix and ensure no regressions
+6. **Closure**: Update issue status and provide summary
+
+## 📊 Metrics and Monitoring
+
+### Key Performance Indicators
+- **Template Usage**: Most popular templates and stacks
+- **System Performance**: Response times and error rates
+- **Code Quality**: Test coverage and validation scores
+- **Security Posture**: Vulnerability count and resolution time
+- **Community Engagement**: Contributors and issue resolution
+
+### Monitoring Integration
+```python
+# templateheaven/services/monitoring_service.py
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List
+from sqlalchemy.orm import Session
+
+class MonitoringService:
+    """System monitoring and metrics collection."""
+
+    def __init__(self, db: Session):
+        self.db = db
+        self.logger = logging.getLogger(__name__)
+
+    def collect_system_metrics(self) -> Dict:
+        """Collect comprehensive system metrics."""
+        return {
+            "timestamp": datetime.utcnow(),
+            "template_count": self._count_templates(),
+            "stack_count": self._count_stacks(),
+            "user_count": self._count_users(),
+            "api_requests": self._count_api_requests(),
+            "system_health": self._check_system_health(),
+            "performance_metrics": self._collect_performance_metrics()
+        }
+
+    def _count_templates(self) -> int:
+        """Count total number of templates."""
+        return self.db.query(Template).filter(Template.is_active == True).count()
+
+    def _check_system_health(self) -> Dict:
+        """Check overall system health."""
+        health_checks = {
+            "database": self._check_database_health(),
+            "redis": self._check_redis_health(),
+            "external_apis": self._check_external_api_health(),
+            "disk_space": self._check_disk_space()
+        }
+
+        overall_status = "healthy"
+        if any(check["status"] != "healthy" for check in health_checks.values()):
+            overall_status = "degraded"
+        if any(check["status"] == "critical" for check in health_checks.values()):
+            overall_status = "critical"
+
+        return {
+            "status": overall_status,
+            "checks": health_checks,
+            "last_updated": datetime.utcnow()
+        }
+```
+
+## 🛡️ Quality Assurance
+
+### Code Quality Gates
+- **Linting**: Code style and formatting compliance
+- **Type Checking**: Static type analysis
+- **Security Scanning**: Vulnerability detection
+- **Test Coverage**: Minimum coverage requirements
+- **Performance Testing**: Load and stress testing
+
+### Quality Assurance Tools
+- **Pre-commit hooks** for immediate feedback
+- **Automation** for automated validation (GitHub Actions examples disabled)
+- **Code quality dashboards** for monitoring trends
+- **Automated code review** tools for consistency
+
+## 🤝 Community Engagement
+
+### Contributor Recognition
+- **Hall of Fame**: Recognize top contributors
+- **Monthly Highlights**: Feature outstanding contributions
+- **Mentorship Program**: Help new contributors get started
+- **Community Events**: Hackathons and coding sessions
+
+### Communication Channels
+- **GitHub Issues**: For bug reports and feature requests
+- **GitHub Discussions**: For community conversations
+- **Discord/Slack**: For real-time communication
+- **Newsletter**: For project updates and highlights
+
+## 📈 Continuous Improvement
+
+### Feedback Loops
+- **Retrospective Meetings**: Regular process improvement discussions
+- **User Feedback**: Collect and act on user experience input
+- **Performance Reviews**: Analyze system and process performance
+- **Innovation Time**: Dedicated time for exploring new ideas
+
+### Process Evolution
+- **Regular Reviews**: Periodic assessment of development processes
+- **Tool Evaluation**: Assessment of development tools and platforms
+- **Methodology Updates**: Adoption of industry best practices
+- **Automation Opportunities**: Identification of repetitive task automation
+
+## 🔗 External Integrations
+
+### Third-Party Services
+- **GitHub API**: For repository and user management
+- **Security Scanning**: Automated vulnerability detection
+- **Performance Monitoring**: Application performance tracking
+- **Communication Tools**: Team collaboration platforms
+
+### Integration Standards
+- **API Reliability**: Robust error handling for external services
+- **Security Compliance**: Secure handling of external credentials
+- **Monitoring Coverage**: Comprehensive monitoring of integrations
+- **Fallback Strategies**: Graceful degradation when services unavailable
+
+## 📋 Development Checklist
+
+### Pre-Development Checklist
+- [ ] **Understand requirements** and project context
+- [ ] **Set up development environment** correctly
+- [ ] **Review existing code** and patterns
+- [ ] **Plan implementation approach** and testing strategy
+- [ ] **Identify potential risks** and mitigation strategies
+
+### Pre-Commit Checklist
+- [ ] **Code compiles** without errors
+- [ ] **Tests pass** locally
+- [ ] **Linting passes** with project standards
+- [ ] **Documentation updated** for new features
+- [ ] **No hardcoded secrets** or credentials
+- [ ] **Performance impact** assessed for changes
+
+### Pre-PR Checklist
+- [ ] **Feature complete** and working as expected
+- [ ] **Comprehensive tests** added for new functionality
+- [ ] **Documentation updated** and accurate
+- [ ] **Security review** completed for sensitive changes
+- [ ] **Performance testing** completed for impactful changes
+- [ ] **Breaking changes** clearly documented
+
+### Pre-Release Checklist
+- [ ] **All tests pass** in automation pipeline (CI/CD examples disabled)
+- [ ] **Security scans** pass without critical issues
+- [ ] **Performance benchmarks** meet requirements
+- [ ] **Documentation** is complete and current
+- [ ] **Migration guides** prepared for breaking changes
+- [ ] **Rollback plan** prepared for deployment issues
+
+## 🎯 Success Metrics
+
+### Project Success Indicators
+- **Template Adoption**: Number of active templates and usage
+- **Community Growth**: Number of contributors and engagement
+- **Code Quality**: Test coverage and validation scores
+- **System Reliability**: Uptime and error rates
+- **Security Posture**: Vulnerability resolution time
+- **User Satisfaction**: Feedback scores and issue resolution
+
+### Continuous Monitoring
+- **Real-time dashboards** for key metrics
+- **Automated alerting** for threshold breaches
+- **Trend analysis** for performance insights
+- **Regular reporting** for stakeholder communication
+
+## 🚨 Emergency Procedures
+
+### Incident Response
+1. **Incident Detection**: Identify and classify the issue
+2. **Immediate Response**: Implement immediate containment measures
+3. **Investigation**: Gather information and determine root cause
+4. **Resolution**: Implement fix and verify resolution
+5. **Communication**: Notify stakeholders and provide updates
+6. **Post-Mortem**: Document lessons learned and improvements
+
+### Emergency Contacts
+- **Technical Lead**: Primary contact for technical issues
+- **Security Team**: Contact for security incidents
+- **DevOps Team**: Contact for infrastructure issues
+- **Product Manager**: Contact for business impact assessment
+
+## 📚 Knowledge Management
+
+### Documentation Strategy
+- **Living Documents**: Regularly updated and current information
+- **Searchable Knowledge Base**: Easy information discovery
+- **Decision Records**: Document important architectural decisions
+- **Onboarding Materials**: Comprehensive new contributor resources
+
+### Learning Resources
+- **Code Comments**: Inline documentation and explanations
+- **Architecture Decision Records**: Rationale for design choices
+- **Best Practices Guide**: Curated collection of development practices
+- **Troubleshooting Guide**: Common issues and solutions
+
+## 🔮 Future Considerations
+
+### Scalability Planning
+- **Performance optimization** for increased load
+- **Architecture evolution** for new requirements
+- **Team growth** and organizational structure
+- **Technology updates** and modernization efforts
+
+### Innovation Opportunities
+- **AI/ML integration** for template recommendations
+- **Advanced automation** for development workflows
+- **Enhanced security** with new technologies
+- **Improved user experience** for template discovery and usage
+
+## 🎉 Conclusion
+
+### Development Philosophy
+- **Quality First**: Prioritize code quality and user experience
+- **Security Always**: Maintain security as a core principle
+- **Continuous Learning**: Embrace new technologies and practices
+- **Community Focus**: Foster an inclusive and collaborative environment
+
+### Final Guidelines
+- **Follow established patterns** and project conventions
+- **Prioritize user needs** in all development decisions
+- **Maintain high standards** for code quality and documentation
+- **Contribute positively** to the project and community
+- **Learn continuously** and share knowledge with others

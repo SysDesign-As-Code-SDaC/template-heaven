@@ -1,0 +1,422 @@
+# Stack-Specific Configuration
+# Defines quality standards, requirements, and validation rules for each technology stack
+
+stacks:
+  # Frontend Frameworks
+  frontend:
+    name: "Frontend Frameworks"
+    description: "Web frontend frameworks and UI libraries"
+    category: "core"
+
+    # Quality Standards
+    quality_standards:
+      - "TypeScript support required"
+      - "Testing setup (unit + integration)"
+      - "Accessibility compliance (WCAG)"
+      - "Responsive design (mobile-first)"
+      - "Performance optimization"
+      - "SEO-friendly structure"
+      - "Build optimization (fast builds)"
+
+    # Template Requirements
+    requirements:
+      min_stars: 300
+      min_forks: 30
+      min_growth_rate: 0.08  # 8% weekly growth
+      documentation_score: 8.0  # out of 10
+      performance_score: 7.0    # out of 10
+      security_score: 7.0       # out of 10
+
+    # Technology Stack
+    technologies:
+      - "react"
+      - "vue"
+      - "angular"
+      - "svelte"
+      - "typescript"
+      - "javascript"
+      - "css"
+      - "html"
+      - "tailwind"
+      - "webpack"
+      - "vite"
+      - "nextjs"
+
+    # Validation Rules
+    validation_rules:
+      required_files:
+        - "package.json"
+        - "README.md"
+        - "src/"
+        - ".gitignore"
+      required_scripts:
+        - "build"
+        - "test"
+        - "lint"
+      forbidden_patterns:
+        - "console.log"
+        - "debugger"
+        - "TODO"
+        - "FIXME"
+
+  # Backend Services
+  backend:
+    name: "Backend Services"
+    description: "Server-side applications and APIs"
+    category: "core"
+
+    quality_standards:
+      - "API documentation (OpenAPI/Swagger)"
+      - "Database integration"
+      - "Security middleware"
+      - "Error handling and logging"
+      - "Input validation and sanitization"
+      - "Testing (unit + integration + e2e)"
+      - "Containerization support"
+
+    requirements:
+      min_stars: 200
+      min_forks: 25
+      min_growth_rate: 0.06
+      documentation_score: 7.5
+      performance_score: 7.5
+      security_score: 8.5
+
+    technologies:
+      - "python"
+      - "fastapi"
+      - "django"
+      - "flask"
+      - "nodejs"
+      - "express"
+      - "nest"
+      - "spring-boot"
+      - "go"
+      - "rust"
+      - "postgresql"
+      - "mysql"
+      - "mongodb"
+      - "redis"
+
+    validation_rules:
+      required_files:
+        - "requirements.txt"
+        - "README.md"
+        - "src/"
+        - "tests/"
+        - "Dockerfile"
+      required_scripts:
+        - "test"
+        - "lint"
+        - "format"
+      forbidden_patterns:
+        - "print("
+        - "console.log"
+        - "TODO"
+        - "FIXME"
+        - "NotImplemented"
+
+  # AI/ML Frameworks
+  ai-ml:
+    name: "AI/ML Frameworks"
+    description: "Machine learning and artificial intelligence frameworks"
+    category: "ai-ml"
+
+    quality_standards:
+      - "Experiment tracking integration"
+      - "Model versioning and reproducibility"
+      - "Performance monitoring and metrics"
+      - "Data validation and preprocessing"
+      - "Model explainability features"
+      - "Scalable training pipelines"
+      - "Model deployment capabilities"
+
+    requirements:
+      min_stars: 500
+      min_forks: 50
+      min_growth_rate: 0.10  # Higher growth for emerging AI tech
+      documentation_score: 8.5
+      performance_score: 8.0
+      security_score: 8.0
+
+    technologies:
+      - "python"
+      - "pytorch"
+      - "tensorflow"
+      - "scikit-learn"
+      - "pandas"
+      - "numpy"
+      - "jupyter"
+      - "mlflow"
+      - "dvc"
+      - "wandb"
+      - "huggingface"
+
+    validation_rules:
+      required_files:
+        - "requirements.txt"
+        - "README.md"
+        - "src/"
+        - "notebooks/"
+        - "models/"
+        - "data/"
+        - "tests/"
+      required_scripts:
+        - "train"
+        - "test"
+        - "evaluate"
+        - "predict"
+      forbidden_patterns:
+        - "random.seed"
+        - "np.random.seed"
+        - "torch.manual_seed"
+        - "TODO"
+        - "FIXME"
+
+  # DevOps & Infrastructure
+  devops:
+    name: "DevOps & Infrastructure"
+    description: "Infrastructure automation and deployment tools"
+    category: "infrastructure"
+
+    quality_standards:
+      - "Multi-environment support"
+      - "Security scanning integration"
+      - "Infrastructure as Code"
+      - "Automated testing pipelines"
+      - "Monitoring and alerting"
+      - "Rollback capabilities"
+      - "Documentation and runbooks"
+
+    requirements:
+      min_stars: 150
+      min_forks: 20
+      min_growth_rate: 0.05
+      documentation_score: 8.0
+      performance_score: 7.0
+      security_score: 9.0  # Critical for infra
+
+    technologies:
+      - "docker"
+      - "kubernetes"
+      - "terraform"
+      - "ansible"
+      - "jenkins"
+      - "github-actions"
+      - "gitlab-ci"
+      - "aws"
+      - "gcp"
+      - "azure"
+      - "prometheus"
+      - "grafana"
+
+    validation_rules:
+      required_files:
+        - "README.md"
+        - "Dockerfile"
+        - "docker-compose.yml"
+        - ".github/workflows/"
+        - "terraform/"
+        - "ansible/"
+      required_scripts:
+        - "build"
+        - "test"
+        - "deploy"
+        - "lint"
+      forbidden_patterns:
+        - "hardcoded-password"
+        - "hardcoded-secret"
+        - "TODO"
+        - "FIXME"
+
+  # Web3 & Blockchain
+  web3:
+    name: "Web3 & Blockchain"
+    description: "Blockchain, smart contracts, and decentralized applications"
+    category: "specialized"
+
+    quality_standards:
+      - "Smart contract security audits"
+      - "Gas optimization"
+      - "Decentralized storage integration"
+      - "Multi-chain support"
+      - "Wallet integration"
+      - "Testnet and mainnet configurations"
+
+    requirements:
+      min_stars: 100
+      min_forks: 15
+      min_growth_rate: 0.12  # High growth for emerging web3 tech
+      documentation_score: 7.5
+      performance_score: 7.5
+      security_score: 9.5  # Critical for financial/blockchain
+
+    technologies:
+      - "solidity"
+      - "web3"
+      - "ethers"
+      - "hardhat"
+      - "truffle"
+      - "foundry"
+      - "ipfs"
+      - "polygon"
+      - "ethereum"
+      - "solana"
+      - "defi"
+      - "nft"
+
+    validation_rules:
+      required_files:
+        - "contracts/"
+        - "test/"
+        - "scripts/"
+        - "README.md"
+        - "hardhat.config.js"
+        - "package.json"
+      required_scripts:
+        - "test"
+        - "compile"
+        - "deploy"
+        - "verify"
+      forbidden_patterns:
+        - "console.log"
+        - "debugger"
+        - "TODO"
+        - "FIXME"
+        - "unsafe"
+
+  # Mobile Development
+  mobile:
+    name: "Mobile Development"
+    description: "Mobile applications for iOS and Android"
+    category: "core"
+
+    quality_standards:
+      - "Cross-platform compatibility"
+      - "Native performance optimization"
+      - "Offline functionality"
+      - "App store compliance"
+      - "Push notification support"
+      - "Biometric authentication"
+      - "App security best practices"
+
+    requirements:
+      min_stars: 250
+      min_forks: 35
+      min_growth_rate: 0.07
+      documentation_score: 8.0
+      performance_score: 8.0
+      security_score: 8.5
+
+    technologies:
+      - "react-native"
+      - "flutter"
+      - "expo"
+      - "swift"
+      - "kotlin"
+      - "dart"
+      - "xamarin"
+      - "ionic"
+      - "capacitor"
+
+    validation_rules:
+      required_files:
+        - "package.json"
+        - "ios/"
+        - "android/"
+        - "src/"
+        - "README.md"
+      required_scripts:
+        - "build"
+        - "test"
+        - "lint"
+        - "start"
+      forbidden_patterns:
+        - "console.log"
+        - "debugger"
+        - "TODO"
+        - "FIXME"
+
+  # Fullstack Applications
+  fullstack:
+    name: "Fullstack Applications"
+    description: "End-to-end web applications with frontend and backend"
+    category: "core"
+
+    quality_standards:
+      - "Complete application architecture"
+      - "API design and documentation"
+      - "Database design and optimization"
+      - "Authentication and authorization"
+      - "Real-time features (WebSocket)"
+      - "File upload and management"
+      - "Admin interface"
+      - "Deployment configuration"
+
+    requirements:
+      min_stars: 400
+      min_forks: 40
+      min_growth_rate: 0.09
+      documentation_score: 8.5
+      performance_score: 7.5
+      security_score: 8.5
+
+    technologies:
+      - "nextjs"
+      - "nuxt"
+      - "remix"
+      - "sveltekit"
+      - "django"
+      - "rails"
+      - "laravel"
+      - "express"
+      - "fastapi"
+      - "postgresql"
+      - "mongodb"
+      - "redis"
+
+    validation_rules:
+      required_files:
+        - "frontend/"
+        - "backend/"
+        - "database/"
+        - "docker-compose.yml"
+        - "README.md"
+        - "docs/"
+      required_scripts:
+        - "dev"
+        - "build"
+        - "test"
+        - "db:migrate"
+      forbidden_patterns:
+        - "console.log"
+        - "print("
+        - "debugger"
+        - "TODO"
+        - "FIXME"
+
+# Default configuration for stacks not explicitly defined
+defaults:
+  quality_standards:
+    - "Comprehensive documentation"
+    - "Testing framework"
+    - "Code quality tools"
+    - "Security considerations"
+
+  requirements:
+    min_stars: 100
+    min_forks: 10
+    min_growth_rate: 0.05
+    documentation_score: 7.0
+    performance_score: 7.0
+    security_score: 7.0
+
+  validation_rules:
+    required_files:
+      - "README.md"
+      - "LICENSE"
+    required_scripts: []
+    forbidden_patterns:
+      - "TODO"
+      - "FIXME"
+      - "XXX"

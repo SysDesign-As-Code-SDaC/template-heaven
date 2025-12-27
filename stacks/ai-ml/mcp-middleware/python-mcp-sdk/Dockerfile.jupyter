@@ -1,0 +1,42 @@
+# Python MCP SDK Jupyter Development Environment
+# Interactive development and experimentation
+
+FROM jupyter/scipy-notebook:latest
+
+# Set environment variables
+ENV JUPYTER_ENABLE_LAB=yes
+
+# Switch to root to install system packages
+USER root
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to jovyan user
+USER jovyan
+
+# Install Python MCP SDK
+RUN pip install --upgrade pip && \
+    pip install mcp
+
+# Install additional development packages
+RUN pip install \
+    pytest \
+    pytest-asyncio \
+    black \
+    flake8 \
+    mypy \
+    jupyterlab-git
+
+# Set working directory
+WORKDIR /home/jovyan/work
+
+# Expose Jupyter port
+EXPOSE 8888
+
+# Start Jupyter Lab
+CMD ["start-notebook.sh", "--NotebookApp.token=''", "--NotebookApp.password=''", "--NotebookApp.allow_origin='*'", "--NotebookApp.disable_check_xsrf=True"]

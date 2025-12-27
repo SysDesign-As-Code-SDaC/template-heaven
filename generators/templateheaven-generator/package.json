@@ -1,0 +1,22 @@
+{
+  "name": "generator-templateheaven",
+  "version": "0.1.0",
+  "description": "Yeoman generator for Template Heaven - browse and scaffold bundled templates",
+  "keywords": ["yeoman-generator", "templates", "scaffold", "templateheaven"],
+  "main": "generators/app/index.js",
+  "scripts": {
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "yeoman-generator": "^5.0.0",
+    "inquirer": "^9.0.0",
+    "js-yaml": "^4.1.0",
+    "fs-extra": "^11.0.1",
+    "path": "^0.12.7",
+    "yo": "^5.0.0"
+  },
+  "engines": {
+    "node": ">= 16.15"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,276 @@
+# This workflow is intentionally disabled and has been removed.
+# Name: Template Synchronization (disabled for maintainers request)
+# The following details were removed to prevent execution:
+  schedule:
+    # Run weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      stack_filter:
+        description: 'Specific stack to sync (leave empty for all)'
+        required: false
+        default: ''
+        type: string
+      force_sync:
+        description: 'Force sync even if recently updated'
+        required: false
+        default: 'false'
+        type: boolean
+      dry_run:
+        description: 'Dry run mode (no actual changes)'
+        required: false
+        default: 'false'
+        type: boolean
+# Workflow intentionally disabled to honor maintainer preference: CI/CD pipelines removed
+name: Disabled - Repository workflows removed
+
+# This workflow is intentionally disabled and will no longer run.
+# It was retained for historic purposes only and can be deleted.
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  template-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        pip install pyyaml requests
+        npm install -g @octokit/rest
+    
+    - name: Configure Git
+      run: |
+        git config --global user.name "Template Heaven Bot"
+        git config --global user.email "bot@template-heaven.com"
+    
+    - name: Get stack branches
+      id: get_stacks
+      run: |
+        if [ -n "${{ github.event.inputs.stack_filter }}" ]; then
+          echo "stacks=${{ github.event.inputs.stack_filter }}" >> $GITHUB_OUTPUT
+        else
+          # Get all stack branches
+          STACKS=$(git branch -r | grep 'origin/stack/' | sed 's/origin\/stack\///' | tr '\n' ' ')
+          echo "stacks=$STACKS" >> $GITHUB_OUTPUT
+        fi
+        echo "Found stacks: $STACKS"
+    
+    - name: Sync templates for each stack
+      id: sync_templates
+      run: |
+        STACKS="${{ steps.get_stacks.outputs.stacks }}"
+        SYNC_RESULTS=""
+        TOTAL_SYNCED=0
+        TOTAL_FAILED=0
+        
+        for stack in $STACKS; do
+          echo "Processing stack: $stack"
+          
+          # Checkout stack branch
+          git checkout "origin/stack/$stack" || git checkout -b "stack/$stack" "origin/dev"
+          
+          # Get templates to sync from stack configuration
+          if [ -f "stacks/$stack/.stack-config.yml" ]; then
+            TEMPLATES=$(python -c "
+            import yaml
+            import os
+            try:
+                with open('stacks/$stack/.stack-config.yml', 'r') as f:
+                    config = yaml.safe_load(f)
+                templates = config.get('templates', [])
+                for template in templates:
+                    if template.get('auto_sync', False):
+                        print(f\"{template['name']}|{template['upstream_url']}|{template.get('subdir', '')}\")
+            except Exception as e:
+                print(f'Error reading config: {e}', file=sys.stderr)
+            " 2>/dev/null || echo "")
+            
+            if [ -n "$TEMPLATES" ]; then
+              echo "Found templates to sync for $stack:"
+              echo "$TEMPLATES"
+              
+              for template_info in $TEMPLATES; do
+                IFS='|' read -r name url subdir <<< "$template_info"
+                
+                echo "Syncing template: $name from $url"
+                
+                # Check if we should skip this template
+                if [ "${{ github.event.inputs.force_sync }}" != "true" ]; then
+                  # Check last sync time
+                  if [ -f "stacks/$stack/$name/.upstream-info" ]; then
+                    LAST_SYNC=$(grep "Last Sync:" "stacks/$stack/$name/.upstream-info" | cut -d' ' -f3-4)
+                    if [ -n "$LAST_SYNC" ]; then
+                      # Skip if synced within last 7 days
+                      if [ $(date -d "$LAST_SYNC" +%s) -gt $(date -d "7 days ago" +%s) ]; then
+                        echo "Skipping $name - recently synced ($LAST_SYNC)"
+                        continue
+                      fi
+                    fi
+                  fi
+                fi
+                
+                # Perform sync
+                if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+                  echo "DRY RUN: Would sync $name from $url"
+                  SYNC_RESULTS="$SYNC_RESULTS\n✅ DRY RUN: $stack/$name"
+                  TOTAL_SYNCED=$((TOTAL_SYNCED + 1))
+                else
+                  if ./scripts/sync_template.sh "$name" "$url" "$stack" --subdir "$subdir" --force; then
+                    echo "Successfully synced $name"
+                    SYNC_RESULTS="$SYNC_RESULTS\n✅ $stack/$name"
+                    TOTAL_SYNCED=$((TOTAL_SYNCED + 1))
+                    
+                    # Commit changes
+                    git add "stacks/$stack/$name/"
+                    if git diff --staged --quiet; then
+                      echo "No changes to commit for $name"
+                    else
+                      git commit -m "feat: sync template $name from upstream
+
+- Source: $url
+- Stack: $stack
+- Subdirectory: $subdir
+- Synced by: Template Heaven Bot
+- Workflow: ${{ github.workflow }} #${{ github.run_number }}"
+                    fi
+                  else
+                    echo "Failed to sync $name"
+                    SYNC_RESULTS="$SYNC_RESULTS\n❌ $stack/$name"
+                    TOTAL_FAILED=$((TOTAL_FAILED + 1))
+                  fi
+                fi
+              done
+            else
+              echo "No templates configured for auto-sync in $stack"
+            fi
+          else
+            echo "No stack configuration found for $stack"
+          fi
+        done
+        
+        echo "sync_results=$SYNC_RESULTS" >> $GITHUB_OUTPUT
+        echo "total_synced=$TOTAL_SYNCED" >> $GITHUB_OUTPUT
+        echo "total_failed=$TOTAL_FAILED" >> $GITHUB_OUTPUT
+    
+    - name: Push changes
+      if: github.event.inputs.dry_run != 'true' && steps.sync_templates.outputs.total_synced > 0
+      run: |
+        # Push all stack branches
+        git push origin --all
+    
+    - name: Create summary
+      run: |
+        echo "## Template Synchronization Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Synced**: ${{ steps.sync_templates.outputs.total_synced }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Failed**: ${{ steps.sync_templates.outputs.total_failed }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Sync Time**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Detailed Results" >> $GITHUB_STEP_SUMMARY
+        echo -e "${{ steps.sync_templates.outputs.sync_results }}" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Create GitHub Issue for Failures
+      if: steps.sync_templates.outputs.total_failed > 0
+      run: |
+        python -c "
+        import requests
+        import json
+        import os
+        
+        github_token = os.getenv('GITHUB_TOKEN')
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        title = '⚠️ Template Sync Failures Detected'
+        body = f'''## Template Synchronization Failures
+        
+The weekly template synchronization encountered failures that require attention.
+
+**Summary:**
+- Total Synced: ${{ steps.sync_templates.outputs.total_synced }}
+- Total Failed: ${{ steps.sync_templates.outputs.total_failed }}
+
+**Failed Templates:**
+${{ steps.sync_templates.outputs.sync_results }}
+
+**Workflow Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+Please investigate the failed synchronizations and resolve any issues.
+        '''
+        
+        issue_data = {
+            'title': title,
+            'body': body,
+            'labels': ['template-sync', 'failure', 'automation'],
+            'assignees': []
+        }
+        
+        response = requests.post(
+            f'https://api.github.com/repos/${{ github.repository }}/issues',
+            headers=headers,
+            data=json.dumps(issue_data)
+        )
+        
+        if response.status_code == 201:
+            print('Created issue for sync failures')
+        else:
+            print(f'Failed to create issue: {response.text}')
+        "
+    
+    - name: Send Slack Notification
+      if: steps.sync_templates.outputs.total_synced > 0 || steps.sync_templates.outputs.total_failed > 0
+      run: |
+        if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+          STATUS="✅ Success"
+          if [ "${{ steps.sync_templates.outputs.total_failed }}" -gt 0 ]; then
+            STATUS="⚠️ Partial Success"
+          fi
+          
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🔄 Template Sync Complete - $STATUS\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Template Synchronization Results*\n• Synced: ${{ steps.sync_templates.outputs.total_synced }}\n• Failed: ${{ steps.sync_templates.outputs.total_failed }}\n• Repository: ${{ github.repository }}\n• Run: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>\"
+                  }
+                }
+              ]
+            }" \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+        fi
+    
+    - name: Archive logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: template-sync-logs-${{ github.run_number }}
+        path: |
+          .git/logs/
+          stacks/*/logs/
+        retention-days: 30

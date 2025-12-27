@@ -1,0 +1,348 @@
+name: Branch Synchronization
+on:
+  schedule:
+    # Run daily at 1 AM UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+# Workflow intentionally disabled to honor maintainer preference: CI/CD pipelines removed
+name: Disabled - Repository workflows removed
+
+# This workflow is intentionally disabled and will no longer run.
+# It was retained for historic purposes only and can be deleted.
+    inputs:
+      force_sync:
+        description: 'Force sync even if recently updated'
+        required: false
+        default: 'false'
+        type: boolean
+      target_branches:
+        description: 'Specific branches to sync (comma-separated, leave empty for all)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  branch-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        pip install pyyaml requests
+    
+    - name: Configure Git
+      run: |
+        git config --global user.name "Template Heaven Bot"
+        git config --global user.email "bot@template-heaven.com"
+    
+    - name: Get target branches
+      id: get_branches
+        run: |
+        if [ -n "${{ github.event.inputs.target_branches }}" ]; then
+          # Use specified branches
+          BRANCHES=$(echo "${{ github.event.inputs.target_branches }}" | tr ',' ' ')
+        else
+          # Get all stack branches
+          BRANCHES=$(git branch -r | grep 'origin/stack/' | sed 's/origin\///' | tr '\n' ' ')
+        fi
+        echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+        echo "Target branches: $BRANCHES"
+    
+    - name: Sync core tools to stack branches
+      id: sync_tools
+      run: |
+        BRANCHES="${{ steps.get_branches.outputs.branches }}"
+        SYNC_RESULTS=""
+        TOTAL_SYNCED=0
+        TOTAL_FAILED=0
+        
+        # Define core tools to sync
+        CORE_TOOLS="
+        scripts/
+        tools/
+        .github/workflows/
+        docs/
+        CONTRIBUTING.md
+        README.md
+        STACK_CATALOG.md
+        "
+        
+        for branch in $BRANCHES; do
+          echo "Processing branch: $branch"
+          
+          # Checkout target branch
+          if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            git checkout "$branch"
+          else
+            echo "Branch $branch does not exist, skipping"
+            continue
+          fi
+          
+          # Check if we should skip this branch
+          if [ "${{ github.event.inputs.force_sync }}" != "true" ]; then
+            # Check last sync time
+            if [ -f ".last-sync" ]; then
+              LAST_SYNC=$(cat .last-sync)
+              if [ -n "$LAST_SYNC" ]; then
+                # Skip if synced within last 24 hours
+                if [ $(date -d "$LAST_SYNC" +%s) -gt $(date -d "24 hours ago" +%s) ]; then
+                  echo "Skipping $branch - recently synced ($LAST_SYNC)"
+                  continue
+                fi
+              fi
+            fi
+          fi
+          
+          # Sync core tools
+          CHANGES_MADE=false
+          
+          for tool in $CORE_TOOLS; do
+            if [ -e "$tool" ]; then
+              echo "Syncing $tool to $branch"
+              
+              # Create target directory if it doesn't exist
+              if [ -d "$tool" ]; then
+                mkdir -p "$(dirname "$tool")"
+              fi
+              
+              # Copy tool
+              if cp -r "$tool" .; then
+                echo "Successfully synced $tool"
+                CHANGES_MADE=true
+              else
+                echo "Failed to sync $tool"
+                SYNC_RESULTS="$SYNC_RESULTS\n❌ $branch: $tool"
+                TOTAL_FAILED=$((TOTAL_FAILED + 1))
+              fi
+            fi
+          done
+          
+          # Update stack-specific files if they exist
+          if [ -f "stacks/$(basename $branch)/.stack-config.yml" ]; then
+            echo "Updating stack configuration for $branch"
+            
+            # Update last modified timestamp
+            python -c "
+            import yaml
+            import datetime
+            
+            try:
+                with open('stacks/$(basename $branch)/.stack-config.yml', 'r') as f:
+                    config = yaml.safe_load(f)
+                
+                config['last_updated'] = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+                config['last_sync'] = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+                
+                with open('stacks/$(basename $branch)/.stack-config.yml', 'w') as f:
+                    yaml.dump(config, f, default_flow_style=False)
+                
+                print('Updated stack configuration')
+                CHANGES_MADE=true
+            except Exception as e:
+                print(f'Error updating config: {e}')
+            "
+          fi
+          
+          if [ "$CHANGES_MADE" = "true" ]; then
+            # Update last sync timestamp
+            echo "$(date -u)" > .last-sync
+            
+            # Commit changes
+            git add .
+            if git diff --staged --quiet; then
+              echo "No changes to commit for $branch"
+            else
+              git commit -m "feat: sync core tools to stack branch
+
+- Synced core tools and documentation
+- Updated stack configuration
+- Synced by: Template Heaven Bot
+- Workflow: ${{ github.workflow }} #${{ github.run_number }}"
+              
+              SYNC_RESULTS="$SYNC_RESULTS\n✅ $branch"
+              TOTAL_SYNCED=$((TOTAL_SYNCED + 1))
+            fi
+          else
+            echo "No changes needed for $branch"
+            SYNC_RESULTS="$SYNC_RESULTS\n⏭️ $branch (no changes)"
+          fi
+        done
+        
+        echo "sync_results=$SYNC_RESULTS" >> $GITHUB_OUTPUT
+        echo "total_synced=$TOTAL_SYNCED" >> $GITHUB_OUTPUT
+        echo "total_failed=$TOTAL_FAILED" >> $GITHUB_OUTPUT
+    
+    - name: Update main documentation
+      run: |
+        # Update main README with latest branch information
+        python -c "
+        import subprocess
+        import re
+        
+        # Get all stack branches
+        result = subprocess.run(['git', 'branch', '-r'], capture_output=True, text=True)
+        stack_branches = [line.strip().replace('origin/', '') for line in result.stdout.split('\n') if 'origin/stack/' in line]
+        
+        # Update README.md
+        with open('README.md', 'r') as f:
+            content = f.read()
+        
+        # Update branch count
+        content = re.sub(r'(\d+) stack branches', f'{len(stack_branches)} stack branches', content)
+        
+        with open('README.md', 'w') as f:
+            f.write(content)
+        
+        print(f'Updated README.md with {len(stack_branches)} stack branches')
+        "
+        
+        # Update STACK_CATALOG.md
+        python -c "
+        import subprocess
+        import yaml
+          import os
+        
+        # Get all stack branches
+        result = subprocess.run(['git', 'branch', '-r'], capture_output=True, text=True)
+        stack_branches = [line.strip().replace('origin/', '') for line in result.stdout.split('\n') if 'origin/stack/' in line]
+        
+        # Update STACK_CATALOG.md
+        with open('STACK_CATALOG.md', 'r') as f:
+            content = f.read()
+        
+        # Update branch count
+        import re
+        content = re.sub(r'(\d+) stack branches', f'{len(stack_branches)} stack branches', content)
+        
+        with open('STACK_CATALOG.md', 'w') as f:
+            f.write(content)
+        
+        print(f'Updated STACK_CATALOG.md with {len(stack_branches)} stack branches')
+        "
+        
+        # Commit documentation updates
+        git add README.md STACK_CATALOG.md
+        if ! git diff --staged --quiet; then
+          git commit -m "docs: update branch count in documentation
+
+- Updated README.md and STACK_CATALOG.md
+- Synced by: Template Heaven Bot
+- Workflow: ${{ github.workflow }} #${{ github.run_number }}"
+        fi
+    
+    - name: Push changes
+      if: steps.sync_tools.outputs.total_synced > 0
+      run: |
+        # Push all branches
+        git push origin --all
+    
+    - name: Create summary
+      run: |
+        echo "## Branch Synchronization Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Synced**: ${{ steps.sync_tools.outputs.total_synced }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Failed**: ${{ steps.sync_tools.outputs.total_failed }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Sync Time**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Detailed Results" >> $GITHUB_STEP_SUMMARY
+        echo -e "${{ steps.sync_tools.outputs.sync_results }}" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Create GitHub Issue for Failures
+      if: steps.sync_tools.outputs.total_failed > 0
+        run: |
+        python -c "
+        import requests
+        import json
+        import os
+        
+        github_token = os.getenv('GITHUB_TOKEN')
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        title = '⚠️ Branch Sync Failures Detected'
+        body = f'''## Branch Synchronization Failures
+        
+The daily branch synchronization encountered failures that require attention.
+
+**Summary:**
+- Total Synced: ${{ steps.sync_tools.outputs.total_synced }}
+- Total Failed: ${{ steps.sync_tools.outputs.total_failed }}
+
+**Failed Branches:**
+${{ steps.sync_tools.outputs.sync_results }}
+
+**Workflow Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+Please investigate the failed synchronizations and resolve any issues.
+        '''
+        
+        issue_data = {
+            'title': title,
+            'body': body,
+            'labels': ['branch-sync', 'failure', 'automation'],
+            'assignees': []
+        }
+        
+        response = requests.post(
+            f'https://api.github.com/repos/${{ github.repository }}/issues',
+            headers=headers,
+            data=json.dumps(issue_data)
+        )
+        
+        if response.status_code == 201:
+            print('Created issue for sync failures')
+        else:
+            print(f'Failed to create issue: {response.text}')
+        "
+    
+    - name: Send Slack Notification
+      if: steps.sync_tools.outputs.total_synced > 0 || steps.sync_tools.outputs.total_failed > 0
+      run: |
+        if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+          STATUS="✅ Success"
+          if [ "${{ steps.sync_tools.outputs.total_failed }}" -gt 0 ]; then
+            STATUS="⚠️ Partial Success"
+          fi
+          
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🔄 Branch Sync Complete - $STATUS\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Branch Synchronization Results*\n• Synced: ${{ steps.sync_tools.outputs.total_synced }}\n• Failed: ${{ steps.sync_tools.outputs.total_failed }}\n• Repository: ${{ github.repository }}\n• Run: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>\"
+                  }
+                }
+              ]
+            }" \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+        fi
+    
+    - name: Archive logs
+    if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: branch-sync-logs-${{ github.run_number }}
+        path: |
+          .git/logs/
+          .last-sync
+        retention-days: 30

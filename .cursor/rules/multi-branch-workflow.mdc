@@ -1,0 +1,215 @@
+---
+globs: *.md,*.yml,*.yaml,*.sh,*.ps1
+description: Multi-branch workflow and Git practices for Template Heaven
+---
+
+# Multi-Branch Workflow & Git Practices
+
+## 🌿 Branch Architecture
+
+### Core Branches
+- **`dev`**: Main development branch with core infrastructure, documentation, and tools
+- **`stack/*`**: Dedicated branches for each technology stack (e.g., `stack/frontend`, `stack/backend`)
+- **`feature/*`**: Feature branches for new functionality or template additions
+- **`hotfix/*`**: Emergency fixes that need immediate deployment
+
+### Branch Naming Convention
+- **Stack branches**: `stack/{category}` (e.g., `stack/frontend`, `stack/ai-ml`)
+- **Feature branches**: `feature/{description}` (e.g., `feature/add-react-templates`)
+- **Hotfix branches**: `hotfix/{issue-description}` (e.g., `hotfix/fix-sync-script`)
+
+## 🔄 Workflow Patterns
+
+### Working with Stack Branches
+
+#### For Template Users
+```bash
+# Switch to desired stack branch
+git checkout stack/frontend
+
+# Browse available templates
+ls stacks/frontend/
+
+# Copy template to new project
+cp -r stacks/frontend/react-vite ../my-new-project
+```
+
+#### For Contributors
+```bash
+# Create feature branch from stack branch
+git checkout stack/frontend
+git checkout -b feature/add-vue-templates
+
+# Make changes and commit
+git add .
+git commit -m "feat: add Vue 3 + Vite template"
+
+# Push and create PR
+git push origin feature/add-vue-templates
+# Create PR to merge into stack/frontend
+```
+
+#### For Maintainers
+```bash
+# Use branch manager for operations
+python scripts/branch_manager.py list
+python scripts/branch_manager.py create stack/new-stack
+python scripts/branch_manager.py sync stack/frontend
+python scripts/branch_manager.py report
+```
+
+### Template Synchronization
+
+#### Adding New Templates
+```bash
+# Use sync script to add template from upstream
+./scripts/sync_template.sh template-name upstream-url stack/frontend
+
+# Or manually add template
+git checkout stack/frontend
+# Add template files
+git add stacks/frontend/new-template/
+git commit -m "feat: add new-template from upstream"
+git push origin stack/frontend
+```
+
+#### Updating Existing Templates
+```bash
+# Sync with upstream repository
+./scripts/sync_template.sh existing-template upstream-url stack/frontend
+
+# Or manually update
+git checkout stack/frontend
+# Update template files
+git add stacks/frontend/updated-template/
+git commit -m "chore: update existing-template to latest version"
+git push origin stack/frontend
+```
+
+## 📝 Commit Message Standards
+
+### Format
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+- **feat**: New feature or template addition
+- **fix**: Bug fix or template correction
+- **chore**: Maintenance, updates, or configuration changes
+- **docs**: Documentation updates
+- **refactor**: Code refactoring without functional changes
+- **test**: Adding or updating tests
+- **ci**: Automation pipeline changes
+
+### Examples
+```
+feat(frontend): add Next.js 14 template with App Router
+fix(backend): resolve FastAPI dependency conflict
+chore(automation): update automation workflow
+docs(readme): add installation instructions for new templates
+refactor(scripts): improve branch manager error handling
+```
+
+## 🔧 Branch Management Tools
+
+### Branch Manager Script
+- **File**: [scripts/branch_manager.py](mdc:scripts/branch_manager.py)
+- **Purpose**: Advanced Python script for managing stack branches
+- **Commands**:
+  - `list`: List all available stack branches
+  - `create <name>`: Create a new stack branch
+  - `validate <name>`: Validate a stack branch structure
+  - `sync <name>`: Sync core tools to a stack branch
+  - `status <name>`: Show status of a stack branch
+  - `report`: Generate comprehensive stack report
+  - `cleanup`: Clean up temporary files and branches
+
+### Sync Scripts
+- **Bash**: [scripts/sync_template.sh](mdc:scripts/sync_template.sh)
+- **PowerShell**: [scripts/sync_template.ps1](mdc:scripts/sync_template.ps1)
+- **Purpose**: Synchronize templates from upstream repositories
+
+## 🤖 Automation Examples (disabled)
+
+### Automation examples (GitHub Actions disabled)
+-- **Trend Detection**: (GitHub Actions workflow example—disabled in repository)
+  - Daily automated trend monitoring (disabled)
+  - GitHub API integration
+  - Automated issue creation for high-priority trends
+-- **Template Sync**: (GitHub Actions workflow example—disabled in repository)
+  - Weekly automated template syncing (disabled)
+  - Upstream repository monitoring
+  - Automated PR creation for significant updates
+-- **Branch Sync**: (GitHub Actions workflow example—disabled in repository)
+  - Weekly core tools synchronization (disabled)
+  - Stack configuration updates
+  - Branch validation and health checks
+
+### Trend Detection System
+- **Location**: [tools/trending-flagger/trend-detector/](mdc:tools/trending-flagger/trend-detector/)
+- **Purpose**: Automated monitoring of trending templates
+- **Components**:
+  - Star monitoring with linear regression
+  - Fork activity tracking
+  - Early trend detection
+  - Priority scoring system
+  - Historical tracking
+  - Alert system with notifications
+
+## 🚨 Important Guidelines
+
+### Privacy and Security
+- **Never fork public upstream templates directly**
+- Use sync scripts to pull in templates without exposing organization work
+- Maintain **private repository** status
+- Respect upstream licenses and attributions
+
+### Template Management
+- **Each template maintains its original upstream source attribution**
+- **Document template provenance** in README files
+- **Keep templates updated** with upstream changes
+- **Validate template functionality** before adding to stacks
+
+### Branch Hygiene
+- **Keep stack branches focused** on their specific technology stack
+- **Regular cleanup** of temporary branches and files
+- **Validate branch structure** before merging
+- **Maintain consistent naming** across all branches
+
+### Code Review Process
+- **All changes require PR review** before merging
+- **Test template functionality** before approval
+- **Validate documentation** and README updates
+- **Check for security vulnerabilities** in dependencies
+
+## 📊 Branch Status Monitoring
+
+### Health Checks
+- **Branch validation**: Ensure proper structure and configuration
+- **Template testing**: Verify all templates work correctly
+- **Dependency auditing**: Check for security vulnerabilities
+- **Documentation completeness**: Ensure all templates have proper README files
+
+### Reporting
+- **Daily trend reports**: Automated trend detection summaries
+- **Weekly sync reports**: Template update and synchronization status
+- **Monthly health reports**: Overall system health and performance metrics
+
+## 🔗 Integration Points
+
+### External Systems
+- **GitHub API**: For trend detection and repository monitoring
+- **PostgreSQL**: For storing trend data and alerts
+- **Redis**: For caching and queue management
+- **Slack/Email**: For notifications and alerts
+
+### Internal Tools
+- **Branch Manager**: Python script for branch operations
+- **Sync Scripts**: Template synchronization utilities
+- **Trend Detector**: Automated trend monitoring system
+- **Automation workflows** (GitHub Actions examples disabled)
